@@ -121,7 +121,7 @@ export class AuthService {
       const accessToken = this.jwtService.sign(payload, { secret: jwtSecret });
       const refreshToken = this.jwtService.sign(payload, {
         secret: jwtRefreshSecret,
-        expiresIn: '7d',
+        expiresIn: '30m',
       });
 
       user.refreshToken = await bcrypt.hash(refreshToken, 10);

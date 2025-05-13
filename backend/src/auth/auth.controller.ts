@@ -1,12 +1,13 @@
-import { Controller, Post, Body, Get, UseGuards, Request, HttpCode, Query } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Request, HttpCode, Query, Response, Res, Req } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthGuard } from '@nestjs/passport';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
+import { Response as ExpressResponse } from 'express';
 
-@Controller('auth')
+@Controller('api/auth')
 export class AuthController {
   constructor(private authService: AuthService) {}
 
@@ -30,9 +31,23 @@ export class AuthController {
   }
 
   @Post('login')
-  @HttpCode(200)
-  async login(@Body() dto: LoginDto) {
-    return this.authService.login(dto);
+  async login(@Body() loginDto: LoginDto, @Response({ passthrough: true }) res) {
+    const { accessToken, refreshToken } = await this.authService.login(loginDto);
+    // Gửi Access Token trong cookie
+    res.cookie('access_token', accessToken, {
+      httpOnly: false, // Access Token cần truy cập từ JS
+      secure: false, // Bật true trong sản xuất (HTTPS)
+      sameSite: 'lax',
+      maxAge: 15 * 60 * 1000, // 15 phút
+    });
+    // Gửi Refresh Token trong cookie
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true, // Ngăn truy cập từ JS
+      secure: false, // Bật true trong sản xuất (HTTPS)
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
+    });
+    return { message: 'Login successful' };
   }
 
   @Get('google')
@@ -41,15 +56,50 @@ export class AuthController {
 
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Request() req) {
-    return this.authService.googleLogin(req.user);
+  async googleAuthRedirect(@Request() req, @Response({ passthrough: true }) res) {
+    const { accessToken, refreshToken } = await this.authService.googleLogin(req.user);
+    // Gửi Access Token trong cookie
+    res.cookie('access_token', accessToken, {
+      httpOnly: false,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 15 * 60 * 1000,
+    });
+    // Gửi Refresh Token trong cookie
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+    // Chuyển hướng về frontend
+    // res.redirect('http://localhost:3000/dashboard');
   }
 
   @Post('refresh')
   @UseGuards(AuthGuard('jwt'))
   @HttpCode(200)
-  async refresh(@Body() dto: RefreshTokenDto, @Request() req) {
-    return this.authService.refreshToken(req.user._id, dto);
+  async refreshToken(
+    @Request() req,
+    @Body() refreshTokenDto: RefreshTokenDto,
+    @Response({ passthrough: true }) res,
+  ) {
+    const { accessToken, refreshToken } = await this.authService.refreshToken(req.user['_id'], refreshTokenDto);
+    // Cập nhật Access Token trong cookie
+    res.cookie('access_token', accessToken, {
+      httpOnly: false,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 15 * 60 * 1000,
+    });
+    // Cập nhật Refresh Token trong cookie
+    res.cookie('refresh_token', refreshToken, {
+      httpOnly: true,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+    return { message: 'Token refreshed' };
   }
 
   @UseGuards(AuthGuard('jwt'))
@@ -58,11 +108,15 @@ export class AuthController {
     return req.user;
   }
 
-  @UseGuards(AuthGuard('jwt'))
   @Post('logout')
+  @UseGuards(AuthGuard('jwt'))
   @HttpCode(204)
-  async logout(@Request() req) {
-    await this.authService.invalidateRefreshToken(req.user._id);
+  async logout(@Request() req, @Response({ passthrough: true }) res) {
+    await this.authService.invalidateRefreshToken(req.user['_id']);
+    // Xóa cookies
+    res.clearCookie('access_token');
+    res.clearCookie('refresh_token');
+    return { message: 'Logout successful' };
   }
 
   @UseGuards(AuthGuard('jwt'))
