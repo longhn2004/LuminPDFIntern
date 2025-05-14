@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import logo from "../../../public/images/dsvlogo.png"
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -43,11 +42,11 @@ export default function SignIn() {
     }
   };
 
-  return <div className="flex h-screen w-full bg-[url('@/public/images/backgroundauth.png')] bg-cover bg-center">
+  return <div className="flex h-screen w-full bg-[url('@/public/images/backgroundauth.png')] fixed bg-cover bg-center">
     {/* left div */}
-    <div className="opacity-100 text-black absolute left-20 top-1/2 transform -translate-y-1/2 w-[250px]  rounded-xl top-1/2">
+    <div className="opacity-100 text-black absolute left-20 top-1/2 transform -translate-y-1/2 w-[300px]  rounded-xl top-1/2">
       <div className=" w-full h-full rounded-xl">
-        <div className="flex items-center bg-white w-1/2 rounded-xl p-2">
+        <div className="flex items-center bg-white w-[130px] rounded-xl p-2">
           <img src="/images/dsvlogo.png" alt="Logo" className="h-10 w-10" />
           <span className="text-xl font-bold text-black">DI-DSV</span>
         </div>
@@ -57,8 +56,12 @@ export default function SignIn() {
     </div>
     {/* right div */}
     <div className="bg-white w-1/4 text-black absolute right-20 top-1/2 transform -translate-y-1/2 rounded-xl p-10 justify-center items-center flex flex-col">
-      <h1 className="text-2xl font-bold text-[45px]">Sign In</h1>
-
+      <div className="flex items-center gap-2">
+        <h1 className="text-2xl font-bold text-[45px]">Sign In </h1>
+        <img src="/images/dsvlogo.png" alt="Logo" className="h-10 w-10" />
+      </div>
+      
+      {/* Google Sign In Button */}
       <button className="bg-white w-full text-gray-700 p-2 rounded-xl hover:bg-gray-100 cursor-pointer active:scale-95 transition-all duration-300 border border-gray-300 flex items-center justify-center gap-2 mt-10">
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20px" height="20px">
           <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
@@ -75,6 +78,7 @@ export default function SignIn() {
         <hr className="flex-grow border-gray-300" />
       </div>
 
+      {/* Email Input */}
       <div className="relative w-full">
         <label htmlFor="email" className="text-sm">Email</label>
         <input 
@@ -94,6 +98,7 @@ export default function SignIn() {
       </div>
       <br/>
 
+      {/* Password Input */}  
       <div className="relative w-full">
         <label htmlFor="password" className="text-sm">Password</label>
         <div className="relative w-full">
@@ -127,6 +132,7 @@ export default function SignIn() {
           </button>
         </div>
         {emptyPassword&& <p className="text-red-500 text-xs mt-1">Mandatory field</p>}
+        {invalidPassword && <p className="text-red-500 text-xs mt-1">Password must be at least 8 characters</p>}
       </div>
       
       {/* Authentication error message */}
