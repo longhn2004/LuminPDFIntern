@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import axios from "@/app/libs/api/axios";
 
 export default function SignUp() {
   const [fullName, setFullName] = useState("");
@@ -24,7 +25,7 @@ export default function SignUp() {
   
   const router = useRouter();
 
-  const handleSignUp = () => {
+  const handleSignUp = async () => {
     // Reset all validation states
     setEmptyFullName(false);
     setEmptyEmail(false);
@@ -67,34 +68,51 @@ export default function SignUp() {
       isValid = false;
     }
 
-    // Mock check for existing email (would be replaced with real API check)
-    // This is just for demonstration
-    if(email === "test@example.com") {
-      setExistingEmail(true);
-      isValid = false;
-    }
-
     if(isValid) {
-      // If all validations pass, proceed with signup
-      console.log("Signup successful", { fullName, email, password });
-      // Would typically send data to backend here
-      // Send verification email and redirect to verify-email page
-      // This would normally be an API call to register the user
-      // and send the verification email
-      
       try {
-        // Mock API call - in a real application, this would be an actual API call
-        // await fetch('/api/auth/signup', {
-        //   method: 'POST',
-        //   headers: { 'Content-Type': 'application/json' },
-        //   body: JSON.stringify({ fullName, email, password }),
-        // });
+        // Call our Next.js API instead of directly calling the backend
+        const response = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: fullName,
+            email,
+            password
+          })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Registration failed');
+        }
+        
+        const data = await response.json();
+        console.log("Signup successful:", data);
         
         // Redirect to verification page with email as query parameter
         router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
-      } catch (error) {
+      } catch (error: any) {
         console.error("Signup error:", error);
-        // Handle error state
+        
+        // Handle specific error cases
+        if (error.response) {
+          // Check if email already exists
+          if (error.response.status === 409) {
+            setExistingEmail(true);
+            
+            // If email is already registered with password, redirect to signin after delay
+            if (error.response.data.message.includes('already registered with email/password')) {
+              setTimeout(() => {
+                router.push('/auth/signin');
+              }, 2000);
+            }
+            return;
+          }
+        }
+        
+        // Handle other errors (could add more specific error handling here)
       }
     }
   };
@@ -118,7 +136,10 @@ export default function SignUp() {
         <img src="/images/dsvlogo.png" alt="Logo" className="h-10 w-10" />
       </div>
       
-      <button className="bg-white w-full text-gray-700 p-2 rounded-xl hover:bg-gray-100 cursor-pointer active:scale-95 transition-all duration-300 border border-gray-300 flex items-center justify-center gap-2 mt-10">
+      <button 
+        onClick={() => window.location.href = '/api/auth/google'} 
+        className="bg-white w-full text-gray-700 p-2 rounded-xl hover:bg-gray-100 cursor-pointer active:scale-95 transition-all duration-300 border border-gray-300 flex items-center justify-center gap-2 mt-10"
+      >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20px" height="20px">
           <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
           <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>

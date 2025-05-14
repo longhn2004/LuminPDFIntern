@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "axios": "^1.9.0",
+    "js-cookie": "^3.0.5",
     "next": "15.3.2",
     "next-intl": "^4.1.0",
     "react": "^19.0.0",

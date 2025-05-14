@@ -12,9 +12,6 @@ export class User extends Document {
   @Prop({ required: false })
   googleId?: string; // For Google OAuth users
 
-  @Prop()
-  refreshToken: string; // Store hashed refresh token
-
   @Prop({ default: false })
   isEmailVerified: boolean;
 

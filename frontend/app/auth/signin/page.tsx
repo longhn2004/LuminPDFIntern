@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import axios from "@/app/libs/api/axios";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -15,30 +17,72 @@ export default function SignIn() {
   const [emptyPassword, setEmptyPassword] = useState(false);
   const [incorrectEmailOrPassword, setIncorrectEmailOrPassword] = useState(false);
   const router = useRouter();
+  // Import query string for parsing URL parameters
+  // Get search parameters from URL
+  const searchParams = useSearchParams();
+  const verificationStatus = searchParams.get("verification");
+  const [verificationMessage, setVerificationMessage] = useState("");
+  
+  // Check if there's a verification message to display
+  useEffect(() => {
+    if (verificationStatus === "required") {
+      setVerificationMessage("Please verify your email before signing in.");
+    } else if (verificationStatus === "success") {
+      setVerificationMessage("Email verified successfully! You can now sign in.");
+    }
+  }, [verificationStatus]);
 
-  const handleSignIn = () => {
-    console.log(email, password);
-    if(email === "" ){
+  const handleSignIn = async () => {
+    // Reset error states
+    setInvalidEmail(false);
+    setEmptyEmail(false);
+    setInvalidPassword(false);
+    setEmptyPassword(false);
+    setIncorrectEmailOrPassword(false);
+    
+    // Validation logic
+    if(email === "") {
       setEmptyEmail(true);
       if(password === ""){
         setEmptyPassword(true);
       }
+      return;
     }
     else if(password === ""){
       setEmptyPassword(true);
+      return;
     }
     else if(!email.includes("@") || !email.includes(".")){
       setInvalidEmail(true);
+      return;
     }
     else if(password.length < 8){
       setInvalidPassword(true);
+      return;
     }
-    else{
-      setIncorrectEmailOrPassword(false);
-      setInvalidEmail(false);
-      setInvalidPassword(false);
-      setEmptyEmail(false);
-      setEmptyPassword(false);
+    
+    try {
+      // Call the backend directly with axios
+      const response = await axios.post('/auth/login', { email, password });
+      
+      console.log('Login successful:', response);
+      
+      // If login is successful, redirect to dashboard
+      router.push('/dashboard/document-list');
+    } catch (error: any) {
+      console.error('Login error:', error);
+      
+      // Handle specific error cases
+      if (error.response) {
+        // Check if email is not verified
+        if (error.response.status === 401 && error.response.data.message === 'Email not verified') {
+          router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
+          return;
+        }
+      }
+      
+      // Generic error handling
+      setIncorrectEmailOrPassword(true);
     }
   };
 
@@ -62,7 +106,10 @@ export default function SignIn() {
       </div>
       
       {/* Google Sign In Button */}
-      <button className="bg-white w-full text-gray-700 p-2 rounded-xl hover:bg-gray-100 cursor-pointer active:scale-95 transition-all duration-300 border border-gray-300 flex items-center justify-center gap-2 mt-10">
+      <button 
+        onClick={() => window.location.href = '/api/auth/google'}
+        className="bg-white w-full text-gray-700 p-2 rounded-xl hover:bg-gray-100 cursor-pointer active:scale-95 transition-all duration-300 border border-gray-300 flex items-center justify-center gap-2 mt-10"
+      >
         <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="20px" height="20px">
           <path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/>
           <path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/>

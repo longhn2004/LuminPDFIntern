@@ -1,9 +1,33 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function VerifySuccess() {
   const router = useRouter();
+
+  // Call the backend API to verify the user has actually been verified
+  useEffect(() => {
+    const checkVerificationStatus = async () => {
+      try {
+        // Try to access a protected endpoint to validate verification
+        const response = await fetch('/api/auth/me', {
+          credentials: 'include'
+        });
+        
+        // If the user can't access the endpoint, redirect to signin
+        if (!response.ok) {
+          setTimeout(() => {
+            router.push('/auth/signin');
+          }, 3000);
+        }
+      } catch (error) {
+        console.error('Error checking verification status:', error);
+      }
+    };
+    
+    checkVerificationStatus();
+  }, [router]);
 
   const handleGoToDocuments = () => {
     // Navigate to documents page
@@ -16,7 +40,7 @@ export default function VerifySuccess() {
       <div className="w-full bg-white p-4 border-b border-gray-200 shadow-md z-1">
         <div className="container mx-auto">
           <div className="flex items-center">
-            <button onClick={() => router.push("signin")} className="cursor-pointer">
+            <button onClick={() => router.push("/auth/signin")} className="cursor-pointer">
               <img src="/images/dsvlogo.png" alt="Logo" className="h-10 w-10" />
             </button>
             

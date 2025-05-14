@@ -32,21 +32,21 @@ export class AuthController {
 
   @Post('login')
   async login(@Body() loginDto: LoginDto, @Response({ passthrough: true }) res) {
-    const { accessToken, refreshToken } = await this.authService.login(loginDto);
+    const { accessToken} = await this.authService.login(loginDto);
     // Gửi Access Token trong cookie
     res.cookie('access_token', accessToken, {
       httpOnly: false, // Access Token cần truy cập từ JS
       secure: false, // Bật true trong sản xuất (HTTPS)
       sameSite: 'lax',
-      maxAge: 15 * 60 * 1000, // 15 phút
+      maxAge: 30 * 60 * 1000, // 15 phút
     });
     // Gửi Refresh Token trong cookie
-    res.cookie('refresh_token', refreshToken, {
-      httpOnly: true, // Ngăn truy cập từ JS
-      secure: false, // Bật true trong sản xuất (HTTPS)
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
-    });
+    // res.cookie('refresh_token', refreshToken, {
+    //   httpOnly: true, // Ngăn truy cập từ JS
+    //   secure: false, // Bật true trong sản xuất (HTTPS)
+    //   sameSite: 'lax',
+    //   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
+    // });
     return { message: 'Login successful' };
   }
 
@@ -57,51 +57,51 @@ export class AuthController {
   @Get('google/callback')
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(@Request() req, @Response({ passthrough: true }) res) {
-    const { accessToken, refreshToken } = await this.authService.googleLogin(req.user);
+    const { accessToken} = await this.authService.googleLogin(req.user);
     // Gửi Access Token trong cookie
     res.cookie('access_token', accessToken, {
       httpOnly: false,
       secure: false,
       sameSite: 'lax',
-      maxAge: 15 * 60 * 1000,
+      maxAge: 30 * 60 * 1000,
     });
     // Gửi Refresh Token trong cookie
-    res.cookie('refresh_token', refreshToken, {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    // res.cookie('refresh_token', refreshToken, {
+    //   httpOnly: true,
+    //   secure: false,
+    //   sameSite: 'lax',
+    //   maxAge: 7 * 24 * 60 * 60 * 1000,
+    // });
     // Chuyển hướng về frontend
     res.redirect('http://localhost:3000/dashboard/document-list');
     // res.redirect('http://localhost:3000/dashboard');
   }
 
-  @Post('refresh')
-  @UseGuards(AuthGuard('jwt'))
-  @HttpCode(200)
-  async refreshToken(
-    @Request() req,
-    @Body() refreshTokenDto: RefreshTokenDto,
-    @Response({ passthrough: true }) res,
-  ) {
-    const { accessToken, refreshToken } = await this.authService.refreshToken(req.user['_id'], refreshTokenDto);
-    // Cập nhật Access Token trong cookie
-    res.cookie('access_token', accessToken, {
-      httpOnly: false,
-      secure: false,
-      sameSite: 'lax',
-      maxAge: 15 * 60 * 1000,
-    });
-    // Cập nhật Refresh Token trong cookie
-    res.cookie('refresh_token', refreshToken, {
-      httpOnly: true,
-      secure: false,
-      sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
-    return { message: 'Token refreshed' };
-  }
+  // @Post('refresh')
+  // @UseGuards(AuthGuard('jwt'))
+  // @HttpCode(200)
+  // async refreshToken(
+  //   @Request() req,
+  //   @Body() refreshTokenDto: RefreshTokenDto,
+  //   @Response({ passthrough: true }) res,
+  // ) {
+  //   const { accessToken, refreshToken } = await this.authService.refreshToken(req.user['_id'], refreshTokenDto);
+  //   // Cập nhật Access Token trong cookie
+  //   res.cookie('access_token', accessToken, {
+  //     httpOnly: false,
+  //     secure: false,
+  //     sameSite: 'lax',
+  //     maxAge: 15 * 60 * 1000,
+  //   });
+  //   // Cập nhật Refresh Token trong cookie
+  //   res.cookie('refresh_token', refreshToken, {
+  //     httpOnly: true,
+  //     secure: false,
+  //     sameSite: 'lax',
+  //     maxAge: 7 * 24 * 60 * 60 * 1000,
+  //   });
+  //   return { message: 'Token refreshed' };
+  // }
 
   @UseGuards(AuthGuard('jwt'))
   @Get('profile')
@@ -113,10 +113,10 @@ export class AuthController {
   @UseGuards(AuthGuard('jwt'))
   @HttpCode(204)
   async logout(@Request() req, @Response({ passthrough: true }) res) {
-    await this.authService.invalidateRefreshToken(req.user['_id']);
+    // await this.authService.invalidateRefreshToken(req.user['_id']);
     // Xóa cookies
     res.clearCookie('access_token');
-    res.clearCookie('refresh_token');
+    // res.clearCookie('refresh_token');
     return { message: 'Logout successful' };
   }
 

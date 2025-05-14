@@ -58,7 +58,7 @@ export class AuthService {
     await user.save();
   }
 
-  async login(dto: LoginDto): Promise<{ accessToken: string; refreshToken: string }> {
+  async login(dto: LoginDto): Promise<{ accessToken: string }> {
     const { email, password } = dto;
     const user = await this.userModel.findOne({ email }).exec();
     if (!user || !user.password || !(await bcrypt.compare(password, user.password))) {
@@ -109,7 +109,7 @@ export class AuthService {
     return user;
   }
 
-  async googleLogin(user: User): Promise<{ accessToken: string; refreshToken: string }> {
+  async googleLogin(user: User): Promise<{ accessToken: string}> {
     let userfind = await this.userModel.findOne({ email: user.email }).exec();
     if (userfind){
       if (userfind.password){
@@ -122,7 +122,7 @@ export class AuthService {
     return this.generateTokens(user);
   }
 
-  async generateTokens(user: User): Promise<{ accessToken: string; refreshToken: string }> {
+  async generateTokens(user: User): Promise<{ accessToken: string}> {
     const payload = { email: user.email, sub: user._id };
     
     const jwtSecret = this.configService.get<string>('JWT_SECRET');
@@ -137,42 +137,37 @@ export class AuthService {
 
     try {
       const accessToken = this.jwtService.sign(payload, { secret: jwtSecret });
-      const refreshToken = this.jwtService.sign(payload, {
-        secret: jwtRefreshSecret,
-        expiresIn: '30m',
-      });
-
-      user.refreshToken = await bcrypt.hash(refreshToken, 10);
+      
       await user.save();
 
-      return { accessToken, refreshToken };
+      return { accessToken };
     } catch (error) {
       console.error('Error in generateTokens:', error);
       throw error;
     }
   }
 
-  async refreshToken(userId: string, dto: RefreshTokenDto): Promise<{ accessToken: string; refreshToken: string }> {
-    const { refreshToken } = dto;
-    const user = await this.userModel.findById(userId).exec();
-    if (!user || !user.refreshToken || !(await bcrypt.compare(refreshToken, user.refreshToken))) {
-      throw new UnauthorizedException('Invalid refresh token');
-    }
+  // async refreshToken(userId: string, dto: RefreshTokenDto): Promise<{ accessToken: string; refreshToken: string }> {
+  //   const { refreshToken } = dto;
+  //   const user = await this.userModel.findById(userId).exec();
+  //   if (!user || !user.refreshToken || !(await bcrypt.compare(refreshToken, user.refreshToken))) {
+  //     throw new UnauthorizedException('Invalid refresh token');
+  //   }
 
-    return this.generateTokens(user);
-  }
+  //   return this.generateTokens(user);
+  // }
 
   async validateUser(payload: any): Promise<User | null> {
     return this.userModel.findById(payload.sub).exec();
   }
 
-  async invalidateRefreshToken(userId: string): Promise<void> {
-    const user = await this.userModel.findById(userId).exec();
-    if (user) {
-      user.refreshToken = "";
-      await user.save();
-    }
-  }
+  // async invalidateRefreshToken(userId: string): Promise<void> {
+  //   const user = await this.userModel.findById(userId).exec();
+  //   if (user) {
+  //     user.refreshToken = "";
+  //     await user.save();
+  //   }
+  // }
 
   async getCurrentUser(user: User): Promise<{ email: string; isEmailVerified: boolean }> {
     if (!user) {
