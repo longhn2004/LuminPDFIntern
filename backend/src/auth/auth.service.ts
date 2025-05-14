@@ -83,6 +83,15 @@ export class AuthService {
       if (user.googleId) {
         return user;
       }
+      // If the user has a password, it means they registered via email/password
+      // We should not link Google account to an existing email/password account
+      // Instead, redirect them to sign in with their email/password
+      if (user.password) {
+        throw new ConflictException(
+          'An account with this email already exists. Please sign in with email and password.',
+          'EMAIL_PASSWORD_EXISTS'
+        );
+      }
       user.googleId = googleId;
       user.isEmailVerified = true;
       user.name = user.name || name; // Update name if not already set
@@ -101,6 +110,15 @@ export class AuthService {
   }
 
   async googleLogin(user: User): Promise<{ accessToken: string; refreshToken: string }> {
+    let userfind = await this.userModel.findOne({ email: user.email }).exec();
+    if (userfind){
+      if (userfind.password){
+        throw new ConflictException(
+          'An account with this email already exists. Please sign in with email and password.',
+          'EMAIL_PASSWORD_EXISTS'
+        );
+      }
+    }
     return this.generateTokens(user);
   }
 

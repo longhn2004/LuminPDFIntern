@@ -73,6 +73,7 @@ export class AuthController {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
     // Chuyển hướng về frontend
+    res.redirect('http://localhost:3000/dashboard/document-list');
     // res.redirect('http://localhost:3000/dashboard');
   }
 
