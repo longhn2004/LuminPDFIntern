@@ -39,7 +39,7 @@ export class AuthController {
       httpOnly: false, 
       secure: false, 
       sameSite: 'lax',
-      maxAge: 30 * 60 * 1000, // 15p
+      maxAge: 30 * 60 * 1000, // 30p
     });
     // res.cookie('refresh_token', refreshToken, {
     //   httpOnly: true, 
@@ -59,23 +59,27 @@ export class AuthController {
   @HttpCode(200)
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(@Request() req, @Response({ passthrough: true }) res) {
-    const { accessToken} = await this.authService.googleLogin(req.user);
-    // Gửi Access Token trong cookie
-    res.cookie('access_token', accessToken, {
-      httpOnly: false,
-      secure: false,
-      sameSite: 'lax',
-      maxAge: 30 * 60 * 1000,
-    });
-    // res.cookie('refresh_token', refreshToken, {
-    //   httpOnly: true,
-    //   secure: false,
-    //   sameSite: 'lax',
-    //   maxAge: 7 * 24 * 60 * 60 * 1000,
-    // });
-    // Chuyển hướng về frontend
-    res.redirect('http://localhost:3000/dashboard/document-list');
-    // res.redirect('http://localhost:3000/dashboard');
+    try {
+      const { accessToken} = await this.authService.googleLogin(req.user);
+      // Gửi Access Token trong cookie
+      res.cookie('access_token', accessToken, {
+        httpOnly: false,
+        secure: false,
+        sameSite: 'lax',
+        maxAge: 30 * 60 * 1000,
+      });
+      
+      res.redirect('http://localhost:3000/dashboard/document-list');
+    } catch (error) {
+      // Check if error is because email already used with password
+      if (error?.message?.includes('email and password') || 
+          error?.response?.message?.includes('email and password')) {
+        res.redirect('http://localhost:3000/auth/signin?verification=conflictemail');
+      } else {
+        // Generic error - redirect to signin
+        res.redirect('http://localhost:3000/auth/signin');
+      }
+    }
   }
 
   // @Post('refresh')

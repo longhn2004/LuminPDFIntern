@@ -11,11 +11,25 @@ const api = axios.create({
 
 export async function GET(request) {
   try {
+    // Extract cookie and authorization header from the request
     const cookieHeader = request.headers.get('cookie');
+    const authHeader = request.headers.get('authorization');
     
+    // Extract token from cookie if no auth header is present
+    let token = null;
+    if (!authHeader && cookieHeader) {
+      const accessTokenMatch = cookieHeader.match(/access_token=([^;]+)/);
+      if (accessTokenMatch && accessTokenMatch[1]) {
+        token = accessTokenMatch[1];
+      }
+    }
+    
+    // Call the backend API with proper headers
     const response = await api.get('/auth/me', {
       headers: {
         ...(cookieHeader && { Cookie: cookieHeader }),
+        // Use either the existing auth header or create one from the token
+        Authorization: authHeader || (token && `Bearer ${token}`),
       },
     });
     

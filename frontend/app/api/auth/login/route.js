@@ -18,6 +18,7 @@ export async function POST(request) {
     if (response.headers['set-cookie']) {
       const cookies = response.headers['set-cookie'];
       
+      
       cookies.forEach(cookie => {
         const [cookieName, ...rest] = cookie.split('=');
         const cookieValue = rest.join('=').split(';')[0];

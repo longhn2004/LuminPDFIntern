@@ -23,6 +23,7 @@ export default function SignUp() {
   const [emptyConfirmPassword, setEmptyConfirmPassword] = useState(false);
   const [passwordMismatch, setPasswordMismatch] = useState(false);
   const [existingEmail, setExistingEmail] = useState(false);
+  const [existingGoogle, setExistingGoogle] = useState(false);
   
   const router = useRouter();
 
@@ -36,6 +37,7 @@ export default function SignUp() {
     setEmptyConfirmPassword(false);
     setPasswordMismatch(false);
     setExistingEmail(false);
+    setExistingGoogle(false);
 
     // Validation logic
     let isValid = true;
@@ -94,20 +96,25 @@ export default function SignUp() {
         
         router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
       } catch (error: any) {
-        console.error("Signup error:", error);
         
-        if (error.response) {
-          if (error.response.status === 409) {
+        if (error) {
+
+          if (error.message.includes('already registered with email/password')) {
             setExistingEmail(true);
-            
-            if (error.response.data.message.includes('already registered with email/password')) {
-              setTimeout(() => {
-                router.push('/auth/signin');
-              }, 2000);
-            }
-            return;
           }
+          
+          // // If the email is already used with Google
+          if (error.message.includes('already registered with Google')) {
+            setExistingGoogle(true);
+          }
+            
+            // Generic conflict - redirect to signin
+          // setTimeout(() => {
+          //     router.push('/auth/signin');
+          // }, 2000);
+          return;
         }
+        
         
       } finally {
         setIsLoading(false);
@@ -186,7 +193,8 @@ export default function SignUp() {
         />
         {emptyEmail && <p className="text-red-500 text-xs mt-1">Mandatory field</p>}
         {invalidEmail && <p className="text-red-500 text-xs mt-1">Invalid email address</p>}
-        {existingEmail && <p className="text-red-500 text-xs mt-1">Existing email</p>}
+        {existingEmail && <p className="text-red-500 text-xs mt-1">This email is already registered with email and password</p>}
+        {existingGoogle && <p className="text-red-500 text-xs mt-1">This email is already registered with Google</p>}
       </div>
 
       {/* Password Field */}

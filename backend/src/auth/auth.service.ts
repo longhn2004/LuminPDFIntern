@@ -81,18 +81,24 @@ export class AuthService {
     user = await this.userModel.findOne({ email }).exec();
     if (user) {
       if (user.googleId) {
+        user.googleId = googleId;
+        user.isEmailVerified = true;
+        user.name = user.name || name; 
+        await user.save();
         return user;
       }
-      if (user.password) {
-        throw new ConflictException(
-          'An account with this email already exists. Please sign in with email and password.',
-          'EMAIL_PASSWORD_EXISTS'
-        );
-      }
-      user.googleId = googleId;
-      user.isEmailVerified = true;
-      user.name = user.name || name; 
-      await user.save();
+      // if (user.password) {
+      //   console.log("error in findOrCreateGoogleUser")
+      //   throw new ConflictException(
+      //     'An account with this email already exists. Please sign in with email and password.',
+      //     'EMAIL_PASSWORD_EXISTS'
+      //   );
+      // }
+
+      // user.googleId = googleId;
+      // user.isEmailVerified = true;
+      // user.name = user.name || name; 
+      // await user.save();
       return user;
     }
 

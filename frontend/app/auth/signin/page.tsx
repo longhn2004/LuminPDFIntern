@@ -29,6 +29,12 @@ export default function SignIn() {
     } else if (verificationStatus === "success") {
       setVerificationMessage("Email verified successfully! You can now sign in.");
     }
+    else if (verificationStatus === "conflictgoogle") {
+      setVerificationMessage("You have already signed up that email with Google.");
+    }
+    else if (verificationStatus === "conflictemail") {
+      setVerificationMessage("You have already signed up that email using email and password.");
+    }
   }, [verificationStatus]);
 
   const handleSignIn = async () => {
@@ -193,6 +199,9 @@ export default function SignIn() {
           <p className="text-red-500 text-xs mt-1">Incorrect email or password</p>
         )}
       </div>
+      {verificationMessage !== "" && (
+        <p className="text-red-500 text-xs mt-1">{verificationMessage}</p>
+      )}
       <br/>
 
       <button className="bg-blue-500 w-full text-white p-2 rounded-xl hover:bg-blue-600 cursor-pointer active:scale-95 transition-all duration-300" onClick={handleSignIn}>Sign In</button>
