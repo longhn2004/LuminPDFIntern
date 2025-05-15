@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import api from '@/app/libs/api/axios';
 
-// Resend verification email
 export async function POST(request) {
   try {
     const body = await request.json();

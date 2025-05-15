@@ -12,6 +12,7 @@ export class AuthController {
   constructor(private authService: AuthService) {}
 
   @Post('register')
+  @HttpCode(201)
   async register(@Body() dto: RegisterDto) {
     return this.authService.register(dto);
   }
@@ -31,19 +32,18 @@ export class AuthController {
   }
 
   @Post('login')
+  @HttpCode(200)
   async login(@Body() loginDto: LoginDto, @Response({ passthrough: true }) res) {
     const { accessToken} = await this.authService.login(loginDto);
-    // Gửi Access Token trong cookie
     res.cookie('access_token', accessToken, {
-      httpOnly: false, // Access Token cần truy cập từ JS
-      secure: false, // Bật true trong sản xuất (HTTPS)
+      httpOnly: false, 
+      secure: false, 
       sameSite: 'lax',
-      maxAge: 30 * 60 * 1000, // 15 phút
+      maxAge: 30 * 60 * 1000, // 15p
     });
-    // Gửi Refresh Token trong cookie
     // res.cookie('refresh_token', refreshToken, {
-    //   httpOnly: true, // Ngăn truy cập từ JS
-    //   secure: false, // Bật true trong sản xuất (HTTPS)
+    //   httpOnly: true, 
+    //   secure: false, 
     //   sameSite: 'lax',
     //   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
     // });
@@ -51,10 +51,12 @@ export class AuthController {
   }
 
   @Get('google')
+  @HttpCode(200)
   @UseGuards(AuthGuard('google'))
   async googleAuth(@Request() req) {}
 
   @Get('google/callback')
+  @HttpCode(200)
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(@Request() req, @Response({ passthrough: true }) res) {
     const { accessToken} = await this.authService.googleLogin(req.user);
@@ -65,7 +67,6 @@ export class AuthController {
       sameSite: 'lax',
       maxAge: 30 * 60 * 1000,
     });
-    // Gửi Refresh Token trong cookie
     // res.cookie('refresh_token', refreshToken, {
     //   httpOnly: true,
     //   secure: false,
@@ -86,14 +87,12 @@ export class AuthController {
   //   @Response({ passthrough: true }) res,
   // ) {
   //   const { accessToken, refreshToken } = await this.authService.refreshToken(req.user['_id'], refreshTokenDto);
-  //   // Cập nhật Access Token trong cookie
   //   res.cookie('access_token', accessToken, {
   //     httpOnly: false,
   //     secure: false,
   //     sameSite: 'lax',
   //     maxAge: 15 * 60 * 1000,
   //   });
-  //   // Cập nhật Refresh Token trong cookie
   //   res.cookie('refresh_token', refreshToken, {
   //     httpOnly: true,
   //     secure: false,
@@ -105,6 +104,7 @@ export class AuthController {
 
   @UseGuards(AuthGuard('jwt'))
   @Get('profile')
+  @HttpCode(200)
   getProfile(@Request() req) {
     return req.user;
   }
@@ -114,7 +114,6 @@ export class AuthController {
   @HttpCode(204)
   async logout(@Request() req, @Response({ passthrough: true }) res) {
     // await this.authService.invalidateRefreshToken(req.user['_id']);
-    // Xóa cookies
     res.clearCookie('access_token');
     // res.clearCookie('refresh_token');
     return { message: 'Logout successful' };
@@ -122,6 +121,7 @@ export class AuthController {
 
   @UseGuards(AuthGuard('jwt'))
   @Get('me')
+  @HttpCode(200)
   async getCurrentUser(@Request() req) {
     return this.authService.getCurrentUser(req.user);
   }

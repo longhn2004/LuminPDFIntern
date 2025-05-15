@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import axios from "@/app/libs/api/axios";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 
@@ -17,13 +16,13 @@ export default function SignIn() {
   const [emptyPassword, setEmptyPassword] = useState(false);
   const [incorrectEmailOrPassword, setIncorrectEmailOrPassword] = useState(false);
   const router = useRouter();
-  // Import query string for parsing URL parameters
-  // Get search parameters from URL
+
+
   const searchParams = useSearchParams();
   const verificationStatus = searchParams.get("verification");
   const [verificationMessage, setVerificationMessage] = useState("");
   
-  // Check if there's a verification message to display
+  
   useEffect(() => {
     if (verificationStatus === "required") {
       setVerificationMessage("Please verify your email before signing in.");
@@ -33,14 +32,12 @@ export default function SignIn() {
   }, [verificationStatus]);
 
   const handleSignIn = async () => {
-    // Reset error states
     setInvalidEmail(false);
     setEmptyEmail(false);
     setInvalidPassword(false);
     setEmptyPassword(false);
     setIncorrectEmailOrPassword(false);
     
-    // Validation logic
     if(email === "") {
       setEmptyEmail(true);
       if(password === ""){
@@ -62,26 +59,34 @@ export default function SignIn() {
     }
     
     try {
-      // Call the backend directly with axios
-      const response = await axios.post('/auth/login', { email, password });
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+        credentials: 'include', 
+      });
       
-      console.log('Login successful:', response);
+      const data = await response.json();
       
-      // If login is successful, redirect to dashboard
+      if (!response.ok) {
+        throw { response: { status: response.status, data } };
+      }
+      
+      console.log('Login successful:', data);
+      
       router.push('/dashboard/document-list');
     } catch (error: any) {
       console.error('Login error:', error);
       
-      // Handle specific error cases
       if (error.response) {
-        // Check if email is not verified
         if (error.response.status === 401 && error.response.data.message === 'Email not verified') {
           router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
           return;
         }
       }
       
-      // Generic error handling
       setIncorrectEmailOrPassword(true);
     }
   };

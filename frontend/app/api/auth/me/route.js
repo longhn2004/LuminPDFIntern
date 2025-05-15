@@ -9,19 +9,23 @@ const api = axios.create({
   withCredentials: true,
 });
 
-export async function POST(request) {
+export async function GET(request) {
   try {
-    const body = await request.json();
+    const cookieHeader = request.headers.get('cookie');
     
-    const response = await api.post('/auth/register', body);
+    const response = await api.get('/auth/me', {
+      headers: {
+        ...(cookieHeader && { Cookie: cookieHeader }),
+      },
+    });
     
     return NextResponse.json(response.data);
   } catch (error) {
-    console.error('Registration API error:', error.response?.data || error.message);
+    console.error('Get current user API error:', error.response?.data || error.message);
     
     if (error.response) {
       return NextResponse.json(
-        { message: error.response.data.message || 'Registration failed' },
+        { message: error.response.data.message || 'Failed to get user data' },
         { status: error.response.status }
       );
     }

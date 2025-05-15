@@ -12,6 +12,7 @@ export default function SignUp() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   // Validation states
   const [emptyFullName, setEmptyFullName] = useState(false);
@@ -69,8 +70,8 @@ export default function SignUp() {
     }
 
     if(isValid) {
+      setIsLoading(true);
       try {
-        // Call our Next.js API instead of directly calling the backend
         const response = await fetch('/api/auth/register', {
           method: 'POST',
           headers: {
@@ -91,18 +92,14 @@ export default function SignUp() {
         const data = await response.json();
         console.log("Signup successful:", data);
         
-        // Redirect to verification page with email as query parameter
         router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
       } catch (error: any) {
         console.error("Signup error:", error);
         
-        // Handle specific error cases
         if (error.response) {
-          // Check if email already exists
           if (error.response.status === 409) {
             setExistingEmail(true);
             
-            // If email is already registered with password, redirect to signin after delay
             if (error.response.data.message.includes('already registered with email/password')) {
               setTimeout(() => {
                 router.push('/auth/signin');
@@ -112,7 +109,8 @@ export default function SignUp() {
           }
         }
         
-        // Handle other errors (could add more specific error handling here)
+      } finally {
+        setIsLoading(false);
       }
     }
   };
@@ -268,7 +266,17 @@ export default function SignUp() {
         {passwordMismatch && <p className="text-red-500 text-xs mt-1">Password must be the same</p>}
       </div>
 
-      <button className="bg-blue-500 w-full text-white p-2 rounded-xl hover:bg-blue-600 cursor-pointer active:scale-95 transition-all duration-300 mt-2" onClick={handleSignUp}>Sign Up</button>
+      <button 
+        className={`bg-blue-500 w-full text-white p-2 rounded-xl hover:bg-blue-600 cursor-pointer active:scale-95 transition-all duration-300 mt-2 flex justify-center items-center ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`} 
+        onClick={handleSignUp}
+        disabled={isLoading}
+      >
+        {isLoading ? (
+          <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+        ) : (
+          'Sign Up'
+        )}
+      </button>
       
       <div className="flex items-center w-full justify-center h-10 relative top-5">
         <p className="text-gray-400">Already have an account? <Link href="/auth/signin" className="text-black hover:text-blue-600 cursor-pointer">Sign In</Link></p>

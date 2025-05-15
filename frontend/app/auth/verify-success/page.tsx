@@ -6,16 +6,13 @@ import { useEffect } from "react";
 export default function VerifySuccess() {
   const router = useRouter();
 
-  // Call the backend API to verify the user has actually been verified
   useEffect(() => {
     const checkVerificationStatus = async () => {
       try {
-        // Try to access a protected endpoint to validate verification
         const response = await fetch('/api/auth/me', {
           credentials: 'include'
         });
         
-        // If the user can't access the endpoint, redirect to signin
         if (!response.ok) {
           setTimeout(() => {
             router.push('/auth/signin');
@@ -30,13 +27,11 @@ export default function VerifySuccess() {
   }, [router]);
 
   const handleGoToDocuments = () => {
-    // Navigate to documents page
     router.push("/dashboard/document-list");
   };
 
   return (
     <div className="flex flex-col h-screen fixed w-full">
-      {/* Top navbar with logo */}
       <div className="w-full bg-white p-4 border-b border-gray-200 shadow-md z-1">
         <div className="container mx-auto">
           <div className="flex items-center">

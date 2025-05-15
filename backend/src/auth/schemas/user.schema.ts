@@ -6,17 +6,17 @@ export class User extends Document {
   @Prop({ required: true, unique: true })
   email: string;
 
-  @Prop()
-  password: string; // Only for email/password users
+  @Prop({ required: false })
+  password: string; 
 
   @Prop({ required: false })
-  googleId?: string; // For Google OAuth users
+  googleId: string; 
 
   @Prop({ default: false })
   isEmailVerified: boolean;
 
   @Prop()
-  verificationToken: string; // For email verification
+  verificationToken: string; 
 
   @Prop()
   name: string;

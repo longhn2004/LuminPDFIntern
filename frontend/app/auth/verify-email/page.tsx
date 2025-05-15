@@ -16,14 +16,12 @@ export default function VerifyEmail() {
   const [verifying, setVerifying] = useState(false);
   const [verificationError, setVerificationError] = useState("");
 
-  // Handle token verification when component loads with a token
   useEffect(() => {
     if (token) {
       verifyToken(token);
     }
   }, [token]);
 
-  // Countdown timer for resend button
   useEffect(() => {
     if (resendCooldown > 0) {
       const timer = setTimeout(() => {
@@ -35,11 +33,9 @@ export default function VerifyEmail() {
     }
   }, [resendCooldown]);
 
-  // Function to verify the token with backend
   const verifyToken = async (token: string) => {
     setVerifying(true);
     try {
-      // Call our API endpoint that will verify the token with the backend
       const response = await fetch(`/api/auth/verify-email?token=${token}`);
       
       if (!response.ok) {
@@ -47,7 +43,6 @@ export default function VerifyEmail() {
         throw new Error(data.message || 'Verification failed');
       }
       
-      // If successful, redirect to success page
       router.push('/auth/verify-success');
     } catch (error: any) {
       console.error("Verification error:", error);
@@ -77,22 +72,21 @@ export default function VerifyEmail() {
         throw new Error(errorData.message || 'Failed to resend verification email');
       }
       
-      // Success notification could be added here
       console.log("Verification email resent to:", email);
     } catch (error) {
       console.error("Error resending verification email:", error);
-      // Error notification could be added here
     }
   };
 
-  // If we're processing a token directly, show a loading state
   if (token && verifying) {
     return (
       <div className="flex flex-col h-screen fixed w-full">
         <div className="w-full bg-white p-4 border-b border-gray-200 shadow-md z-1">
           <div className="container mx-auto">
             <div className="flex items-center">
-              <img src="/images/dsvlogo.png" alt="Logo" className="h-10 w-10" />
+              <button onClick={() => router.push("/auth/signin")} className="cursor-pointer">
+                <img src="/images/dsvlogo.png" alt="Logo" className="h-10 w-10" />
+              </button>
             </div>
           </div>
         </div>
@@ -113,7 +107,6 @@ export default function VerifyEmail() {
     );
   }
 
-  // If verification error, show error message
   if (token && verificationError) {
     return (
       <div className="flex flex-col h-screen fixed w-full">
@@ -148,14 +141,14 @@ export default function VerifyEmail() {
     );
   }
 
-  // Normal verification waiting page (when user is waiting for email)
   return (
     <div className="flex flex-col h-screen fixed w-full">
-      {/* Top navbar with logo */}
       <div className="w-full bg-white p-4 border-b border-gray-200 shadow-md z-1">
         <div className="container mx-auto">
           <div className="flex items-center">
-            <img src="/images/dsvlogo.png" alt="Logo" className="h-10 w-10" />
+              <button onClick={() => router.push("/auth/signin")} className="cursor-pointer">
+                <img src="/images/dsvlogo.png" alt="Logo" className="h-10 w-10" />
+              </button>
             {/* <span className="text-xl font-bold text-black ml-2">DI-DSV</span> */}
           </div>
         </div>
