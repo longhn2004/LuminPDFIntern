@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Get, UseGuards, Request, HttpCode, Query, Response, Res, Req } from '@nestjs/common';
+import { Controller, Post, Body, Get, UseGuards, Request, HttpCode, Query, Response, Res, Req, ValidationPipe, ParseUUIDPipe } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthGuard } from '@nestjs/passport';
 import { RegisterDto } from './dto/register.dto';
@@ -13,33 +13,33 @@ export class AuthController {
 
   @Post('register')
   @HttpCode(201)
-  async register(@Body() dto: RegisterDto) {
+  async register(@Body(ValidationPipe) dto: RegisterDto) {
     return this.authService.register(dto);
   }
 
   @Get('verify-email')
   @HttpCode(200)
-  async verifyEmail(@Query('token') token: string) {
+  async verifyEmail(@Query('token', ParseUUIDPipe) token: string) {
     await this.authService.verifyEmail(token);
     return { message: 'Email verified successfully' };
   }
 
   @Post('resend-verification')
   @HttpCode(200)
-  async resendVerification(@Body() dto: ResendVerificationDto) {
+  async resendVerification(@Body(ValidationPipe) dto: ResendVerificationDto) {
     await this.authService.resendVerificationEmail(dto);
     return { message: 'Verification email sent' };
   }
 
   @Post('login')
   @HttpCode(200)
-  async login(@Body() loginDto: LoginDto, @Response({ passthrough: true }) res) {
+  async login(@Body(ValidationPipe) loginDto: LoginDto, @Response({ passthrough: true }) res) {
     const { accessToken} = await this.authService.login(loginDto);
     res.cookie('access_token', accessToken, {
       httpOnly: false, 
       secure: false, 
       sameSite: 'lax',
-      maxAge: 30 * 60 * 1000, // 30p
+      maxAge: 30 * 60 * 1000, // 30p 
     });
     // res.cookie('refresh_token', refreshToken, {
     //   httpOnly: true, 
