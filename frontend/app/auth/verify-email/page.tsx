@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import axios from "@/app/libs/api/axios";
+import axios from "@/libs/api/axios";
 
 export default function VerifyEmail() {
   const router = useRouter();

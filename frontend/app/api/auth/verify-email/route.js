@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import api from '@/app/libs/api/axios';
+import api from '@/libs/api/axios';
+import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 
 export async function GET(request) {
   try {
@@ -9,7 +10,7 @@ export async function GET(request) {
     if (!token) {
       return NextResponse.json(
         { message: 'Verification token is required' }, 
-        { status: 400 }
+        { status: HTTP_STATUS.BAD_REQUEST }
       );
     }
     
@@ -19,7 +20,7 @@ export async function GET(request) {
   } catch (error) {
     console.error('Email verification error:', error.response?.data || error.message);
     
-    const status = error.response?.status || 500;
+    const status = error.response?.status || HTTP_STATUS.INTERNAL_SERVER_ERROR;
     const message = error.response?.data?.message || 'Email verification failed';
     
     return NextResponse.redirect(

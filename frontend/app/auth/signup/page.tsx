@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import axios from "@/app/libs/api/axios";
+import axios from "@/libs/api/axios";
 
 export default function SignUp() {
   const [fullName, setFullName] = useState("");

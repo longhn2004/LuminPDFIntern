@@ -1,9 +1,9 @@
 "use client";
 
 import React, { useEffect } from 'react';
-import LogoutButton from '@/app/components/LogoutButton';
-import { useAppDispatch, useAppSelector } from '@/app/redux/hooks';
-import { setUser } from '@/app/redux/features/userSlice';
+import LogoutButton from '@/components/LogoutButton';
+import { useAppDispatch, useAppSelector } from '@/redux/hooks';
+import { setUser } from '@/redux/features/userSlice';
 
 function DocumentList() {
   const dispatch = useAppDispatch();

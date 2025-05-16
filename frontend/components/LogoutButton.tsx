@@ -2,8 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { useAppDispatch } from "@/app/redux/hooks";
-import { clearUser } from "@/app/redux/features/userSlice";
+import { useAppDispatch } from "@/redux/hooks";
+import { clearUser } from "@/redux/features/userSlice";
 
 export default function LogoutButton() {
   const router = useRouter();

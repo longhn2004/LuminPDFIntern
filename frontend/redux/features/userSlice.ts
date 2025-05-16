@@ -20,9 +20,15 @@ export const userSlice = createSlice({
   reducers: {
     setUser: (state, action: PayloadAction<Partial<UserState>>) => {
       const { email, name, isEmailVerified } = action.payload;
-      if (email) state.email = email;
-      if (name) state.name = name;
-      if (isEmailVerified !== undefined) state.isEmailVerified = isEmailVerified;
+      if (email) {
+        state.email = email
+      };
+      if (name) {
+        state.name = name
+      };
+      if (isEmailVerified !== undefined) {
+        state.isEmailVerified = isEmailVerified
+      };
       state.isAuthenticated = true;
     },
     clearUser: (state) => {

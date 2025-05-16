@@ -1,14 +1,9 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
+import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 
 // Configuration for axios to include credentials
-const api = axios.create({
-  baseURL: process.env.NEXT_APP_BACKEND_URL || 'http://localhost:5000/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  withCredentials: true,
-});
+import api from '@/libs/api/axios';
 
 export async function GET(request) {
   // Extract authorization code from URL
@@ -28,11 +23,11 @@ export async function GET(request) {
       params: { code },
       withCredentials: true,
       maxRedirects: 0, // Prevent auto-following redirects
-      validateStatus: status => status >= 200 && status < 500, // Accept all responses except server errors
+      validateStatus: status => status >= HTTP_STATUS.OK && status < HTTP_STATUS.INTERNAL_SERVER_ERROR, // Accept all responses except server errors
     });
     
     // If successful, set the cookies and redirect to dashboard
-    if (response.status === 200 || response.status === 302) {
+    if (response.status === HTTP_STATUS.OK || response.status === HTTP_STATUS.FOUND) {
       // Extract cookies from backend response
       const cookies = response.headers['set-cookie'];
       const nextResponse = NextResponse.redirect(new URL('/dashboard/document-list', request.url));
@@ -63,7 +58,7 @@ export async function GET(request) {
     console.error('Google callback error:', error.response?.data || error.message);
     
     // Handle email/password conflict - User already registered with email/password
-    if (error.response?.status === 409 && error.response?.data?.message?.includes('email and password')) {
+    if (error.response?.status === HTTP_STATUS.CONFLICT && error.response?.data?.message?.includes('email and password')) {
       return NextResponse.redirect(
         new URL('/auth/signin?verification=conflictemail', request.url)
       );

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { HTTP_STATUS } from "@/libs/constants/httpStatus";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -87,7 +88,7 @@ export default function SignIn() {
       console.error('Login error:', error);
       
       if (error.response) {
-        if (error.response.status === 401 && error.response.data.message === 'Email not verified') {
+        if (error.response.status === HTTP_STATUS.UNAUTHORIZED && error.response.data.message === 'Email not verified') {
           router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
           return;
         }
