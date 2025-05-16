@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { HTTP_STATUS } from "@/libs/constants/httpStatus";
 
 export default function SignIn() {
   const [email, setEmail] = useState("");
@@ -28,6 +29,12 @@ export default function SignIn() {
       setVerificationMessage("Please verify your email before signing in.");
     } else if (verificationStatus === "success") {
       setVerificationMessage("Email verified successfully! You can now sign in.");
+    }
+    else if (verificationStatus === "conflictgoogle") {
+      setVerificationMessage("You have already signed up that email with Google.");
+    }
+    else if (verificationStatus === "conflictemail") {
+      setVerificationMessage("You have already signed up that email using email and password.");
     }
   }, [verificationStatus]);
 
@@ -81,7 +88,7 @@ export default function SignIn() {
       console.error('Login error:', error);
       
       if (error.response) {
-        if (error.response.status === 401 && error.response.data.message === 'Email not verified') {
+        if (error.response.status === HTTP_STATUS.UNAUTHORIZED && error.response.data.message === 'Email not verified') {
           router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
           return;
         }
@@ -193,6 +200,9 @@ export default function SignIn() {
           <p className="text-red-500 text-xs mt-1">Incorrect email or password</p>
         )}
       </div>
+      {verificationMessage !== "" && (
+        <p className="text-red-500 text-xs mt-1">{verificationMessage}</p>
+      )}
       <br/>
 
       <button className="bg-blue-500 w-full text-white p-2 rounded-xl hover:bg-blue-600 cursor-pointer active:scale-95 transition-all duration-300" onClick={handleSignIn}>Sign In</button>

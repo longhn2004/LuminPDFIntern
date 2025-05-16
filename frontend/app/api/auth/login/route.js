@@ -1,13 +1,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
-
-const api = axios.create({
-  baseURL: process.env.NEXT_APP_BACKEND_URL || 'http://localhost:5000/api',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-  withCredentials: true,
-});
+import { HTTP_STATUS } from '@/libs/constants/httpStatus';
+import api from '@/libs/api/axios';
 
 export async function POST(request) {
   try {
@@ -17,6 +11,7 @@ export async function POST(request) {
 
     if (response.headers['set-cookie']) {
       const cookies = response.headers['set-cookie'];
+      
       
       cookies.forEach(cookie => {
         const [cookieName, ...rest] = cookie.split('=');
@@ -46,7 +41,7 @@ export async function POST(request) {
     
     return NextResponse.json(
       { message: 'Internal server error' },
-      { status: 500 }
+      { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
     );
   }
 } 

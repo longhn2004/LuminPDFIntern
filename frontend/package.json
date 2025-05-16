@@ -9,13 +9,16 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@reduxjs/toolkit": "^2.8.2",
     "@types/js-cookie": "^3.0.6",
     "axios": "^1.9.0",
     "js-cookie": "^3.0.5",
     "next": "15.3.2",
     "next-intl": "^4.1.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "react-redux": "^9.2.0",
+    "redux-persist": "^6.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

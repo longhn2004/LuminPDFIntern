@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import api from '@/app/libs/api/axios';
-
+import api from '@/libs/api/axios';
+import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 export async function POST(request) {
   try {
     const body = await request.json();
@@ -8,14 +8,14 @@ export async function POST(request) {
     if (!body.email) {
       return NextResponse.json(
         { message: 'Email is required' }, 
-        { status: 400 }
+        { status: HTTP_STATUS.BAD_REQUEST }
       );
     }
     
     const response = await api.post('/auth/resend-verification', body);
     return NextResponse.json(response.data);
   } catch (error) {
-    const status = error.response?.status || 500;
+    const status = error.response?.status || HTTP_STATUS.INTERNAL_SERVER_ERROR;
     const message = error.response?.data?.message || 'Failed to resend verification email';
     return NextResponse.json({ message }, { status });
   }
