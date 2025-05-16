@@ -74,4 +74,9 @@ export class FileController {
   async deleteAnnotation(@Param('id') fileId: string, @Param('annotationId') annotationId: string, @Req() req: Request & { user: any }) {
     return this.fileService.deleteAnnotation(fileId, annotationId, req.user);
   }
+
+  @Delete(':id')
+  async deleteFile(@Param('id') id: string, @Req() req: Request & { user: any }) {
+    return this.fileService.deleteFile(id, req.user);
+  }
 }

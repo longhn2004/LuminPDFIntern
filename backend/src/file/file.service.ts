@@ -11,7 +11,7 @@ import { CreateAnnotationDto } from './dto/create-annotation.dto';
 import { ConfigService } from '@nestjs/config';
 import { EmailService } from '../email/email.service';
 import { google } from 'googleapis';
-import { createWriteStream } from 'fs';
+import { createWriteStream, existsSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { Request, Response } from 'express';
@@ -135,6 +135,36 @@ export class FileService {
     }
 
     res.download(file.path);
+  }
+
+  async deleteFile(id: string, user: User) {
+    const file = await this.fileModel.findById(id).exec();
+    if (!file) {
+      throw new NotFoundException('File not found');
+    }
+
+    if (file.owner.toString() !== (user._id as Types.ObjectId).toString()) {
+      throw new ForbiddenException('Only the owner can delete the file');
+    }
+
+    await this.fileModel.findByIdAndDelete(id).exec();
+
+    //Delete from storage
+    const filePath = join(this.configService.get<string>('FILE_UPLOAD_PATH') || './uploads', file.path.slice(8));
+    console.log('filePath ', filePath);
+    if (existsSync(filePath)) {
+      console.log('Deleting file from storage:', filePath);
+      unlinkSync(filePath);
+
+      //Delete annotations
+      await this.annotationModel.deleteMany({ file: id }).exec();
+
+      //Delete invitations
+      await this.invitationModel.deleteMany({ file: id }).exec();
+      
+    }
+
+    return { message: 'File deleted successfully' };
   }
 
   async inviteUser(inviteDto: InviteUserDto, owner: User) {

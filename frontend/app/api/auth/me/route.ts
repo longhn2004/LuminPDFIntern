@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 import api from '@/libs/api/axios';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   try {
     // Extract cookie and authorization header from the request
     const cookieHeader = request.headers.get('cookie');

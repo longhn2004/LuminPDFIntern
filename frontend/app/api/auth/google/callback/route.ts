@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 
 // Configuration for axios to include credentials
 import api from '@/libs/api/axios';
 
-export async function GET(request: Request) {
+export async function GET(request: NextRequest) {
   // Extract authorization code from URL
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
