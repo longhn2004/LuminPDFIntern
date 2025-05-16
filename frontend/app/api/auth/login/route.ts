@@ -3,7 +3,7 @@ import axios from 'axios';
 import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 import api from '@/libs/api/axios';
 
-export async function POST(request) {
+export async function POST(request: Request) {
   try {
     const body = await request.json();
     const response = await api.post('/auth/login', body);
@@ -29,7 +29,7 @@ export async function POST(request) {
     }
     
     return nextResponse;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Login API error:', error.response?.data || error.message);
     
     if (error.response) {

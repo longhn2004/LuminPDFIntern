@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import api from '@/libs/api/axios';
 import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 
-export async function GET(request) {
+export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const token = searchParams.get('token');
@@ -17,7 +17,7 @@ export async function GET(request) {
     const response = await api.get(`/auth/verify-email?token=${token}`);
     
     return NextResponse.redirect(new URL('/auth/verify-success', request.url));
-  } catch (error) {
+  } catch (error: any) {
     console.error('Email verification error:', error.response?.data || error.message);
     
     const status = error.response?.status || HTTP_STATUS.INTERNAL_SERVER_ERROR;

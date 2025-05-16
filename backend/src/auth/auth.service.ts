@@ -172,13 +172,14 @@ export class AuthService {
   //   }
   // }
 
-  async getCurrentUser(user: User): Promise<{ email: string; isEmailVerified: boolean }> {
+  async getCurrentUser(user: User): Promise<{ email: string; isEmailVerified: boolean; name: string }> {
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
     return {
       email: user.email,
       isEmailVerified: user.isEmailVerified,
+      name: user.name,
     };
   }
 

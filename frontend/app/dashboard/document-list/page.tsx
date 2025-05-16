@@ -4,11 +4,13 @@ import React, { useEffect } from 'react';
 import LogoutButton from '@/components/LogoutButton';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { setUser } from '@/redux/features/userSlice';
+import { useRouter } from 'next/navigation';
 
 function DocumentList() {
   const dispatch = useAppDispatch();
   const user = useAppSelector(state => state.user);
-  
+  const router = useRouter();
+
   useEffect(() => {
     const fetchUserData = async () => {
       try {
@@ -17,6 +19,7 @@ function DocumentList() {
         });
         if (response.ok) {
           const data = await response.json();
+          console.log(data);
           // Update Redux store with user data
           dispatch(setUser({
             email: data.email,
@@ -37,24 +40,25 @@ function DocumentList() {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <header className="bg-white shadow">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+      {/* Header */}
+      <div className="w-full bg-white p-4 border-b border-gray-200 shadow-md z-1 flex justify-between items-center">
+        <div className="container mx-auto">
           <div className="flex items-center">
-            <img src="/images/dsvlogo.png" alt="Logo" className="h-10 w-10 mr-2" />
-            <h1 className="text-xl font-bold text-gray-900">DI-DSV Documents</h1>
-          </div>
-          
-          <div className="flex items-center space-x-4">
-            {user.isAuthenticated && (
-              <div className="text-sm text-gray-600 mr-4">
-                Signed in as: <span className="font-medium">{user.email}</span>
-              </div>
-            )}
-            <LogoutButton />
+            <button onClick={() => router.push("/auth/signin")} className="cursor-pointer">
+              <img src="/images/dsvlogo.png" alt="Logo" className="h-10 w-10" />
+            </button>
           </div>
         </div>
-      </header>
-      
+        <div className="flex items-center gap-4 justify-end">
+          {user.isAuthenticated && (
+            <div className="text-sm text-gray-600 "> <div className="whitespace-nowrap">Good day, </div> <p className="font-bold whitespace-nowrap">{user.name}</p>
+            </div>
+          )}
+          <LogoutButton />
+        </div>
+        
+      </div>
+      {/* Main */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
         <div className="bg-white shadow rounded-lg p-6">
           <h2 className="text-lg font-medium text-gray-900">Your Documents</h2>
