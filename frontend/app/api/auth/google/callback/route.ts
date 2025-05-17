@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import axios from 'axios';
 import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 
 // Configuration for axios to include credentials
@@ -19,7 +18,7 @@ export async function GET(request: NextRequest) {
   try {
     // Call the backend Google callback endpoint
     const backendUrl = process.env.NEXT_APP_BACKEND_URL || 'http://localhost:5000';
-    const response = await axios.get(`${backendUrl}/api/auth/google/callback`, {
+    const response = await api.get(`${backendUrl}/api/auth/google/callback`, {
       params: { code },
       withCredentials: true,
       maxRedirects: 0, // Prevent auto-following redirects

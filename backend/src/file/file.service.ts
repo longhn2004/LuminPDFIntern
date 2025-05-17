@@ -15,6 +15,7 @@ import { createWriteStream, existsSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { Request, Response } from 'express';
+import { ChangeRoleDto } from './dto/change-role.dto';
 
 @Injectable()
 export class FileService {
@@ -167,6 +168,33 @@ export class FileService {
     return { message: 'File deleted successfully' };
   }
 
+  async getFileUsers(fileId: string, user: User) {
+    const file = await this.fileModel
+      .findById(fileId)
+      .populate('owner', 'email')
+      .populate('viewers', 'email')
+      .populate('editors', 'email')
+      .exec();
+    if (!file) {
+      throw new NotFoundException('File not found');
+    }
+
+    const role = this.getUserRole(file, user);
+    if (role !== 'owner') {
+      throw new ForbiddenException('Only the owner can view file users');
+    }
+    const users: { id: Types.ObjectId; email: string; role: string }[] = [];
+    users.push({ id: file.owner._id as Types.ObjectId, email: file.owner.email, role: 'owner' });
+    file.viewers.forEach((viewer) => {
+      users.push({ id: viewer._id as Types.ObjectId, email: viewer.email, role: 'viewer' });
+    });
+    file.editors.forEach((editor) => {
+      users.push({ id: editor._id as Types.ObjectId, email: editor.email, role: 'editor' });
+    });
+
+    return users;
+  }
+
   async inviteUser(inviteDto: InviteUserDto, owner: User) {
     const { fileId, email, role } = inviteDto;
     const file = await this.fileModel.findById(fileId).exec();
@@ -209,6 +237,55 @@ export class FileService {
       await this.emailService.sendInvitationEmail(email, invitationToken, file.name);
       return { message: 'Invitation sent to unregistered user' };
     }
+  }
+
+  async changeRole(changeRoleDto: ChangeRoleDto, owner: User) {
+    const { fileId, userId, role } = changeRoleDto;
+    const file = await this.fileModel.findById(fileId).exec();
+    if (!file) {
+      throw new NotFoundException('File not found');
+    }
+
+    if ((file.owner._id as Types.ObjectId).toString() !== (owner._id as Types.ObjectId).toString()) {
+      throw new ForbiddenException('Only the owner can change roles');
+    }
+
+    const targetUser = await this.userModel.findById(userId).exec();
+    if (!targetUser) {
+      throw new NotFoundException('User not found');
+    }
+
+    const currentRole = this.getUserRole(file, targetUser);
+    if (currentRole === 'none') {
+      throw new BadRequestException('User does not have access to this file');
+    }
+    if (currentRole === 'owner') {
+      throw new BadRequestException('Cannot change the owner role');
+    }
+
+    // Xóa khỏi danh sách hiện tại
+    file.viewers = file.viewers.filter(user => (user._id as User).toString() !== userId);
+    file.editors = file.editors.filter(user => (user._id as User).toString() !== userId);
+
+    // Thêm vào danh sách mới nếu không phải xóa vai trò
+    if (role && role !== 'none') {
+      if (role === 'viewer') {
+        file.viewers.push(targetUser);
+      } else if (role === 'editor') {
+        file.editors.push(targetUser);
+      }
+    }
+
+    await file.save();
+
+    // Gửi email thông báo
+    if (role === 'none') {
+      await this.emailService.sendRoleRemovedNotification(targetUser.email, file.name);
+    } else {
+      await this.emailService.sendRoleChangedNotification(targetUser.email, file.name, role || 'none');
+    }
+
+    return { message: role === 'none' ? 'Role removed successfully' : 'Role changed successfully' };
   }
 
   async getAnnotations(fileId: string) {
@@ -291,10 +368,10 @@ export class FileService {
     if (fileOwner === userOwner) {
         return 'owner';
     }
-    if (file.viewers.some(id => id.toString() === userOwner)) {
+    if (file.viewers.some(user => (user._id as User).toString() === userOwner)) {
         return 'viewer';
     }
-    if (file.editors.some(id => id.toString() === userOwner)) {
+    if (file.editors.some(user => (user._id as User).toString() === userOwner)) {
         return 'editor';
     }
     return 'none';

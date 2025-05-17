@@ -37,4 +37,22 @@ export class EmailService {
       html: `<p>You have been granted ${role} access to "${fileName}". Log in to view the file.</p>`,
     });
   }
+
+  async sendRoleChangedNotification(email: string, fileName: string, role: string) {
+    await this.transporter.sendMail({
+      from: this.configService.get<string>('EMAIL_USER'),
+      to: email,
+      subject: `Role Changed for ${fileName}`,
+      html: `<p>Your role for "${fileName}" has been changed to ${role}. Log in to access the file.</p>`,
+    });
+  }
+
+  async sendRoleRemovedNotification(email: string, fileName: string) {
+    await this.transporter.sendMail({
+      from: this.configService.get<string>('EMAIL_USER'),
+      to: email,
+      subject: `Access Removed for ${fileName}`,
+      html: `<p>Your access to "${fileName}" has been removed.</p>`,
+    });
+  }
 }

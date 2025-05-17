@@ -1,6 +1,7 @@
-import React from 'react'
+"use client";
 
-function ViewPDF() {
+
+export default function ViewPDF() {
   return (
     <div>
         <div>
@@ -9,5 +10,3 @@ function ViewPDF() {
     </div>
   )
 }
-
-export default ViewPDF

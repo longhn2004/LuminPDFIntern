@@ -310,7 +310,7 @@ function DocumentList() {
                         <FaFileAlt className="text-blue-500 mr-2" />
                         {file.name}
                       </div>
-                      <div className="col-span-3 truncate">{file.owner}</div>
+                      <div className="col-span-3 truncate">{file.owner} <span className="font-bold">{file.owner === user.name ? '(You)' : ''}</span></div>
                       <div className="col-span-4 truncate text-gray-500">
                         {formatDate(file.updatedAt)}
                       </div>

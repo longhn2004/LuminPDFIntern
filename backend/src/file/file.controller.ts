@@ -8,6 +8,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { Request, Response } from 'express';
 import { ObjectId } from 'mongodb';
 import { BadRequestException } from '@nestjs/common';
+import { ChangeRoleDto } from './dto/change-role.dto';
 
 @Controller('api/file')
 @UseGuards(AuthGuard('jwt'))
@@ -50,9 +51,19 @@ export class FileController {
     return this.fileService.downloadFile(id, req.user, res);
   }
 
+  @Get(':id/users')
+  async getFileUsers(@Param('id') id: string, @Req() req: Request & { user: any }) {
+    return this.fileService.getFileUsers(id, req.user);
+  }
+
   @Post('invite')
   async inviteUser(@Body() inviteDto: InviteUserDto, @Req() req: Request & { user: any }) {
     return this.fileService.inviteUser(inviteDto, req.user);
+  }
+
+  @Post('change-role')
+  async changeRole(@Body() changeRoleDto: ChangeRoleDto, @Req() req: Request & { user: any }) {
+    return this.fileService.changeRole(changeRoleDto, req.user);
   }
 
   @Post(':id/annotation')

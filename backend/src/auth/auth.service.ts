@@ -183,6 +183,18 @@ export class AuthService {
     };
   }
 
+  async getUserByEmail(email: string): Promise<{ email: string; isEmailVerified: boolean; name: string }> {
+    const user = await this.userModel.findOne({ email }).exec();
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+    return {
+      email: user.email,
+      isEmailVerified: user.isEmailVerified,
+      name: user.name,
+    };
+  }
+
   async resendVerificationEmail(dto: ResendVerificationDto): Promise<void> {
     const { email } = dto;
     const user = await this.userModel.findOne({ email }).exec();

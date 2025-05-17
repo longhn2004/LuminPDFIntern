@@ -129,4 +129,11 @@ export class AuthController {
   async getCurrentUser(@Request() req) {
     return this.authService.getCurrentUser(req.user);
   }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('user-by-email')
+  @HttpCode(200)
+  async getUserByEmail(@Request() req, @Query('email') email: string) {
+    return this.authService.getUserByEmail(email);
+  }
 }
