@@ -44,6 +44,7 @@ export default function SignIn() {
     setInvalidPassword(false);
     setEmptyPassword(false);
     setIncorrectEmailOrPassword(false);
+    setVerificationMessage("");
     
     if(email === "") {
       setEmptyEmail(true);

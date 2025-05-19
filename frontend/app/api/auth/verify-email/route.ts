@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import api from '@/libs/api/axios';
 import { HTTP_STATUS } from '@/libs/constants/httpStatus';
+import { cookies } from 'next/headers';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,8 +16,31 @@ export async function GET(request: NextRequest) {
     }
     
     const response = await api.get(`/auth/verify-email?token=${token}`);
+
+
+    // Create a response that will redirect to the success page
+    const nextResponse = NextResponse.json(response.data);
+
+    // Set cookies from the backend response
+    if (response.headers['set-cookie']) {
+      const cookies = response.headers['set-cookie'];
+      
+      cookies.forEach(cookie => {
+        const [cookieName, ...rest] = cookie.split('=');
+        const cookieValue = rest.join('=').split(';')[0];
+        
+        nextResponse.cookies.set({
+          name: cookieName,
+          value: cookieValue,
+          httpOnly: cookie.includes('HttpOnly'),
+          secure: cookie.includes('Secure'),
+          sameSite: cookie.includes('SameSite=Lax') ? 'lax' : 'strict',
+          path: '/',
+        });
+      });
+    }
     
-    return NextResponse.redirect(new URL('/auth/verify-success', request.url));
+    return nextResponse;
   } catch (error: any) {
     console.error('Email verification error:', error.response?.data || error.message);
     

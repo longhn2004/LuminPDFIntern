@@ -24,6 +24,8 @@ export default function SignUp() {
   const [passwordMismatch, setPasswordMismatch] = useState(false);
   const [existingEmail, setExistingEmail] = useState(false);
   const [existingGoogle, setExistingGoogle] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  const [termsError, setTermsError] = useState(false);
   
   const router = useRouter();
 
@@ -38,6 +40,7 @@ export default function SignUp() {
     setPasswordMismatch(false);
     setExistingEmail(false);
     setExistingGoogle(false);
+    setTermsError(false);
 
     // Validation logic
     let isValid = true;
@@ -68,6 +71,11 @@ export default function SignUp() {
       isValid = false;
     } else if(password !== confirmPassword) {
       setPasswordMismatch(true);
+      isValid = false;
+    }
+
+    if (!acceptedTerms) {
+      setTermsError(true);
       isValid = false;
     }
 
@@ -273,6 +281,21 @@ export default function SignUp() {
         {emptyConfirmPassword && <p className="text-red-500 text-xs mt-1">Mandatory field</p>}
         {passwordMismatch && <p className="text-red-500 text-xs mt-1">Password must be the same</p>}
       </div>
+
+      {/* Terms of Service Checkbox */}
+      <div className="flex items-center w-full mb-2">
+        <input
+          type="checkbox"
+          id="terms"
+          checked={acceptedTerms}
+          onChange={() => setAcceptedTerms(!acceptedTerms)}
+          className="mr-2"
+        />
+        <label htmlFor="terms" className="text-sm select-none">
+          I accept all <a href="/terms" target="_blank" className="font-bold">Terms of Service</a> and <a href="/privacy" target="_blank" className="font-bold">Privacy Policy</a>
+        </label>
+      </div>
+      {termsError && <p className="text-red-500 text-xs mb-2">You must accept the Terms of Service and Privacy Policy</p>}
 
       <button 
         className={`bg-blue-500 w-full text-white p-2 rounded-xl hover:bg-blue-600 cursor-pointer active:scale-95 transition-all duration-300 mt-2 flex justify-center items-center ${isLoading ? 'opacity-70 cursor-not-allowed' : ''}`} 

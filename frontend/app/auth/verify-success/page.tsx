@@ -1,29 +1,29 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function VerifySuccess() {
   const router = useRouter();
+  const [countdown, setCountdown] = useState(3);
 
+  // Use a simple countdown timer that shows the seconds remaining
   useEffect(() => {
-    const checkVerificationStatus = async () => {
-      try {
-        const response = await fetch('/api/auth/me', {
-          credentials: 'include'
-        });
-        
-        if (!response.ok) {
-          setTimeout(() => {
-            router.push('/auth/signin');
-          }, 3000);
+    // Start countdown effect
+    const timer = setInterval(() => {
+      setCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          // Only redirect when countdown reaches 0
+          router.push('/dashboard/document-list');
+          return 0;
         }
-      } catch (error) {
-        console.error('Error checking verification status:', error);
-      }
-    };
-    
-    checkVerificationStatus();
+        return prev - 1;
+      });
+    }, 1000);
+
+    // Cleanup interval on unmount
+    return () => clearInterval(timer);
   }, [router]);
 
   const handleGoToDocuments = () => {
@@ -71,6 +71,10 @@ export default function VerifySuccess() {
               Go To My Document
             </button>
           </div>
+          
+          <p className="text-gray-400 mt-4">
+            Redirecting to dashboard in {countdown} seconds...
+          </p>
         </div>
       </div>
     </div>

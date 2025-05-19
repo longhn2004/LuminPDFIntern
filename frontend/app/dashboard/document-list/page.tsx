@@ -304,7 +304,7 @@ function DocumentList() {
                     <div 
                       key={file.id} 
                       className="grid grid-cols-12 gap-4 py-2 border-b hover:bg-gray-50 cursor-pointer text-black"
-                      onClick={() => router.push(`/dashboard/view-pdf/${file.id}`)}
+                      onClick={() => router.push(`/dashboard/viewpdf/${file.id}`)}
                     >
                       <div className="col-span-5 truncate flex items-center">
                         <FaFileAlt className="text-blue-500 mr-2" />

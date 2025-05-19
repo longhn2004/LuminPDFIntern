@@ -18,6 +18,19 @@ export class EmailService {
     });
   }
 
+  async sendVerificationEmail(email: string, token: string) {
+    const verificationUrl = `${this.configService.get('APP_URL')}/auth/verify-email?token=${token}`;
+    const mailOptions = {
+      from: this.configService.get('EMAIL_USER'),
+      to: email,
+      subject: 'Verify Your Email Address',
+      html: `<p>Please verify your email by clicking the link below:</p>
+             <a href="${verificationUrl}">Verify Email</a>`,
+    };
+
+    await this.transporter.sendMail(mailOptions);
+  }
+
   async sendInvitationEmail(email: string, token: string, fileName: string) {
     const appUrl = this.configService.get<string>('APP_URL');
     const invitationUrl = `${appUrl}/register?invitationToken=${token}`;

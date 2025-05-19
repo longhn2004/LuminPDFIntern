@@ -43,6 +43,7 @@ export default function VerifyEmail() {
         throw new Error(data.message || 'Verification failed');
       }
       
+      // Redirect to success page which will then redirect to dashboard after 3 seconds
       router.push('/auth/verify-success');
     } catch (error: any) {
       console.error("Verification error:", error);

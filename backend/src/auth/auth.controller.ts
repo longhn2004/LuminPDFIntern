@@ -19,8 +19,14 @@ export class AuthController {
 
   @Get('verify-email')
   @HttpCode(200)
-  async verifyEmail(@Query('token', ParseUUIDPipe) token: string) {
-    await this.authService.verifyEmail(token);
+  async verifyEmail(@Query('token', ParseUUIDPipe) token: string, @Response({ passthrough: true }) res) {
+    const { accessToken } = await this.authService.verifyEmail(token);
+    res.cookie('access_token', accessToken, {
+      httpOnly: false,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 30 * 60 * 1000, // 30p 
+    });
     return { message: 'Email verified successfully' };
   }
 
