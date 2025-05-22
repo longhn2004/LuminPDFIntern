@@ -28,22 +28,7 @@ export class FileService {
     private emailService: EmailService,
   ) {}
 
-  async uploadFile(file: Express.Multer.File, user: User) {
-    if (!file) {
-      throw new BadRequestException('No file uploaded');
-    }
-
-    const newFile = new this.fileModel({
-      name: file.originalname,
-      path: file.path,
-      owner: user._id,
-      viewers: [],
-      editors: [],
-    });
-
-    await newFile.save();
-    return newFile;
-  }
+    async uploadFile(file: Express.Multer.File, user: User) {    if (!file) {      throw new BadRequestException('No file uploaded');    }    const newFile = new this.fileModel({      name: file.originalname,      path: file.path,      owner: user._id,      ownerEmail: user.email,      viewers: [],      editors: [],    });    await newFile.save();    return newFile;  }
 
   async uploadFromDrive(fileId: string, user: User) {
     const auth = new google.auth.GoogleAuth({
@@ -72,13 +57,7 @@ export class FileService {
 
       return new Promise((resolve, reject) => {
         writeStream.on('finish', async () => {
-          const newFile = new this.fileModel({
-            name: fileMetadata.data.name || `drive-file-${fileId}.pdf`,
-            path: filePath,
-            owner: user._id,
-            viewers: [],
-            editors: [],
-          });
+                    const newFile = new this.fileModel({            name: fileMetadata.data.name || `drive-file-${fileId}.pdf`,            path: filePath,            owner: user._id,            ownerEmail: user.email,            viewers: [],            editors: [],          });
           await newFile.save();
           resolve(newFile);
         });
@@ -90,7 +69,7 @@ export class FileService {
   }
 
   async totalFiles(user: User) {
-    return this.fileModel.countDocuments({ $or: [{ owner: user._id }, { viewers: user._id }, { editors: user._id }] });
+    return this.fileModel.countDocuments({ $or: [{ ownerEmail: user.email }, { viewers: user.email }, { editors: user.email }] });
   }
 
   async listFiles(query: ListFilesDto, user: User) {
@@ -99,15 +78,20 @@ export class FileService {
     const skip = page * limit;
     const sortOrder = sort === 'ASC' ? 1 : -1;
 
-    const files = await this.fileModel
-      .find({
-        $or: [{ owner: user._id }, { viewers: user._id }, { editors: user._id }],
-      })
-      .sort({ updatedAt: sortOrder })
-      .skip(skip)
-      .limit(limit)
-      .populate('owner', 'name')
-      .exec();
+
+    const files = await this.fileModel      
+    .find({        
+      $or: [          
+        { ownerEmail: user.email },           
+        { viewers: user.email },           
+        { editors: user.email }        
+      ],      
+    })      
+    .sort({ updatedAt: sortOrder })      
+    .skip(skip)      
+    .limit(limit)      
+    .populate('owner', 'name')      
+    .exec();
 
     return files.map((file) => ({
       id: file._id,
@@ -138,15 +122,35 @@ export class FileService {
     res.download(file.path);
   }
 
+  async getFileInfo(id: string) {    
+    const file = await this.fileModel.findById(id).exec();    
+    if (!file) {      
+      throw new NotFoundException('File not found');    
+    }        
+    // Get owner information    
+    const ownerUser = await this.userModel.findOne({ email: file.ownerEmail }).exec();    
+    const ownerName = ownerUser ? ownerUser.name : '[Unregistered User]';        // Format response with detailed information    
+    return {      
+      id: file._id,      
+      name: file.name,      
+      createdAt: file.createdAt,      
+      updatedAt: file.updatedAt,     
+       owner: {        
+        email: file.ownerEmail,        
+        name: ownerName      
+      },      
+      viewers: file.viewers || [],      
+      editors: file.editors || []    
+    };  
+  }
+
   async deleteFile(id: string, user: User) {
     const file = await this.fileModel.findById(id).exec();
     if (!file) {
       throw new NotFoundException('File not found');
     }
 
-    if (file.owner.toString() !== (user._id as Types.ObjectId).toString()) {
-      throw new ForbiddenException('Only the owner can delete the file');
-    }
+        if (file.ownerEmail !== user.email) {      throw new ForbiddenException('Only the owner can delete the file');    }
 
     await this.fileModel.findByIdAndDelete(id).exec();
 
@@ -169,12 +173,7 @@ export class FileService {
   }
 
   async getFileUsers(fileId: string, user: User) {
-    const file = await this.fileModel
-      .findById(fileId)
-      .populate('owner', 'email')
-      .populate('viewers', 'email')
-      .populate('editors', 'email')
-      .exec();
+    const file = await this.fileModel.findById(fileId).exec();
     if (!file) {
       throw new NotFoundException('File not found');
     }
@@ -183,106 +182,127 @@ export class FileService {
     if (role !== 'owner') {
       throw new ForbiddenException('Only the owner can view file users');
     }
-    const users: { id: Types.ObjectId; email: string; role: string }[] = [];
-    users.push({ id: file.owner._id as Types.ObjectId, email: file.owner.email, role: 'owner' });
-    file.viewers.forEach((viewer) => {
-      users.push({ id: viewer._id as Types.ObjectId, email: viewer.email, role: 'viewer' });
+
+    const users: { id?: Types.ObjectId; email: string; role: string, name: string }[] = [];
+    
+        // Add owner    
+    const ownerUser = await this.userModel.findOne({ email: file.ownerEmail }).exec();    
+    users.push({       
+      id: ownerUser?._id as Types.ObjectId | undefined,       
+      email: file.ownerEmail,       
+      role: 'owner',       
+      name: ownerUser?.name || '[Unregistered User]'     
     });
-    file.editors.forEach((editor) => {
-      users.push({ id: editor._id as Types.ObjectId, email: editor.email, role: 'editor' });
-    });
+    
+        // Add viewers    
+    for (const email of file.viewers) {      
+      const viewerUser = await this.userModel.findOne({ email }).exec();      
+      users.push({         
+        id: viewerUser?._id as Types.ObjectId | undefined,         
+        email,         
+        role: 'viewer',         
+        name: viewerUser?.name || '[Unregistered User]'       
+      });    
+    }
+    
+        // Add editors    
+    for (const email of file.editors) {      
+      const editorUser = await this.userModel.findOne({ email }).exec();      
+      users.push({         
+        id: editorUser?._id as Types.ObjectId | undefined,         
+        email,         
+        role: 'editor',         
+        name: editorUser?.name || '[Unregistered User]'       
+      });    
+    }
 
     return users;
   }
 
   async inviteUser(inviteDto: InviteUserDto, owner: User) {
-    const { fileId, email, role } = inviteDto;
+    const { fileId, emails, role } = inviteDto;
     const file = await this.fileModel.findById(fileId).exec();
     if (!file) {
       throw new NotFoundException('File not found');
     }
 
-    if (file.owner.toString() !== (owner._id as Types.ObjectId).toString()) {
+    if (file.ownerEmail !== owner.email) {
       throw new ForbiddenException('Only the owner can invite users');
     }
-
-    const invitedUser = await this.userModel.findOne({ email }).exec();
-    if (invitedUser) {
-      const invitedUserId = invitedUser._id as Types.ObjectId;
-
-      if (
-        role === 'viewer' &&
-        !file.viewers.some((viewer: any) => (viewer._id as Types.ObjectId).equals(invitedUserId))
-      ) {
-        file.viewers.push(invitedUser);
-      } else if (
-        role === 'editor' &&
-        !file.editors.some((editor: any) => (editor._id as Types.ObjectId).equals(invitedUserId))
-      ) {
-        file.editors.push(invitedUser);
+    
+    // Process emails sequentially instead of in parallel
+    for (const email of emails) {
+      // Check if the user is registered
+      if (role === 'viewer' && !file.viewers.includes(email)) {
+        file.viewers.push(email);
+      } else if (role === 'editor' && !file.editors.includes(email)) {
+        file.editors.push(email);
       }
-      await file.save();
-      await this.emailService.sendAccessNotification(email, file.name, role);
-      return { message: 'User added successfully' };
-    } else {
-      const invitationToken = uuidv4();
-      const invitation = new this.invitationModel({
-        email,
-        file: fileId,
-        role,
-        token: invitationToken,
-      });
-      await invitation.save();
-
-      await this.emailService.sendInvitationEmail(email, invitationToken, file.name);
-      return { message: 'Invitation sent to unregistered user' };
+      const existingUser = await this.userModel.findOne({ email }).exec();
+      
+      if (existingUser) {
+        // Notify registered user about access
+        await this.emailService.sendAccessNotification(email, file.name, role);
+      } else {
+        const invitationToken = uuidv4();
+        const invitation = new this.invitationModel({
+          email,
+          file: fileId,
+          role,
+          token: invitationToken,
+        });
+        await invitation.save();
+        
+        // Send invitation to register
+        await this.emailService.sendInvitationEmail(email, invitationToken, file.name);
+      }
     }
+    
+    // Save the file once after all emails are processed
+    await file.save();
+    
+    return { message: 'Invitations sent successfully' };
   }
 
-  async changeRole(changeRoleDto: ChangeRoleDto, owner: User) {
-    const { fileId, userId, role } = changeRoleDto;
-    const file = await this.fileModel.findById(fileId).exec();
-    if (!file) {
-      throw new NotFoundException('File not found');
-    }
-
-    if ((file.owner._id as Types.ObjectId).toString() !== (owner._id as Types.ObjectId).toString()) {
-      throw new ForbiddenException('Only the owner can change roles');
-    }
-
-    const targetUser = await this.userModel.findById(userId).exec();
-    if (!targetUser) {
-      throw new NotFoundException('User not found');
-    }
-
-    const currentRole = this.getUserRole(file, targetUser);
-    if (currentRole === 'none') {
-      throw new BadRequestException('User does not have access to this file');
-    }
-    if (currentRole === 'owner') {
+  async changeRole(changeRoleDto: ChangeRoleDto, owner: User) {    
+    const { fileId, email, role } = changeRoleDto;    
+    const file = await this.fileModel.findById(fileId).exec();    
+    if (!file) {      
+      throw new NotFoundException('File not found');    
+    }    
+    if ((file.owner._id as Types.ObjectId).toString() !== (owner._id as Types.ObjectId).toString()) {      
+      throw new ForbiddenException('Only the owner can change roles');    
+    }    
+    
+    // Don't require user to exist in database
+    if (email === file.ownerEmail) {
       throw new BadRequestException('Cannot change the owner role');
     }
 
-    // Xóa khỏi danh sách hiện tại
-    file.viewers = file.viewers.filter(user => (user._id as User).toString() !== userId);
-    file.editors = file.editors.filter(user => (user._id as User).toString() !== userId);
+    // Remove from current lists
+    file.viewers = file.viewers.filter(viewerEmail => viewerEmail !== email);    
+    file.editors = file.editors.filter(editorEmail => editorEmail !== email);
 
-    // Thêm vào danh sách mới nếu không phải xóa vai trò
+    // Add to new list if not removing role
     if (role && role !== 'none') {
       if (role === 'viewer') {
-        file.viewers.push(targetUser);
+        file.viewers.push(email);
       } else if (role === 'editor') {
-        file.editors.push(targetUser);
+        file.editors.push(email);
       }
     }
 
     await file.save();
 
-    // Gửi email thông báo
-    if (role === 'none') {
-      await this.emailService.sendRoleRemovedNotification(targetUser.email, file.name);
-    } else {
-      await this.emailService.sendRoleChangedNotification(targetUser.email, file.name, role || 'none');
+    // Find user to send email if they exist
+    const targetUser = await this.userModel.findOne({ email }).exec();
+    if (targetUser) {
+      // Send email notification
+      if (role === 'none') {
+        await this.emailService.sendRoleRemovedNotification(email, file.name);
+      } else {
+        await this.emailService.sendRoleChangedNotification(email, file.name, role || 'none');
+      }
     }
 
     return { message: role === 'none' ? 'Role removed successfully' : 'Role changed successfully' };
@@ -363,16 +383,14 @@ export class FileService {
   }
 
   private getUserRole(file: File, user: User): string {
-    const fileOwner = (file.owner._id as User).toString();
-    const userOwner = (user._id as User).toString();
-    if (fileOwner === userOwner) {
-        return 'owner';
+    if (file.ownerEmail === user.email) {
+      return 'owner';
     }
-    if (file.viewers.some(user => (user._id as User).toString() === userOwner)) {
-        return 'viewer';
+    if (file.viewers.includes(user.email)) {
+      return 'viewer';
     }
-    if (file.editors.some(user => (user._id as User).toString() === userOwner)) {
-        return 'editor';
+    if (file.editors.includes(user.email)) {
+      return 'editor';
     }
     return 'none';
   }

@@ -1,4 +1,4 @@
-import { IsMongoId, IsEnum, IsOptional } from 'class-validator';
+import { IsMongoId, IsEnum, IsOptional, IsEmail } from 'class-validator';
 
 enum Role {
   Viewer = 'viewer',
@@ -10,8 +10,8 @@ export class ChangeRoleDto {
   @IsMongoId()
   fileId: string;
 
-  @IsMongoId()
-  userId: string;
+  @IsEmail()
+  email: string;
 
   @IsEnum(Role)
   @IsOptional()

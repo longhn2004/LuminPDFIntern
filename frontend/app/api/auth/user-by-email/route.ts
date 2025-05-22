@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
+import api from '@/libs/api/axios';
+import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 
 /**
  * GET endpoint to find a user by email
@@ -17,27 +19,29 @@ export async function GET(request: NextRequest) {
         { status: 400 }
       );
     }
-    
-    // Forward request to backend API
-    const response = await fetch(`${process.env.NEXT_APP_API_URL}/api/auth/user-by-email?email=${encodeURIComponent(email)}`, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cookie': request.headers.get('cookie') || '',
-      },
-      credentials: 'include',
-    });
 
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => null);
-      return NextResponse.json(
-        { message: errorData?.message || 'User not found' },
-        { status: response.status }
-      );
+    const cookieHeader = request.headers.get('cookie') || '';
+    const accessTokenMatch = cookieHeader.match(/access_token=([^;]+)/);
+    const accessToken = accessTokenMatch ? accessTokenMatch[1] : null;
+
+    if (!accessToken) {
+        return NextResponse.json(
+            { error: 'Authentication required' },
+            { status: HTTP_STATUS.UNAUTHORIZED }
+        );
     }
 
-    const data = await response.json();
-    return NextResponse.json(data);
+    
+    // Forward request to backend API using Axios
+    const response = await api.get(`/auth/user-by-email`, {
+      params: { email },
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`
+      },
+    });
+
+    return NextResponse.json(response.data);
   } catch (error) {
     console.error('Error searching for user:', error);
     return NextResponse.json(

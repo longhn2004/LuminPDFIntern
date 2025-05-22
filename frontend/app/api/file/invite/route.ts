@@ -11,8 +11,19 @@ export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
     
+
+    const cookieHeader = request.headers.get('cookie') || '';
+    const accessTokenMatch = cookieHeader.match(/access_token=([^;]+)/);
+    const accessToken = accessTokenMatch ? accessTokenMatch[1] : null;
+
+    if (!accessToken) {
+        return NextResponse.json(
+            { error: 'Authentication required' },
+            { status: HTTP_STATUS.UNAUTHORIZED }
+        );
+    }
     // Validate required fields
-    if (!data.fileId || !data.email || !data.role) {
+    if (!data.fileId || !data.emails || !data.role) {
       return NextResponse.json(
         { message: 'Missing required fields: fileId, email, or role' },
         { status: HTTP_STATUS.BAD_REQUEST }
@@ -20,7 +31,11 @@ export async function POST(request: NextRequest) {
     }
     
     // Use api client to call backend
-    const response = await api.post('/file/invite', data);
+    const response = await api.post('/file/invite', data, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
     return NextResponse.json(response.data);
   } catch (error: any) {
     console.error('Error inviting user:', error.response?.data || error.message);

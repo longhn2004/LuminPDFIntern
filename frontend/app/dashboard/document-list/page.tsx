@@ -235,7 +235,7 @@ function DocumentList() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 fixed inset-0">
       <DashboardHeader />
 
       {/* Main */}

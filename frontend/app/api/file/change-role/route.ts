@@ -12,15 +12,32 @@ export async function POST(request: NextRequest) {
     const data = await request.json();
     
     // Validate required fields
-    if (!data.fileId || !data.userId || !data.role) {
-      return NextResponse.json(
-        { message: 'Missing required fields: fileId, userId, or role' },
-        { status: HTTP_STATUS.BAD_REQUEST }
-      );
+
+    const cookieHeader = request.headers.get('cookie') || '';
+    const accessTokenMatch = cookieHeader.match(/access_token=([^;]+)/);
+    const accessToken = accessTokenMatch ? accessTokenMatch[1] : null;
+
+    if (!accessToken) {
+        return NextResponse.json(
+            { error: 'Authentication required' },
+            { status: HTTP_STATUS.UNAUTHORIZED }
+        );
+    }
+
+
+    if (!data.fileId || !data.email || !data.role) {      
+      return NextResponse.json(        
+        { message: 'Missing required fields: fileId, email, or role' },        
+        { status: HTTP_STATUS.BAD_REQUEST }      
+      );    
     }
     
     // Use api client to call backend
-    const response = await api.post('/file/change-role', data);
+    const response = await api.post('/file/change-role', data, {
+      headers: {
+        'Authorization': `Bearer ${accessToken}`
+      }
+    });
     return NextResponse.json(response.data);
   } catch (error: any) {
     console.error('Error changing user role:', error.response?.data || error.message);

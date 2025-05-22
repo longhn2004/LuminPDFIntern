@@ -9,8 +9,8 @@ export class InviteUserDto {
   @IsMongoId()
   fileId: string;
 
-  @IsEmail()
-  email: string;
+  @IsEmail({}, { each: true })
+  emails: string[];
 
   @IsEnum(Role)
   role: Role;

@@ -90,4 +90,9 @@ export class FileController {
   async deleteFile(@Param('id') id: string, @Req() req: Request & { user: any }) {
     return this.fileService.deleteFile(id, req.user);
   }
+
+  @Get(':id/info')
+  async getFileInfo(@Param('id') id: string) {
+    return this.fileService.getFileInfo(id);
+  }
 }

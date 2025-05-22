@@ -10,14 +10,17 @@ export class File extends Document {
   @Prop({ required: true })
   path: string;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
+  @Prop({ required: true })
+  ownerEmail: string;
+
+  @Prop({ type: Types.ObjectId, ref: 'User' })
   owner: User;
 
-  @Prop([{ type: Types.ObjectId, ref: 'User' }])
-  viewers: User[];
+  @Prop([{ type: String }])
+  viewers: string[];
 
-  @Prop([{ type: Types.ObjectId, ref: 'User' }])
-  editors: User[];
+  @Prop([{ type: String }])
+  editors: string[];
 
   @Prop({ default: Date.now })
   createdAt: Date;
