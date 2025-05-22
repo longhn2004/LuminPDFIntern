@@ -1,11 +1,10 @@
-import { NextResponse } from 'next/server';
-import axios from 'axios';
+import { NextRequest, NextResponse } from 'next/server';
 import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 
 // Configuration for axios to include credentials
 import api from '@/libs/api/axios';
 
-export async function GET(request) {
+export async function GET(request: NextRequest) {
   // Extract authorization code from URL
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
@@ -19,7 +18,7 @@ export async function GET(request) {
   try {
     // Call the backend Google callback endpoint
     const backendUrl = process.env.NEXT_APP_BACKEND_URL || 'http://localhost:5000';
-    const response = await axios.get(`${backendUrl}/api/auth/google/callback`, {
+    const response = await api.get(`${backendUrl}/api/auth/google/callback`, {
       params: { code },
       withCredentials: true,
       maxRedirects: 0, // Prevent auto-following redirects
@@ -54,7 +53,7 @@ export async function GET(request) {
     
     return NextResponse.redirect(new URL('/dashboard/document-list', request.url));
     
-  } catch (error) {
+  } catch (error: any) {
     console.error('Google callback error:', error.response?.data || error.message);
     
     // Handle email/password conflict - User already registered with email/password

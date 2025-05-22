@@ -1,9 +1,9 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import axios from 'axios';
 import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 import api from '@/libs/api/axios';
 
-export async function POST(request) {
+export async function POST(request: NextRequest) {
   try {
     // Extract cookies from the request to forward to backend
     const cookieHeader = request.headers.get('cookie');
@@ -22,7 +22,7 @@ export async function POST(request) {
     response.cookies.delete('access_token');
     
     return response;
-  } catch (error) {
+  } catch (error: any) {
     console.error('Logout API error:', error.response?.data || error.message);
     
     // Even if the backend call fails, clear the cookie on the frontend

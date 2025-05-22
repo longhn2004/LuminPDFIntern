@@ -5,11 +5,11 @@ import { User } from './schemas/user.schema';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { EmailService } from './email.service';
+import { EmailService } from 'src/email/email.service';
 import { v4 as uuidv4 } from 'uuid';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
+// import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 
 @Injectable()
@@ -47,7 +47,7 @@ export class AuthService {
     return { email, name, isEmailVerified: false };
   }
 
-  async verifyEmail(token: string): Promise<void> {
+  async verifyEmail(token: string): Promise<{ accessToken: string }> {
     const user = await this.userModel.findOne({ verificationToken: token }).exec();
     if (!user) {
       throw new BadRequestException('Invalid or expired verification token');
@@ -56,6 +56,9 @@ export class AuthService {
     user.isEmailVerified = true;
     user.verificationToken = "";
     await user.save();
+
+    // return token
+    return this.generateTokens(user);
   }
 
   async login(dto: LoginDto): Promise<{ accessToken: string }> {
@@ -172,13 +175,26 @@ export class AuthService {
   //   }
   // }
 
-  async getCurrentUser(user: User): Promise<{ email: string; isEmailVerified: boolean }> {
+  async getCurrentUser(user: User): Promise<{ email: string; isEmailVerified: boolean; name: string }> {
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
     return {
       email: user.email,
       isEmailVerified: user.isEmailVerified,
+      name: user.name,
+    };
+  }
+
+  async getUserByEmail(email: string): Promise<{ email: string; isEmailVerified: boolean; name: string }> {
+    const user = await this.userModel.findOne({ email }).exec();
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+    return {
+      email: user.email,
+      isEmailVerified: user.isEmailVerified,
+      name: user.name,
     };
   }
 

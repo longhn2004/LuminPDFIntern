@@ -19,8 +19,14 @@ export class AuthController {
 
   @Get('verify-email')
   @HttpCode(200)
-  async verifyEmail(@Query('token', ParseUUIDPipe) token: string) {
-    await this.authService.verifyEmail(token);
+  async verifyEmail(@Query('token', ParseUUIDPipe) token: string, @Response({ passthrough: true }) res) {
+    const { accessToken } = await this.authService.verifyEmail(token);
+    res.cookie('access_token', accessToken, {
+      httpOnly: false,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: 30 * 60 * 1000, // 30p 
+    });
     return { message: 'Email verified successfully' };
   }
 
@@ -128,5 +134,12 @@ export class AuthController {
   @HttpCode(200)
   async getCurrentUser(@Request() req) {
     return this.authService.getCurrentUser(req.user);
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('user-by-email')
+  @HttpCode(200)
+  async getUserByEmail(@Request() req, @Query('email') email: string) {
+    return this.authService.getUserByEmail(email);
   }
 }

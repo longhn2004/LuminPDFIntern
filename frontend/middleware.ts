@@ -39,22 +39,25 @@ const isAuthPage = (path: string) => {
   return authPages.some(authPage => path === authPage);
 };
 
+/**
+ * Middleware function to handle authentication and API request forwarding
+ */
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   
   // Check for authentication token
   const token = request.cookies.get('access_token');
-  
+
   // If user is logged in and tries to access auth pages, redirect to document-list
   if (token && isAuthPage(pathname)) {
     return NextResponse.redirect(new URL('/dashboard/document-list', request.url));
   }
-  
+
   // Allow access to public paths
   if (isPublicPath(pathname)) {
     return NextResponse.next();
   }
-  
+
   // If token doesn't exist, redirect to login
   if (!token) {
     const url = new URL('/auth/signin', request.url);
