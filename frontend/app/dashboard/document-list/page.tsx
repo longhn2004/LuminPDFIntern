@@ -5,9 +5,10 @@ import LogoutButton from '@/components/LogoutButton';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { setUser } from '@/redux/features/userSlice';
 import { useRouter } from 'next/navigation';
-import { FaSort, FaSortUp, FaSortDown, FaFileAlt } from 'react-icons/fa';
+import { FaSort, FaSortUp, FaSortDown, FaFileAlt, FaUpload } from 'react-icons/fa';
 import { toast, ToastContainer } from 'react-toastify';
 import DashboardHeader from '@/components/DashboardHeader';
+import Avatar from '@/components/Avatar';
 import 'react-toastify/dist/ReactToastify.css';
 
 // Type definitions
@@ -235,12 +236,12 @@ function DocumentList() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 fixed inset-0">
+    <div className="h-screen bg-white fixed inset-0">
       <DashboardHeader />
 
       {/* Main */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 text-black">
-        <div className="bg-white shadow rounded-lg p-6">
+      <main className="mx-auto  text-black h-100%">
+        <div className="bg-white p-6 h-100%">
           {/* First row with title and upload button */}
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center">
@@ -254,8 +255,10 @@ function DocumentList() {
             {totalFiles > 0 && (
               <button 
                 onClick={triggerFileInput}
-                className="bg-yellow-400 hover:bg-yellow-500 px-4 py-2 rounded-md flex items-center transition-colors duration-300"
+                className="bg-yellow-500 hover:bg-yellow-600 px-4 py-2 rounded-md flex items-center transition-colors duration-300"
               >
+                {/* Download icon */}
+                <FaUpload className="mr-2" />
                 Upload Document
               </button>
             )}
@@ -264,50 +267,72 @@ function DocumentList() {
           {/* Content based on whether user has files */}
           {user.isAuthenticated ? (
             totalFiles > 0 ? (
-              // Files list view
-              <div>
-                {/* Table header */}
-                <div className="grid grid-cols-12 gap-4 border-b pb-2 mb-2 font-medium text-gray-700">
-                  <div className="col-span-5">File Name</div>
-                  <div className="col-span-3">Owner Name</div>
-                  <div className="col-span-4 flex items-center">
-                    <span>Last Updated Time</span>
-                    <button 
-                      onClick={toggleSort}
-                      className="ml-1 focus:outline-none"
-                    >
-                      {sortOrder === 'ASC' ? <FaSortUp /> : <FaSortDown />}
-                    </button>
-                  </div>
-                </div>
+              // Files table view
+              <div className="w-full overflow-y-auto" style={{ height: '75vh' }}>
+                <table className="w-full border border-gray-200 rounded-lg overflow-hidden border-collapse">
+                  {/* Table header */}
+                  <thead className="bg-gray-100">
+                    <tr>
+                      <th className="text-left py-3 px-4 font-medium text-gray-700 border-l-2 border-gray-200">
+                        File Name
+                      </th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-700 w-48">
+                        Document Owner
+                      </th>
+                      <th className="text-left py-3 px-4 font-medium text-gray-700 w-44 border-r-2 border-gray-200">
+                        <div className="flex items-center">
+                          <span>Last Updated</span>
+                          <button 
+                            onClick={toggleSort}
+                            className="ml-2 focus:outline-none hover:text-gray-900"
+                          >
+                            {sortOrder === 'ASC' ? <FaSortUp /> : <FaSortDown />}
+                          </button>
+                        </div>
+                      </th>
+                    </tr>
+                  </thead>
 
-                {/* Files list */}
-                <div className="space-y-2">
-                  {files.map(file => (
-                    <div 
-                      key={file.id} 
-                      className="grid grid-cols-12 gap-4 py-2 border-b hover:bg-gray-50 cursor-pointer text-black"
-                      onClick={() => router.push(`/dashboard/viewpdf/${file.id}`)}
-                    >
-                      <div className="col-span-5 truncate flex items-center">
-                        <FaFileAlt className="text-blue-500 mr-2" />
-                        {file.name}
-                      </div>
-                      <div className="col-span-3 truncate">{file.owner} <span className="font-bold">{file.owner === user.name ? '(You)' : ''}</span></div>
-                      <div className="col-span-4 truncate text-gray-500">
-                        {formatDate(file.updatedAt)}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                  {/* Table body */}
+                  <tbody>
+                    {files.map(file => (
+                      <tr 
+                        key={file.id} 
+                        className="hover:bg-gray-50 cursor-pointer border border-gray-200 transition-colors"
+                        onClick={() => router.push(`/dashboard/viewpdf/${file.id}`)}
+                      >
+                        <td className="py-3 px-4 border-b-2 border-gray-200">
+                          <div className="flex items-center">
+                            {/* <FaFileAlt className="text-blue-500 mr-3 flex-shrink-0" /> */}
+                            <span className="truncate">{file.name}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 border-b-2 border-gray-200">
+                          <div className="flex items-center">
+                            <Avatar name={file.owner} size="sm" className="mr-3 flex-shrink-0" />
+                            <span className="truncate">
+                              {file.owner}
+                              {file.owner === user.name && (
+                                <span className="text-gray-500 font-normal ml-1">(You)</span>
+                              )}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-gray-500 border-r-2 border-b-2 border-gray-200">
+                          {formatDate(file.updatedAt)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
 
                 {/* Load more button */}
                 {hasMore && (
-                  <div className="mt-4 text-center">
+                  <div className="mt-6 text-center">
                     <button 
                       onClick={loadMore}
                       disabled={loading}
-                      className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50"
+                      className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50 transition-colors"
                     >
                       {loading ? 'Loading...' : 'Load More'}
                     </button>

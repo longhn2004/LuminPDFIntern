@@ -1,14 +1,38 @@
 import { useRouter } from "next/navigation";
 import LogoutButton from "./LogoutButton";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { setUser } from "@/redux/features/userSlice";
+import Avatar from "./Avatar";
 
 export default function DashboardHeader() {
     const dispatch = useAppDispatch();
     const user = useAppSelector(state => state.user);
     const router = useRouter();
+    const [showLogoutMenu, setShowLogoutMenu] = useState(false);
+    const dropdownRef = useRef<HTMLDivElement>(null);
     
+    // Function to get time-based greeting
+    const getTimeBasedGreeting = () => {
+        const hour = new Date().getHours();
+        if (hour < 12) return "Good morning";
+        if (hour < 17) return "Good afternoon";
+        return "Good evening";
+    };
+
+    // Close dropdown when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+                setShowLogoutMenu(false);
+            }
+        };
+
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
     
     // Fetch user data
     useEffect(() => {
@@ -47,12 +71,25 @@ export default function DashboardHeader() {
         </div>
         <div className="flex items-center gap-4 justify-end">
         {user.isAuthenticated && (
-            <div className="text-sm text-gray-600">
-            <div className="whitespace-nowrap">Good day, </div>
-            <p className="font-bold whitespace-nowrap">{user.name}</p>
+            <div className="flex items-center gap-3 relative" ref={dropdownRef}>
+              <div className="text-sm text-gray-600">
+                <div className="whitespace-nowrap">
+                  {getTimeBasedGreeting()}, {user.name}
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowLogoutMenu(!showLogoutMenu)}
+                className="cursor-pointer hover:opacity-80 transition-opacity"
+              >
+                <Avatar name={user.name || 'User'} size="md" />
+              </button>
+              {showLogoutMenu && (
+                <div className="absolute top-full right-0 mt-2 bg-white border border-gray-200 rounded-lg shadow-lg p-2 z-10">
+                  <LogoutButton />
+                </div>
+              )}
             </div>
         )}
-        <LogoutButton />
         </div>
     </div>
     )

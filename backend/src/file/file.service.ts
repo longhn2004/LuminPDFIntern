@@ -28,7 +28,21 @@ export class FileService {
     private emailService: EmailService,
   ) {}
 
-    async uploadFile(file: Express.Multer.File, user: User) {    if (!file) {      throw new BadRequestException('No file uploaded');    }    const newFile = new this.fileModel({      name: file.originalname,      path: file.path,      owner: user._id,      ownerEmail: user.email,      viewers: [],      editors: [],    });    await newFile.save();    return newFile;  }
+    async uploadFile(file: Express.Multer.File, user: User) {    
+      if (!file) {      
+        throw new BadRequestException('No file uploaded');    
+      }    
+      const newFile = new this.fileModel({      
+        name: file.originalname,      
+        path: file.path,      
+        owner: user._id,      
+        ownerEmail: user.email,      
+        viewers: [],      
+        editors: [],    
+      });    
+      await newFile.save();    
+      return newFile;  
+    }
 
   async uploadFromDrive(fileId: string, user: User) {
     const auth = new google.auth.GoogleAuth({
@@ -57,7 +71,14 @@ export class FileService {
 
       return new Promise((resolve, reject) => {
         writeStream.on('finish', async () => {
-                    const newFile = new this.fileModel({            name: fileMetadata.data.name || `drive-file-${fileId}.pdf`,            path: filePath,            owner: user._id,            ownerEmail: user.email,            viewers: [],            editors: [],          });
+                    const newFile = new this.fileModel({            
+                      name: fileMetadata.data.name || `drive-file-${fileId}.pdf`,            
+                      path: filePath,            
+                      owner: user._id,            
+                      ownerEmail: user.email,            
+                      viewers: [],            
+                      editors: [],          
+                    });
           await newFile.save();
           resolve(newFile);
         });
@@ -150,7 +171,9 @@ export class FileService {
       throw new NotFoundException('File not found');
     }
 
-        if (file.ownerEmail !== user.email) {      throw new ForbiddenException('Only the owner can delete the file');    }
+        if (file.ownerEmail !== user.email) {      
+          throw new ForbiddenException('Only the owner can delete the file');    
+        }
 
     await this.fileModel.findByIdAndDelete(id).exec();
 

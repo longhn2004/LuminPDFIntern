@@ -101,7 +101,7 @@ export default function SignIn() {
 
   return <div className="flex h-screen w-full bg-[url('@/public/images/backgroundauth.png')] fixed bg-cover bg-center">
     {/* left div */}
-    <div className="opacity-100 text-black absolute left-20 top-1/2 transform -translate-y-1/2 w-[300px]  rounded-xl top-1/2">
+    <div className="opacity-100 text-black absolute left-20 top-1/2 transform -translate-y-1/2 w-[300px]  rounded-xl">
       <div className=" w-full h-full rounded-xl">
         <div className="flex items-center bg-white w-[130px] rounded-xl p-2">
           <img src="/images/dsvlogo.png" alt="Logo" className="h-10 w-10" />
