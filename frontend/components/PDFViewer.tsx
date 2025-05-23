@@ -113,10 +113,10 @@ export default function PDFViewer({pdfId}: PDFViewerProps) {
   }
   
   return (
-    <div className="max-w-full text-black bg-white flex flex-col h-screen">
+    <div className="max-w-full text-black bg-white flex flex-col h-full min-h-0">
       <ToastContainer position="bottom-right" />
       
-      <div className="h-full text-black bg-white flex flex-col">
+      <div className="flex-1 min-h-0 text-black bg-white flex flex-col">
         <PDFToolbar 
           fileName={fileName}
           isOwner={isOwner}

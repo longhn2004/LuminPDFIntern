@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaSearchPlus, FaSearchMinus, FaCheck, FaStepBackward, FaStepForward, FaFastBackward, FaFastForward } from 'react-icons/fa';
+import { FaSearchPlus, FaSearchMinus, FaCheck, FaStepBackward, FaStepForward, FaFastBackward, FaFastForward, FaPlus, FaMinus } from 'react-icons/fa';
 import { MdOutlineTextFields } from 'react-icons/md';
 import { 
   zoomIn, 
@@ -296,7 +296,7 @@ export default function PDFNavigationBar({
   
   return (
     <div 
-      className={`fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg ${className}`}
+      className={`bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg ${className}`}
       ref={dropdownRef}
     >
       <div className="flex items-center justify-center px-4 py-2">
@@ -311,7 +311,13 @@ export default function PDFNavigationBar({
               disabled={isMinZoom}
               title={isMinZoom ? "Minimum zoom reached (50%)" : "Zoom Out"}
             >
-              <FaSearchMinus size={16} />
+              {/* <FaSearchMinus size={16} /> */}
+
+              {/* circle minus with black border */}
+              <div className="w-4 h-4 rounded-full flex items-center justify-center border border-black">
+                <FaMinus size={12} />
+              </div>
+
             </button>
             
             <div 
@@ -389,7 +395,11 @@ export default function PDFNavigationBar({
               disabled={isMaxZoom}
               title={isMaxZoom ? "Maximum zoom reached (200%)" : "Zoom In"}
             >
-              <FaSearchPlus size={16} />
+              {/* <FaSearchPlus size={16} /> */}
+
+              <div className="w-4 h-4 rounded-full flex items-center justify-center border border-black">
+                <FaPlus size={12} />
+              </div>
             </button>
           </div>
 

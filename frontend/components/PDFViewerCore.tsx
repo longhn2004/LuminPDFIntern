@@ -348,44 +348,45 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
 
   return (
     <>
-      <div 
-        ref={viewerContainerRef}
-        className='webviewer relative' 
-        id="scroll-view" 
-        style={{ 
-          height: '84vh', 
-          width: '100%', 
-          display: 'flex', 
-          justifyContent: 'center', 
-          overflowY: 'scroll', 
-          backgroundColor: '#f0f0f0',
-        }}
-      >
-        <div id="viewer" />
+      <>
+        <div 
+          ref={viewerContainerRef}
+          className='webviewer relative' 
+          id="scroll-view" 
+          style={{ 
+            height: '100%', 
+            width: '100%', 
+            display: 'flex', 
+            justifyContent: 'center', 
+            overflowY: 'auto', 
+            backgroundColor: '#f0f0f0',
+          }}
+        >
+          <div id="viewer" />
 
-        {!isLoaded && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 z-10">
-            <div className="text-center max-w-md p-6 bg-gray-50 rounded-lg shadow-lg">
-              <h1 className="text-xl font-semibold mb-2">Loading PDF</h1>
-              <p className="text-gray-600 mb-4">{loadingStatus}</p>
-              <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              {loadingError && (
-                <div className="text-red-500 mt-4">
-                  <p className="font-semibold">Error:</p>
-                  <p>{loadingError}</p>
-                  <button
-                    onClick={handleRetry}
-                    className="mt-3 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
-                  >
-                    Retry
-                  </button>
-                </div>
-              )}
+          {!isLoaded && (
+            <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 z-10">
+              <div className="text-center max-w-md p-6 bg-gray-50 rounded-lg shadow-lg">
+                <h1 className="text-xl font-semibold mb-2">Loading PDF</h1>
+                <p className="text-gray-600 mb-4">{loadingStatus}</p>
+                <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                {loadingError && (
+                  <div className="text-red-500 mt-4">
+                    <p className="font-semibold">Error:</p>
+                    <p>{loadingError}</p>
+                    <button
+                      onClick={handleRetry}
+                      className="mt-3 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                    >
+                      Retry
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
-        )}
-      </div>
-
+          )}
+        </div>
+      </>
       {/* Render navigation bar outside the scroll container, but only when document is loaded */}
       {isLoaded && <PDFNavigationBar />}
     </>

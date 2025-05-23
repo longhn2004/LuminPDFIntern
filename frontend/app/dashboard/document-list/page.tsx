@@ -236,12 +236,12 @@ function DocumentList() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 fixed inset-0">
+    <div className="h-screen bg-white fixed inset-0">
       <DashboardHeader />
 
       {/* Main */}
-      <main className="mx-auto px-4 sm:px-6 lg:px-8 py-6 text-black">
-        <div className="bg-white shadow rounded-lg p-6">
+      <main className="mx-auto  text-black h-100%">
+        <div className="bg-white p-6 h-100%">
           {/* First row with title and upload button */}
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center">
@@ -268,7 +268,7 @@ function DocumentList() {
           {user.isAuthenticated ? (
             totalFiles > 0 ? (
               // Files table view
-              <div className="w-full">
+              <div className="w-full overflow-y-auto" style={{ height: '75vh' }}>
                 <table className="w-full border border-gray-200 rounded-lg overflow-hidden border-collapse">
                   {/* Table header */}
                   <thead className="bg-gray-100">
