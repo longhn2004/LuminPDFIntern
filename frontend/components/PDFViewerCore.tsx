@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import Script from "next/script";
-import ZoomControlPanel from './ZoomControlPanel';
+import PDFNavigationBar from './ZoomControlPanel';
 import { zoomIn, zoomOut, setZoom } from './ZoomControls';
 import { MIN_ZOOM, MAX_ZOOM } from './ZoomConstants';
 
@@ -274,6 +274,14 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
         setIsLoaded(true);
         setLoadingError(null);
         setLoadingStatus("Document loaded");
+        
+        // Set default zoom to 100%
+        try {
+          documentViewer.zoomTo(1.0);
+          console.log("PDFViewerCore: Set default zoom to 100%");
+        } catch (err) {
+          console.error("PDFViewerCore: Error setting default zoom:", err);
+        }
       });
       
       documentViewer.addEventListener('loaderror', (err: any) => {
@@ -378,8 +386,8 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
         )}
       </div>
 
-      {/* Render zoom control panel outside the scroll container, but only when document is loaded */}
-      {isLoaded && <ZoomControlPanel position="bottom-center" />}
+      {/* Render navigation bar outside the scroll container, but only when document is loaded */}
+      {isLoaded && <PDFNavigationBar />}
     </>
   );
 } 

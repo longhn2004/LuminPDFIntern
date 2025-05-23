@@ -3,6 +3,7 @@ import LogoutButton from "./LogoutButton";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { useEffect, useRef } from "react";
 import { setUser } from "@/redux/features/userSlice";
+import Avatar from "./Avatar";
 
 export default function DashboardHeader() {
     const dispatch = useAppDispatch();
@@ -47,9 +48,12 @@ export default function DashboardHeader() {
         </div>
         <div className="flex items-center gap-4 justify-end">
         {user.isAuthenticated && (
-            <div className="text-sm text-gray-600">
-            <div className="whitespace-nowrap">Good day, </div>
-            <p className="font-bold whitespace-nowrap">{user.name}</p>
+            <div className="flex items-center gap-3">
+              <Avatar name={user.name || 'User'} size="md" />
+              <div className="text-sm text-gray-600">
+                <div className="whitespace-nowrap">Good day, </div>
+                <p className="font-bold whitespace-nowrap">{user.name}</p>
+              </div>
             </div>
         )}
         <LogoutButton />
