@@ -35,7 +35,7 @@ export default function PDFToolbar({
         {isOwner && (
           <button 
             onClick={onDelete} 
-            className="h-10 px-4 flex items-center gap-2 text-white bg-red-500 rounded-md hover:bg-red-600 transition-colors duration-300 active:scale-95"
+            className="h-10 px-4 flex items-center gap-2 bg-gray-300 border-2 border-gray-400 rounded-md hover:bg-gray-400 transition-colors duration-300 active:scale-95"
             title="Delete document"
           >
             Delete
@@ -45,7 +45,7 @@ export default function PDFToolbar({
         
         <button 
           onClick={onDownload} 
-          className="h-10 px-4 flex items-center gap-2 text-white bg-yellow-500 rounded-md hover:bg-yellow-600 transition-colors duration-300 active:scale-95"
+          className="h-10 px-4 flex items-center gap-2 bg-gray-300 border-2 border-gray-400 rounded-md hover:bg-gray-400 transition-colors duration-300 active:scale-95"
           title="Download document"
         >
           Download
@@ -55,7 +55,7 @@ export default function PDFToolbar({
         {isOwner && (
           <button 
             onClick={onShare} 
-            className="h-10 px-4 flex items-center gap-2 text-white bg-blue-500 rounded-md hover:bg-blue-600 transition-colors duration-300 active:scale-95"
+            className="h-10 px-4 flex items-center gap-2 bg-gray-300 border-2 border-gray-400 rounded-md hover:bg-gray-400 transition-colors duration-300 active:scale-95"
             title="Share document"
           >
             Share

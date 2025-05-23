@@ -5,7 +5,7 @@ import LogoutButton from '@/components/LogoutButton';
 import { useAppDispatch, useAppSelector } from '@/redux/hooks';
 import { setUser } from '@/redux/features/userSlice';
 import { useRouter } from 'next/navigation';
-import { FaSort, FaSortUp, FaSortDown, FaFileAlt } from 'react-icons/fa';
+import { FaSort, FaSortUp, FaSortDown, FaFileAlt, FaUpload } from 'react-icons/fa';
 import { toast, ToastContainer } from 'react-toastify';
 import DashboardHeader from '@/components/DashboardHeader';
 import Avatar from '@/components/Avatar';
@@ -255,8 +255,10 @@ function DocumentList() {
             {totalFiles > 0 && (
               <button 
                 onClick={triggerFileInput}
-                className="bg-yellow-500 hover:bg-yellow-600 px-4 py-2 rounded-md flex items-center transition-colors duration-300 text-white"
+                className="bg-yellow-500 hover:bg-yellow-600 px-4 py-2 rounded-md flex items-center transition-colors duration-300"
               >
+                {/* Download icon */}
+                <FaUpload className="mr-2" />
                 Upload Document
               </button>
             )}

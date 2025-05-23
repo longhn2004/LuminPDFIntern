@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef } from 'react';
 import Script from "next/script";
-import PDFNavigationBar from './ZoomControlPanel';
+import PDFNavigationBar from './PageControlBar';
 import { zoomIn, zoomOut, setZoom } from './ZoomControls';
 import { MIN_ZOOM, MAX_ZOOM } from './ZoomConstants';
 
