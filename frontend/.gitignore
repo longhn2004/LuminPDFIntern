@@ -19,6 +19,8 @@
 
 # production
 /build
+/public/webviewer
+/public/lib
 
 # misc
 .DS_Store

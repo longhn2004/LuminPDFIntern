@@ -5,11 +5,11 @@ import { User } from './schemas/user.schema';
 import * as bcrypt from 'bcrypt';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { EmailService } from './email.service';
+import { EmailService } from 'src/email/email.service';
 import { v4 as uuidv4 } from 'uuid';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
+// import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 
 @Injectable()
@@ -47,7 +47,7 @@ export class AuthService {
     return { email, name, isEmailVerified: false };
   }
 
-  async verifyEmail(token: string): Promise<void> {
+  async verifyEmail(token: string): Promise<{ accessToken: string }> {
     const user = await this.userModel.findOne({ verificationToken: token }).exec();
     if (!user) {
       throw new BadRequestException('Invalid or expired verification token');
@@ -56,9 +56,12 @@ export class AuthService {
     user.isEmailVerified = true;
     user.verificationToken = "";
     await user.save();
+
+    // return token
+    return this.generateTokens(user);
   }
 
-  async login(dto: LoginDto): Promise<{ accessToken: string; refreshToken: string }> {
+  async login(dto: LoginDto): Promise<{ accessToken: string }> {
     const { email, password } = dto;
     const user = await this.userModel.findOne({ email }).exec();
     if (!user || !user.password || !(await bcrypt.compare(password, user.password))) {
@@ -81,12 +84,24 @@ export class AuthService {
     user = await this.userModel.findOne({ email }).exec();
     if (user) {
       if (user.googleId) {
+        user.googleId = googleId;
+        user.isEmailVerified = true;
+        user.name = user.name || name; 
+        await user.save();
         return user;
       }
-      user.googleId = googleId;
-      user.isEmailVerified = true;
-      user.name = user.name || name; // Update name if not already set
-      await user.save();
+      // if (user.password) {
+      //   console.log("error in findOrCreateGoogleUser")
+      //   throw new ConflictException(
+      //     'An account with this email already exists. Please sign in with email and password.',
+      //     'EMAIL_PASSWORD_EXISTS'
+      //   );
+      // }
+
+      // user.googleId = googleId;
+      // user.isEmailVerified = true;
+      // user.name = user.name || name; 
+      // await user.save();
       return user;
     }
 
@@ -94,17 +109,26 @@ export class AuthService {
       email,
       googleId,
       isEmailVerified: true,
-      name, // Save name from Google profile
+      name, 
     });
     await user.save();
     return user;
   }
 
-  async googleLogin(user: User): Promise<{ accessToken: string; refreshToken: string }> {
+  async googleLogin(user: User): Promise<{ accessToken: string}> {
+    let userfind = await this.userModel.findOne({ email: user.email }).exec();
+    if (userfind){
+      if (userfind.password){
+        throw new ConflictException(
+          'An account with this email already exists. Please sign in with email and password.',
+          'EMAIL_PASSWORD_EXISTS'
+        );
+      }
+    }
     return this.generateTokens(user);
   }
 
-  async generateTokens(user: User): Promise<{ accessToken: string; refreshToken: string }> {
+  async generateTokens(user: User): Promise<{ accessToken: string}> {
     const payload = { email: user.email, sub: user._id };
     
     const jwtSecret = this.configService.get<string>('JWT_SECRET');
@@ -119,50 +143,58 @@ export class AuthService {
 
     try {
       const accessToken = this.jwtService.sign(payload, { secret: jwtSecret });
-      const refreshToken = this.jwtService.sign(payload, {
-        secret: jwtRefreshSecret,
-        expiresIn: '7d',
-      });
-
-      user.refreshToken = await bcrypt.hash(refreshToken, 10);
+      
       await user.save();
 
-      return { accessToken, refreshToken };
+      return { accessToken };
     } catch (error) {
       console.error('Error in generateTokens:', error);
       throw error;
     }
   }
 
-  async refreshToken(userId: string, dto: RefreshTokenDto): Promise<{ accessToken: string; refreshToken: string }> {
-    const { refreshToken } = dto;
-    const user = await this.userModel.findById(userId).exec();
-    if (!user || !user.refreshToken || !(await bcrypt.compare(refreshToken, user.refreshToken))) {
-      throw new UnauthorizedException('Invalid refresh token');
-    }
+  // async refreshToken(userId: string, dto: RefreshTokenDto): Promise<{ accessToken: string; refreshToken: string }> {
+  //   const { refreshToken } = dto;
+  //   const user = await this.userModel.findById(userId).exec();
+  //   if (!user || !user.refreshToken || !(await bcrypt.compare(refreshToken, user.refreshToken))) {
+  //     throw new UnauthorizedException('Invalid refresh token');
+  //   }
 
-    return this.generateTokens(user);
-  }
+  //   return this.generateTokens(user);
+  // }
 
   async validateUser(payload: any): Promise<User | null> {
     return this.userModel.findById(payload.sub).exec();
   }
 
-  async invalidateRefreshToken(userId: string): Promise<void> {
-    const user = await this.userModel.findById(userId).exec();
-    if (user) {
-      user.refreshToken = "";
-      await user.save();
-    }
-  }
+  // async invalidateRefreshToken(userId: string): Promise<void> {
+  //   const user = await this.userModel.findById(userId).exec();
+  //   if (user) {
+  //     user.refreshToken = "";
+  //     await user.save();
+  //   }
+  // }
 
-  async getCurrentUser(user: User): Promise<{ email: string; isEmailVerified: boolean }> {
+  async getCurrentUser(user: User): Promise<{ email: string; isEmailVerified: boolean; name: string }> {
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
     return {
       email: user.email,
       isEmailVerified: user.isEmailVerified,
+      name: user.name,
+    };
+  }
+
+  async getUserByEmail(email: string): Promise<{ email: string; isEmailVerified: boolean; name: string }> {
+    const user = await this.userModel.findOne({ email }).exec();
+    if (!user) {
+      throw new BadRequestException('User not found');
+    }
+    return {
+      email: user.email,
+      isEmailVerified: user.isEmailVerified,
+      name: user.name,
     };
   }
 
