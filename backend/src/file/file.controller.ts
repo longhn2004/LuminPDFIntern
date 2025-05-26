@@ -56,6 +56,11 @@ export class FileController {
     return this.fileService.getFileUsers(id, req.user);
   }
 
+  @Get(':id/user-role')
+  async getFileUserRole(@Param('id') id: string, @Req() req: Request & { user: any }) {
+    return this.fileService.getFileUserRole(id, req.user);
+  }
+
   @Post('invite')
   async inviteUser(@Body() inviteDto: InviteUserDto, @Req() req: Request & { user: any }) {
     return this.fileService.inviteUser(inviteDto, req.user);
@@ -84,6 +89,11 @@ export class FileController {
   @Delete(':id/annotation/:annotationId')
   async deleteAnnotation(@Param('id') fileId: string, @Param('annotationId') annotationId: string, @Req() req: Request & { user: any }) {
     return this.fileService.deleteAnnotation(fileId, annotationId, req.user);
+  }
+
+  @Post(':id/annotation/save')
+  async saveAnnotation(@Param('id') fileId: string, @Body() annotationDto: CreateAnnotationDto, @Req() req: Request & { user: any }) {
+    return this.fileService.saveAnnotation(fileId, annotationDto, req.user);
   }
 
   @Delete(':id')

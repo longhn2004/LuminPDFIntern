@@ -8,11 +8,8 @@ export class Annotation extends Document {
   @Prop({ required: true, type: Types.ObjectId, ref: 'File' })
   file: File;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
-  creator: User;
-
   @Prop({ required: true })
-  xml: string;
+  xfdf: string;
 }
 
 export const AnnotationSchema = SchemaFactory.createForClass(Annotation);

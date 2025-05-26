@@ -137,7 +137,7 @@ export class FileService {
     if (role === 'owner' || role === 'editor') {
       const annotations = await this.annotationModel.find({ file: id }).exec();
       // Gửi file kèm annotations (giả sử frontend xử lý XML với Apryse WebViewer)
-      res.setHeader('X-Annotations', JSON.stringify(annotations.map(a => a.xml)));
+      res.setHeader('X-Annotations', JSON.stringify(annotations.map(a => a.xfdf)));
     }
 
     res.download(file.path);
@@ -349,7 +349,7 @@ export class FileService {
     const newAnnotation = new this.annotationModel({
       file: fileId,
       creator: user._id,
-      xml: annotationDto.xml,
+      xfdf: annotationDto.xfdf,
     });
 
     await newAnnotation.save();
@@ -372,11 +372,8 @@ export class FileService {
       throw new NotFoundException('Annotation not found');
     }
 
-    if (annotation.creator.toString() !== (user._id as Types.ObjectId).toString()) {
-      throw new ForbiddenException('You can only update your own annotations');
-    }
 
-    annotation.xml = annotationDto.xml;
+    annotation.xfdf = annotationDto.xfdf;
     await annotation.save();
     return annotation;
   }
@@ -397,12 +394,35 @@ export class FileService {
       throw new NotFoundException('Annotation not found');
     }
 
-    if (annotation.creator.toString() !== (user._id as Types.ObjectId).toString()) {
-      throw new ForbiddenException('You can only delete your own annotations');
-    }
 
     await annotation.deleteOne();
     return { message: 'Annotation deleted successfully' };
+  }
+
+  async saveAnnotation(fileId: string, annotationDto: CreateAnnotationDto, user: User) {
+    const file = await this.fileModel.findById(fileId).exec();
+    if (!file) {
+      throw new NotFoundException('File not found');
+    }
+
+    const role = this.getUserRole(file, user);
+    if (role !== 'owner' && role !== 'editor') {
+      throw new ForbiddenException('You do not have permission to save annotations');
+    }
+
+    const annotation = await this.annotationModel.findOneAndUpdate(
+      { file: fileId }, 
+      { 
+        xfdf: annotationDto.xfdf, 
+        file: fileId
+      }, 
+      { upsert: true, new: true })
+      .exec();
+    if (!annotation) {
+      throw new NotFoundException('Annotation not found');
+    }
+
+    return annotation;
   }
 
   private getUserRole(file: File, user: User): string {
@@ -416,5 +436,19 @@ export class FileService {
       return 'editor';
     }
     return 'none';
+  }
+
+  async getFileUserRole(fileId: string, user: User) {
+    const file = await this.fileModel.findById(fileId).exec();
+    if (!file) {
+      throw new NotFoundException('File not found');
+    }
+
+    const role = this.getUserRole(file, user);
+    if (role === 'none') {
+      throw new ForbiddenException('You do not have access to this file');
+    }
+
+    return { role };
   }
 }

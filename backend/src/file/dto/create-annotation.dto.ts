@@ -1,9 +1,6 @@
-import { IsMongoId, IsString } from 'class-validator';
+import { IsString } from 'class-validator';
 
 export class CreateAnnotationDto {
-  @IsMongoId()
-  fileId: string;
-
   @IsString()
-  xml: string;
+  xfdf: string;
 }
