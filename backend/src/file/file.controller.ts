@@ -31,9 +31,9 @@ export class FileController {
     return { totalFiles: await this.fileService.totalFiles(req.user) };
   }
 
-  @Get('annotations')
-  async getAnnotations(@Query('fileId') fileId: string, @Req() req: Request & { user: any }) {
-    return this.fileService.getAnnotations(fileId);
+  @Get(':id/annotation')
+  async getAnnotations(@Param('id') fileId: string, @Req() req: Request & { user: any }) {
+    return this.fileService.getAnnotations(fileId, req.user);
   }
 
   @Get('list')
@@ -71,25 +71,25 @@ export class FileController {
     return this.fileService.changeRole(changeRoleDto, req.user);
   }
 
-  @Post(':id/annotation')
-  async createAnnotation(@Param('id') fileId: string, @Body() annotationDto: CreateAnnotationDto, @Req() req: Request & { user: any }) {
-    return this.fileService.createAnnotation(fileId, annotationDto, req.user);
-  }
+  // @Post(':id/annotation')
+  // async createAnnotation(@Param('id') fileId: string, @Body() annotationDto: CreateAnnotationDto, @Req() req: Request & { user: any }) {
+  //   return this.fileService.createAnnotation(fileId, annotationDto, req.user);
+  // }
 
-  @Put(':id/annotation/:annotationId')
-  async updateAnnotation(
-    @Param('id') fileId: string,
-    @Param('annotationId') annotationId: string,
-    @Body() annotationDto: CreateAnnotationDto,
-    @Req() req: Request & { user: any },
-  ) {
-    return this.fileService.updateAnnotation(fileId, annotationId, annotationDto, req.user);
-  }
+  // @Put(':id/annotation/:annotationId')
+  // async updateAnnotation(
+  //   @Param('id') fileId: string,
+  //   @Param('annotationId') annotationId: string,
+  //   @Body() annotationDto: CreateAnnotationDto,
+  //   @Req() req: Request & { user: any },
+  // ) {
+  //   return this.fileService.updateAnnotation(fileId, annotationId, annotationDto, req.user);
+  // }
 
-  @Delete(':id/annotation/:annotationId')
-  async deleteAnnotation(@Param('id') fileId: string, @Param('annotationId') annotationId: string, @Req() req: Request & { user: any }) {
-    return this.fileService.deleteAnnotation(fileId, annotationId, req.user);
-  }
+  // @Delete(':id/annotation/:annotationId')
+  // async deleteAnnotation(@Param('id') fileId: string, @Param('annotationId') annotationId: string, @Req() req: Request & { user: any }) {
+  //   return this.fileService.deleteAnnotation(fileId, annotationId, req.user);
+  // }
 
   @Post(':id/annotation/save')
   async saveAnnotation(@Param('id') fileId: string, @Body() annotationDto: CreateAnnotationDto, @Req() req: Request & { user: any }) {

@@ -10,10 +10,10 @@ export class File extends Document {
   @Prop({ required: true })
   path: string;
 
-  @Prop({ required: true })
+  @Prop({ required: true, index: true })
   ownerEmail: string;
 
-  @Prop({ type: Types.ObjectId, ref: 'User' })
+  @Prop({ type: Types.ObjectId, ref: 'User', index: true })
   owner: User;
 
   @Prop([{ type: String }])

@@ -96,8 +96,7 @@ export async function GET(
     }
     
     // Use api client to call backend with token
-    const response = await api.get(`/file/annotations`, {
-      params: { fileId: id },
+    const response = await api.get(`/file/${id}/annotation`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`
       }
