@@ -9,6 +9,7 @@ import { Request, Response } from 'express';
 import { ObjectId } from 'mongodb';
 import { BadRequestException } from '@nestjs/common';
 import { ChangeRoleDto } from './dto/change-role.dto';
+import { ChangeRolesDto } from './dto/change-roles.dto';
 
 @Controller('api/file')
 @UseGuards(AuthGuard('jwt'))
@@ -33,6 +34,11 @@ export class FileController {
 
   @Get(':id/annotation')
   async getAnnotations(@Param('id') fileId: string, @Req() req: Request & { user: any }) {
+    try {
+      const objectId = new ObjectId(fileId);
+    } catch (error) {
+      throw new NotFoundException('File not found');
+    }
     return this.fileService.getAnnotations(fileId, req.user);
   }
 
@@ -51,13 +57,33 @@ export class FileController {
     return this.fileService.downloadFile(id, req.user, res);
   }
 
+  @Get(':id/download-with-annotations')
+  async downloadFileWithAnnotations(@Param('id') id: string, @Req() req: Request & { user: any }) {
+    try {
+      const objectId = new ObjectId(id);
+    } catch (error) {
+      throw new NotFoundException('File not found');
+    }
+    return this.fileService.downloadFileWithAnnotations(id, req.user);
+  }
+
   @Get(':id/users')
   async getFileUsers(@Param('id') id: string, @Req() req: Request & { user: any }) {
+    try {
+      const objectId = new ObjectId(id);
+    } catch (error) {
+      throw new NotFoundException('File not found');
+    }
     return this.fileService.getFileUsers(id, req.user);
   }
 
   @Get(':id/user-role')
   async getFileUserRole(@Param('id') id: string, @Req() req: Request & { user: any }) {
+    try {
+      const objectId = new ObjectId(id);
+    } catch (error) {
+      throw new NotFoundException('File not found');
+    }
     return this.fileService.getFileUserRole(id, req.user);
   }
 
@@ -69,6 +95,11 @@ export class FileController {
   @Post('change-role')
   async changeRole(@Body() changeRoleDto: ChangeRoleDto, @Req() req: Request & { user: any }) {
     return this.fileService.changeRole(changeRoleDto, req.user);
+  }
+
+  @Post('change-roles')
+  async changeRoles(@Body() changeRolesDto: ChangeRolesDto, @Req() req: Request & { user: any }) {
+    return this.fileService.changeRoles(changeRolesDto, req.user);
   }
 
   // @Post(':id/annotation')
@@ -93,16 +124,31 @@ export class FileController {
 
   @Post(':id/annotation/save')
   async saveAnnotation(@Param('id') fileId: string, @Body() annotationDto: CreateAnnotationDto, @Req() req: Request & { user: any }) {
+    try {
+      const objectId = new ObjectId(fileId);
+    } catch (error) {
+      throw new NotFoundException('File not found');
+    }
     return this.fileService.saveAnnotation(fileId, annotationDto, req.user);
   }
 
   @Delete(':id')
   async deleteFile(@Param('id') id: string, @Req() req: Request & { user: any }) {
+    try {
+      const objectId = new ObjectId(id);
+    } catch (error) {
+      throw new NotFoundException('File not found');
+    }
     return this.fileService.deleteFile(id, req.user);
   }
 
   @Get(':id/info')
   async getFileInfo(@Param('id') id: string) {
+    try {
+      const objectId = new ObjectId(id);
+    } catch (error) {
+      throw new NotFoundException('File not found');
+    }
     return this.fileService.getFileInfo(id);
   }
 }

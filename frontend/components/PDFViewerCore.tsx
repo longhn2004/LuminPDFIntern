@@ -252,6 +252,13 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
         } else if (e.key === '0' && (e.ctrlKey || e.metaKey)) {
           e.preventDefault();
           setZoom(1.0);
+        } else if (e.key === 'Escape') {
+          // Press 'Escape' to return to text selection mode (default)
+          e.preventDefault();
+          if (window.documentViewer && window.Core?.Tools) {
+            window.documentViewer.setToolMode(window.documentViewer.getTool(window.Core.Tools.ToolNames.TEXT_SELECT));
+            console.log('PDFViewerCore: Returned to text selection mode via keyboard shortcut');
+          }
         }
       }
     };

@@ -23,6 +23,7 @@ export default function PermissionDialog({
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("viewer");
   const [invitedUsers, setInvitedUsers] = useState<string[]>([]);
+  const [pendingRoleChanges, setPendingRoleChanges] = useState<Array<{ email: string; role: string }>>([]);
   const [emailStatus, setEmailStatus] = useState<{
     valid: boolean;
     user?: { name: string; email: string };
@@ -33,7 +34,12 @@ export default function PermissionDialog({
   const [isCheckingEmail, setIsCheckingEmail] = useState(false);
   const [isSendingInvitations, setIsSendingInvitations] = useState(false);
   const [isSavingChanges, setIsSavingChanges] = useState(false);
-  const [changingRoleUserId, setChangingRoleUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchListUsers();
+    }
+  }, [isOpen, fetchListUsers]);
 
   const handleCheckEmail = async (email: string) => {
     if (!email.trim()) {
@@ -92,26 +98,18 @@ export default function PermissionDialog({
     setInvitedUsers(invitedUsers.filter(user => user !== email));
   };
 
-  const handleChangeRole = async (userId: string, email: string, role: string) => {
-    setChangingRoleUserId(userId);
-    try {
-      const response = await fetch(`/api/file/change-role`, {
-        method: "POST",
-        body: JSON.stringify({ fileId: pdfId, email, role }),
-      });
-      
-      if (!response.ok) {
-        throw new Error('Failed to change role');
+  const handleUserRoleChange = (userEmail: string, newRole: string) => {
+    setPendingRoleChanges(prevChanges => {
+      const originalUser = listUsers.find(u => u.email === userEmail);
+      if (!originalUser) return prevChanges;
+
+      let updatedChanges = prevChanges.filter(c => c.email !== userEmail);
+
+      if (newRole !== originalUser.role) {
+        updatedChanges.push({ email: userEmail, role: newRole });
       }
-      
-      await response.json();
-      await fetchListUsers();
-      toast.success("Role updated successfully!");
-    } catch (error) {
-      toast.error("Failed to update role. Please try again.");
-    } finally {
-      setChangingRoleUserId(null);
-    }
+      return updatedChanges;
+    });
   };
 
   const handleSubmitShare = async () => {
@@ -138,15 +136,43 @@ export default function PermissionDialog({
     }
   };
 
-  const handleSaveUser = async () => {
-    setIsSavingChanges(true);
-    try {
-      await fetchListUsers();
-      toast.success("Changes saved successfully!");
+  const handleSaveRoleChanges = async () => {
+    if (pendingRoleChanges.length === 0) {
+      // No changes to save, can close or notify. Button should be disabled anyway.
       resetForm();
       onClose();
-    } catch (error) {
-      toast.error("Failed to save changes. Please try again.");
+      return;
+    }
+
+    setIsSavingChanges(true);
+    try {
+      const apiPayload = {
+        fileId: pdfId,
+        changes: pendingRoleChanges.map(change => ({
+          fileId: pdfId, // Required by the backend ChangeRoleDto
+          email: change.email,
+          role: change.role,
+        })),
+      };
+
+      const response = await fetch(`/api/file/change-roles`, {
+        method: "POST",
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(apiPayload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to save role changes');
+      }
+
+      await response.json();
+      toast.success("Changes saved successfully!");
+      await fetchListUsers();
+      resetForm(); // This will clear pendingRoleChanges
+      onClose();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to save changes. Please try again.");
     } finally {
       setIsSavingChanges(false);
     }
@@ -158,6 +184,7 @@ export default function PermissionDialog({
     setRole("viewer");
     setEmailStatus({ valid: false });
     setIsAddingUser(false);
+    setPendingRoleChanges([]); // Clear pending role changes
   };
 
   if (!isOpen) return null;
@@ -202,7 +229,6 @@ export default function PermissionDialog({
                 onFocus={() => setIsAddingUser(true)}
                 onBlur={() => {
                   setIsAddingUser(false);
-                  setEmailStatus({ valid: false });
                 }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") {
@@ -293,20 +319,15 @@ export default function PermissionDialog({
                       {user.role !== "owner" ? (
                         <div className="relative">
                           <select
-                            disabled={user.role === "none" || changingRoleUserId === user.id}
+                            disabled={user.role === "owner"}
                             className="border-2 border-gray-200 rounded-lg px-3 py-2 text-sm font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all disabled:bg-gray-100 disabled:text-gray-500 disabled:cursor-not-allowed"
-                            value={user.role}
-                            onChange={(e) => handleChangeRole(user.id, user.email, e.target.value)}
+                            value={pendingRoleChanges.find(c => c.email === user.email)?.role || user.role}
+                            onChange={(e) => handleUserRoleChange(user.email, e.target.value)}
                           >
                             <option value="viewer">Viewer</option>
                             <option value="editor">Editor</option>
                             <option value="none">Remove</option>
                           </select>
-                          {changingRoleUserId === user.id && (
-                            <div className="absolute inset-0 flex items-center justify-center bg-white/80 rounded-lg">
-                              <FaSpinner className="animate-spin text-blue-600" size={16} />
-                            </div>
-                          )}
                         </div>
                       ) : (
                         <span className="bg-yellow-100 text-yellow-800 px-3 py-2 rounded-lg text-sm font-medium">
@@ -383,8 +404,8 @@ export default function PermissionDialog({
                 Cancel
               </button>
               <button
-                onClick={handleSaveUser}
-                disabled={isSavingChanges}
+                onClick={handleSaveRoleChanges}
+                disabled={isSavingChanges || pendingRoleChanges.length === 0}
                 className="px-6 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-medium hover:from-green-700 hover:to-emerald-700 transition-all duration-200 active:scale-95 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-green-600 disabled:hover:to-emerald-600 flex items-center gap-2"
               >
                 {isSavingChanges ? (

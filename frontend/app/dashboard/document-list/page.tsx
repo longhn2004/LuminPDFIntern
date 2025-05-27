@@ -37,6 +37,9 @@ function DocumentList() {
   const [uploadProgress, setUploadProgress] = useState<number>(0);
   const [currentUpload, setCurrentUpload] = useState<string>('');
   
+  // Ref for the loader element
+  const loaderRef = useRef<HTMLDivElement | null>(null);
+
   // Fetch user data
   // useEffect(() => {
   //   const fetchUserData = async () => {
@@ -216,6 +219,28 @@ function DocumentList() {
     }
   };
 
+  // Infinite scroll observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMore();
+        }
+      },
+      { threshold: 1.0 }
+    );
+
+    if (loaderRef.current) {
+      observer.observe(loaderRef.current);
+    }
+
+    return () => {
+      if (loaderRef.current) {
+        observer.unobserve(loaderRef.current);
+      }
+    };
+  }, [loadMore]);
+
   // Trigger file input click
   const triggerFileInput = () => {
     if (fileInputRef.current) {
@@ -326,16 +351,10 @@ function DocumentList() {
                   </tbody>
                 </table>
 
-                {/* Load more button */}
+                {/* Loader for infinite scroll */}
                 {hasMore && (
-                  <div className="mt-6 text-center">
-                    <button 
-                      onClick={loadMore}
-                      disabled={loading}
-                      className="px-4 py-2 bg-gray-200 rounded-md hover:bg-gray-300 disabled:opacity-50 transition-colors"
-                    >
-                      {loading ? 'Loading...' : 'Load More'}
-                    </button>
+                  <div ref={loaderRef} className="text-center py-4">
+                    {loading && <p>Loading more files...</p>}
                   </div>
                 )}
               </div>

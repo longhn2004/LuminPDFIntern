@@ -16,6 +16,7 @@ import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { Request, Response } from 'express';
 import { ChangeRoleDto } from './dto/change-role.dto';
+import { ChangeRolesDto } from './dto/change-roles.dto';
 
 @Injectable()
 export class FileService {
@@ -143,6 +144,34 @@ export class FileService {
     res.download(file.path);
   }
 
+  async downloadFileWithAnnotations(id: string, user: User) {
+    const file = await this.fileModel.findById(id).exec();
+    if (!file) {
+      throw new NotFoundException('File not found');
+    }
+
+    const role = this.getUserRole(file, user);
+    if (role === 'none') {
+      throw new ForbiddenException('You do not have permission to access this file');
+    }
+
+    // Only owners and editors can download with annotations
+    if (role !== 'owner' && role !== 'editor') {
+      throw new ForbiddenException('You do not have permission to download with annotations');
+    }
+
+    const annotations = await this.annotationModel.findOne({ file: id }).exec();
+    
+    return {
+      fileId: id,
+      fileName: file.name,
+      filePath: file.path,
+      downloadUrl: `/api/file/${id}/download`,
+      annotations: annotations ? annotations.xfdf : null,
+      hasAnnotations: !!annotations?.xfdf
+    };
+  }
+
   async getFileInfo(id: string) {    
     const file = await this.fileModel.findById(id).exec();    
     if (!file) {      
@@ -176,6 +205,9 @@ export class FileService {
         }
 
     await this.fileModel.findByIdAndDelete(id).exec();
+
+    //delete annotation
+    await this.annotationModel.deleteMany({ file: id }).exec();
 
     //Delete from storage
     const filePath = join(this.configService.get<string>('FILE_UPLOAD_PATH') || './uploads', file.path.slice(8));
@@ -329,6 +361,20 @@ export class FileService {
     }
 
     return { message: role === 'none' ? 'Role removed successfully' : 'Role changed successfully' };
+  }
+
+  async changeRoles(changeRolesDto: ChangeRolesDto, owner: User) {
+    const { fileId, changes } = changeRolesDto;
+    const file = await this.fileModel.findById(fileId).exec();
+    if (!file) {
+      throw new NotFoundException('File not found');
+    }
+
+    for (const change of changes) {
+      await this.changeRole(change, owner);
+    }
+
+    return { message: 'Roles changed successfully' };
   }
 
   async getAnnotations(fileId: string, user: User) {
