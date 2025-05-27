@@ -82,7 +82,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
         setOpacity(Math.round((annotation.Opacity || 1) * 100));
         
         // Set default border weight based on annotation type
-        if (annotation instanceof Annotations.FreeTextAnnotation) {
+        if (annotation.elementName === 'freetext') {
           setBorderWeight(annotation.StrokeThickness || 0); // FreeText default: 0
         } else {
           setBorderWeight(annotation.StrokeThickness || 1); // Shape default: 1
@@ -178,8 +178,6 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
     { value: 'arrow', label: 'Arrow', icon: '↗' },
   ];
 
-
-
   // Predefined color palette
   const colorPalette = [
     { color: 'transparent', label: 'No Fill', isTransparent: true },
@@ -233,7 +231,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
     setBorderWeight(1); // Set border weight to 1 for shapes
     // Add event listener to return to selection mode after annotation is added
     annotationManager.addEventListener('annotationChanged', (annotations: any[], action: any) => {
-      if (action === 'add' && annotations[0] instanceof Annotations.RectangleAnnotation) {
+      if (action === 'add' && annotations[0] && annotations[0].elementName === 'square') {
         documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.PAN));
         console.log('AnnotationPanel: Rectangle annotation added, returning to selection mode');
       }
@@ -247,7 +245,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
     setBorderWeight(1); // Set border weight to 1 for shapes
     // Add event listener to return to selection mode after annotation is added
     annotationManager.addEventListener('annotationChanged', (annotations: any[], action: any) => {
-      if (action === 'add' && annotations[0] instanceof Annotations.EllipseAnnotation) {
+      if (action === 'add' && annotations[0] && annotations[0].elementName === 'circle') {
         documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.PAN));
         console.log('AnnotationPanel: Circle annotation added, returning to selection mode');
       }
@@ -261,7 +259,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
     setBorderWeight(1); // Set border weight to 1 for shapes
     // Add event listener to return to selection mode after annotation is added
     annotationManager.addEventListener('annotationChanged', (annotations: any[], action: any) => {
-      if (action === 'add' && annotations[0] instanceof Annotations.PolygonAnnotation) {
+      if (action === 'add' && annotations[0] && annotations[0].elementName === 'polygon') {
         documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.PAN));
         console.log('AnnotationPanel: Triangle annotation added, returning to selection mode');
       }
@@ -275,7 +273,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
     setBorderWeight(1); // Set border weight to 1 for shapes
     // Add event listener to return to selection mode after annotation is added
     annotationManager.addEventListener('annotationChanged', (annotations: any[], action: any) => {
-      if (action === 'add' && annotations[0] instanceof Annotations.LineAnnotation) {
+      if (action === 'add' && annotations[0] && annotations[0].elementName === 'line') {
         documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.PAN));
         console.log('AnnotationPanel: Line annotation added, returning to selection mode');
       }
@@ -289,7 +287,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
     setBorderWeight(1); // Set border weight to 1 for shapes
     // Add event listener to return to selection mode after annotation is added
     annotationManager.addEventListener('annotationChanged', (annotations: any[], action: any) => {
-      if (action === 'add' && annotations[0] instanceof Annotations.ArrowAnnotation) {
+      if (action === 'add' && annotations[0] && annotations[0].elementName === 'line') { // Arrow is a line element
         documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.PAN));
         console.log('AnnotationPanel: Arrow annotation added, returning to selection mode');
       }
@@ -310,7 +308,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
       Font: 'Arial',
     });
     annotationManager.addEventListener('annotationChanged', (annotations: any[], action: any) => {
-      if (action === 'add' && annotations[0] instanceof Annotations.FreeTextAnnotation) {
+      if (action === 'add' && annotations[0] && annotations[0].elementName === 'freetext') {
         annotations[0].setContents('[Insert text here]');
         annotations[0].setCustomData('Font', 'Arial');
         annotationManager.updateAnnotation(annotations[0]);
@@ -321,8 +319,6 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
     }, { once: true });
     console.log('AnnotationPanel: Add FreeText triggered');
   };
-
-
 
   const deleteAnnotation = () => {
     if (selectedAnnotation) {
@@ -356,8 +352,6 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
     }
   };
 
-
-
   const handleColorSelection = (color: string, isTransparent: boolean = false) => {
     if (!selectedAnnotation) return;
     
@@ -383,20 +377,15 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
       console.log('AnnotationPanel: Updating styles for annotation type:', selectedAnnotation.constructor.name);
       console.log('AnnotationPanel: Styles to apply:', styles);
       
-      // Check if annotation types exist before using instanceof
-      const isRectangle = Annotations.RectangleAnnotation && selectedAnnotation instanceof Annotations.RectangleAnnotation;
-      const isEllipse = Annotations.EllipseAnnotation && selectedAnnotation instanceof Annotations.EllipseAnnotation;
-      const isLine = Annotations.LineAnnotation && selectedAnnotation instanceof Annotations.LineAnnotation;
-      const isFreeHand = Annotations.FreeHandAnnotation && selectedAnnotation instanceof Annotations.FreeHandAnnotation;
-      const isPolygon = Annotations.PolygonAnnotation && selectedAnnotation instanceof Annotations.PolygonAnnotation;
-      const isPolyline = Annotations.PolylineAnnotation && selectedAnnotation instanceof Annotations.PolylineAnnotation;
-      const isArc = Annotations.ArcAnnotation && selectedAnnotation instanceof Annotations.ArcAnnotation;
-      const isSticky = Annotations.StickyAnnotation && selectedAnnotation instanceof Annotations.StickyAnnotation;
+      // Check annotation types using elementName property for better compatibility
+      const isShapeAnnotation = selectedAnnotation.elementName && [
+        'square', 'circle', 'line', 'polygon', 'polyline', 'freehand', 'arc', 'note'
+      ].includes(selectedAnnotation.elementName);
       
-
+      const isFreeTextAnnotation = selectedAnnotation.elementName === 'freetext';
       
       // Handle shape annotations
-      if (isRectangle || isEllipse || isLine || isFreeHand || isPolygon || isPolyline || isArc || isSticky) {
+      if (isShapeAnnotation) {
         const stylesToUpdate: any = {};
         
         if (styles.fillColor !== undefined) {
@@ -413,7 +402,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
         }
         
         annotationManager.setAnnotationStyles(selectedAnnotation, stylesToUpdate);
-      } else if (Annotations.FreeTextAnnotation && selectedAnnotation instanceof Annotations.FreeTextAnnotation) {
+      } else if (isFreeTextAnnotation) {
         // Update FreeText annotation styles properly
         const stylesToUpdate: any = {};
         
@@ -571,12 +560,8 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
 
   return (
     <>
-
-
-
-
       {/* Style Panel for Shape Annotations - positioned based on context */}
-      {showStylePanel && !(selectedAnnotation instanceof Annotations.FreeTextAnnotation) && (
+      {showStylePanel && !(selectedAnnotation && selectedAnnotation.elementName === 'freetext') && (
         <>
           {/* Connection indicator */}
           {annotationPosition && (
@@ -768,7 +753,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
       )}
 
       {/* Shape/Type Panel - Fixed at bottom right */}
-      <div className="fixed bottom-15 right-15 bg-white rounded-lg shadow-lg border border-gray-200 p-2 z-1">
+      <div className="fixed bottom-15 right-15 bg-white rounded-lg shadow-lg border border-gray-200 p-2 z-1000">
         <div className="flex gap-3">
           {/* Shape Dropdown */}
           <div className="relative">
@@ -834,7 +819,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
       </div>
 
       {/* Redesigned Text Style Panel for FreeText annotations */}
-      {selectedAnnotation && Annotations.FreeTextAnnotation && selectedAnnotation instanceof Annotations.FreeTextAnnotation && (
+      {selectedAnnotation && selectedAnnotation.elementName === 'freetext' && (
         <>
           {/* Connection indicator for text annotations */}
           {annotationPosition && (

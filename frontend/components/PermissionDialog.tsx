@@ -190,7 +190,7 @@ export default function PermissionDialog({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed w-screen h-screen inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div className="fixed w-screen h-screen inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-1001">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-gray-100">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 text-white">
