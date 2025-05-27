@@ -157,12 +157,12 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
     setLoadingStatus("Loading PDF viewer scripts...");
     
     try {
-      const coreScript = document.createElement('script');
-      coreScript.src = '/webviewer/core/webviewer-core.min.js';
-      coreScript.async = false;
-      document.head.appendChild(coreScript);
       
       await new Promise((resolve, reject) => {
+        const coreScript = document.createElement('script');
+        coreScript.src = '/webviewer/core/webviewer-core.min.js';
+        coreScript.async = false;
+        document.body.appendChild(coreScript);
         coreScript.onload = () => {
           console.log('PDFViewerCore: Core script loaded');
           resolve(null);
@@ -171,12 +171,12 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
         setTimeout(() => reject(new Error("Core script load timeout")), 500);
       });
       
-      const pdfnetScript = document.createElement('script');
-      pdfnetScript.src = '/webviewer/core/pdf/PDFNet.js';
-      pdfnetScript.async = false;
-      document.head.appendChild(pdfnetScript);
       
       await new Promise((resolve, reject) => {
+        const pdfnetScript = document.createElement('script');
+        pdfnetScript.src = '/webviewer/core/pdf/PDFNet.js';
+        pdfnetScript.async = false;
+        document.head.appendChild(pdfnetScript);
         pdfnetScript.onload = () => {
           console.log('PDFViewerCore: PDFNet script loaded');
           resolve(null);
@@ -337,7 +337,7 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
           saveTimeoutRef.current = setTimeout(() => {
             console.log('PDFViewerCore: Saving annotations');
             saveAnnotations()
-          }, 10000);
+          }, 500);
         }
       });
 
@@ -350,6 +350,7 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
         try {
           documentViewer.zoomTo(1.0);
           console.log("PDFViewerCore: Zoom set to 100%");
+          documentViewer.enableAnnotations();
           loadAnnotations();
         } catch (err) {
           console.error("PDFViewerCore: Error setting zoom:", err);
@@ -366,6 +367,7 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
       console.log("PDFViewerCore: Setting viewer elements");
       documentViewer.setScrollViewElement(scrollElement);
       documentViewer.setViewerElement(viewerElement);
+      
       
       await loadDocument();
       
@@ -468,6 +470,7 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
             </div>
           </div>
         )}
+
       </div>
       {isLoaded && <PDFNavigationBar />}
     </>

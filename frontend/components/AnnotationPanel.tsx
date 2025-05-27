@@ -129,7 +129,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
         </button>
       )}
       {showStylePanel && (
-        <div className="absolute top-full left-0 mt-2 bg-white p-4 border border-gray-300 rounded-lg shadow-lg flex flex-col gap-2">
+        <div className="absolute bottom-full left-0 mt-2 bg-white p-4 border border-gray-300 rounded-lg shadow-lg flex flex-col gap-2">
           {selectedAnnotation instanceof Annotations.RectangleAnnotation && (
             <>
               <div className="flex items-center gap-2">
