@@ -14,7 +14,7 @@ export async function PUT(
 ) {
   try {
     // Properly await the params object
-    const { id, annotationId } = context.params;
+    const { id, annotationId } = await context.params;
     
     if (!id || !annotationId) {
       return NextResponse.json(
@@ -74,7 +74,7 @@ export async function DELETE(
 ) {
   try {
     // Properly await the params object
-    const { id, annotationId } = context.params;
+    const { id, annotationId } = await context.params;
     
     if (!id || !annotationId) {
       return NextResponse.json(
