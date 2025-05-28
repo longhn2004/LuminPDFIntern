@@ -229,11 +229,11 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
     documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.RECTANGLE));
     setShowShapeDropdown(false);
     setBorderWeight(1); // Set border weight to 1 for shapes
-    // Add event listener to return to selection mode after annotation is added
+    // Add event listener to return to text selection mode after annotation is added
     annotationManager.addEventListener('annotationChanged', (annotations: any[], action: any) => {
       if (action === 'add' && annotations[0] && annotations[0].elementName === 'square') {
-        documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.PAN));
-        console.log('AnnotationPanel: Rectangle annotation added, returning to selection mode');
+        documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.TEXT_SELECT));
+        console.log('AnnotationPanel: Rectangle annotation added, returning to text selection mode');
       }
     }, { once: true });
     console.log('AnnotationPanel: Add Rectangle triggered');
@@ -243,11 +243,11 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
     documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.ELLIPSE));
     setShowShapeDropdown(false);
     setBorderWeight(1); // Set border weight to 1 for shapes
-    // Add event listener to return to selection mode after annotation is added
+    // Add event listener to return to text selection mode after annotation is added
     annotationManager.addEventListener('annotationChanged', (annotations: any[], action: any) => {
       if (action === 'add' && annotations[0] && annotations[0].elementName === 'circle') {
-        documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.PAN));
-        console.log('AnnotationPanel: Circle annotation added, returning to selection mode');
+        documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.TEXT_SELECT));
+        console.log('AnnotationPanel: Circle annotation added, returning to text selection mode');
       }
     }, { once: true });
     console.log('AnnotationPanel: Add Circle triggered');
@@ -257,11 +257,11 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
     documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.POLYGON));
     setShowShapeDropdown(false);
     setBorderWeight(1); // Set border weight to 1 for shapes
-    // Add event listener to return to selection mode after annotation is added
+    // Add event listener to return to text selection mode after annotation is added
     annotationManager.addEventListener('annotationChanged', (annotations: any[], action: any) => {
       if (action === 'add' && annotations[0] && annotations[0].elementName === 'polygon') {
-        documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.PAN));
-        console.log('AnnotationPanel: Triangle annotation added, returning to selection mode');
+        documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.TEXT_SELECT));
+        console.log('AnnotationPanel: Triangle annotation added, returning to text selection mode');
       }
     }, { once: true });
     console.log('AnnotationPanel: Add Triangle triggered');
@@ -271,11 +271,11 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
     documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.LINE));
     setShowShapeDropdown(false);
     setBorderWeight(1); // Set border weight to 1 for shapes
-    // Add event listener to return to selection mode after annotation is added
+    // Add event listener to return to text selection mode after annotation is added
     annotationManager.addEventListener('annotationChanged', (annotations: any[], action: any) => {
       if (action === 'add' && annotations[0] && annotations[0].elementName === 'line') {
-        documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.PAN));
-        console.log('AnnotationPanel: Line annotation added, returning to selection mode');
+        documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.TEXT_SELECT));
+        console.log('AnnotationPanel: Line annotation added, returning to text selection mode');
       }
     }, { once: true });
     console.log('AnnotationPanel: Add Line triggered');
@@ -285,11 +285,11 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
     documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.ARROW));
     setShowShapeDropdown(false);
     setBorderWeight(1); // Set border weight to 1 for shapes
-    // Add event listener to return to selection mode after annotation is added
+    // Add event listener to return to text selection mode after annotation is added
     annotationManager.addEventListener('annotationChanged', (annotations: any[], action: any) => {
       if (action === 'add' && annotations[0] && annotations[0].elementName === 'line') { // Arrow is a line element
-        documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.PAN));
-        console.log('AnnotationPanel: Arrow annotation added, returning to selection mode');
+        documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.TEXT_SELECT));
+        console.log('AnnotationPanel: Arrow annotation added, returning to text selection mode');
       }
     }, { once: true });
     console.log('AnnotationPanel: Add Arrow triggered');
@@ -312,8 +312,8 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
         annotations[0].setContents('[Insert text here]');
         annotations[0].setCustomData('Font', 'Arial');
         annotationManager.updateAnnotation(annotations[0]);
-        // Return to selection mode after adding annotation
-        documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.PAN));
+        // Return to text selection mode after adding annotation
+        documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.TEXT_SELECT));
         console.log('AnnotationPanel: FreeText annotation added with placeholder');
       }
     }, { once: true });

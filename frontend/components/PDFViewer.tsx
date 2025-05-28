@@ -237,13 +237,16 @@ export default function PDFViewer({pdfId}: PDFViewerProps) {
         }
 
         toast.info("Flattening annotations into PDF...");
+
+        const xfdfString = await annotationManager.exportAnnotations();
         
         const data = await doc.getFileData({
+          xfdfString,
           flatten: true,
           includeAnnotations: true
         });
-        
-        const blob = new Blob([data], { type: 'application/pdf' });
+        const arr = new Uint8Array(data);
+        const blob = new Blob([arr], { type: 'application/pdf' });
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         link.href = url;
