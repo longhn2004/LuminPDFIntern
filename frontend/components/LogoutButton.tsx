@@ -41,7 +41,7 @@ export default function LogoutButton() {
     <button 
       onClick={handleLogout}
       disabled={isLoading}
-      className="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded transition-colors duration-300 flex justify-center items-center w-[130px] hover:bg-red-700 active:scale-95"
+      className="bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded transition-colors duration-300 flex justify-center items-center w-[130px] active:scale-95"
     >
       <svg 
           xmlns="http://www.w3.org/2000/svg" 

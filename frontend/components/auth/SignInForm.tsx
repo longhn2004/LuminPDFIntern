@@ -93,7 +93,7 @@ export default function SignInForm() {
   };
 
   return (
-    <div className="max-h-1/2">
+    <>
       <div className="flex items-center gap-2">
         <h1 className="text-2xl font-bold text-[45px]">Sign In </h1>
         <img src="/images/dsvlogo.png" alt="Logo" className="h-10 w-10" />
@@ -131,6 +131,6 @@ export default function SignInForm() {
           <Link href="/auth/signup" className="text-black hover:text-blue-600 cursor-pointer">Sign Up</Link>
         </p>
       </div>
-    </div>
+    </>
   );
 } 

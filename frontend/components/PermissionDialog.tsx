@@ -1,6 +1,7 @@
 import { FaTimes, FaUser, FaUsers, FaShare, FaSpinner } from "react-icons/fa";
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
+import Avatar from "./Avatar";
 
 interface PermissionDialogProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ export default function PermissionDialog({
     valid: boolean;
     user?: { name: string; email: string };
     message?: string;
+    isExistingUser?: boolean;
   }>({ valid: false });
   
   // Loading states
@@ -54,7 +56,19 @@ export default function PermissionDialog({
       return false;
     }
 
-    // Only proceed with API call if email format is valid
+    // Check if user already has access to this file
+    const existingUser = listUsers.find(user => user.email.toLowerCase() === email.toLowerCase());
+    if (existingUser) {
+      setEmailStatus({ 
+        valid: true, 
+        message: `${existingUser.name} already has ${existingUser.role} access to this file`,
+        user: { name: existingUser.name, email: existingUser.email },
+        isExistingUser: true
+      });
+      return false;
+    }
+
+    // Only proceed with API call if email format is valid and user doesn't already have access
     setIsCheckingEmail(true);
     try {
       const response = await fetch(`/api/auth/user-by-email?email=${email}`);
@@ -76,22 +90,25 @@ export default function PermissionDialog({
     e.preventDefault();
     const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!isValidEmail.test(email)) {
-      alert("Invalid email address");
+      toast.error("Invalid email address");
       return;
     }
     if (email.trim() === "") {
       return;
     }
     if (invitedUsers.includes(email)) {
+      toast.warning("User already added to invitation list");
       return;
     }
-    if (listUsers.some(user => user.email === email)) {
+    if (listUsers.some(user => user.email.toLowerCase() === email.toLowerCase())) {
+      toast.warning("User already has access to this file");
       return;
     }
 
     setInvitedUsers([...invitedUsers, email]);
     setEmail("");
     setRole("viewer");
+    setEmailStatus({ valid: false });
   };
 
   const handleRemoveInvitedUser = (email: string) => {
@@ -190,37 +207,37 @@ export default function PermissionDialog({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed w-screen h-screen inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 z-1001">
+    <div className="fixed w-screen h-screen inset-0 bg-black/60  flex items-center justify-center p-4 z-1001">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden border border-gray-100">
         {/* Header */}
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 text-white">
+        <div className="px-6 py-4 ">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <FaShare className="text-xl" />
+              {/* <FaShare className="text-xl" /> */}
               <div>
                 <h2 className="text-xl font-semibold">Share "{fileName}"</h2>
               </div>
             </div>
-            <button
+            {/* <button
               onClick={onClose}
               className="text-white/80 hover:text-white hover:bg-white/20 rounded-full p-2 transition-all duration-200"
             >
               <FaTimes size={18} />
-            </button>
+            </button> */}
           </div>
         </div>
 
-        <div className="p-6 space-y-6 max-h-[calc(90vh-120px)] overflow-y-auto">
+        <div className="px-6 space-y-6 max-h-[calc(90vh-120px)] overflow-y-auto">
           {/* Email Input Section */}
-          <div className="space-y-3">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="">
+            {/* <label className="block text-sm font-medium text-gray-700 mb-2">
               Invite people by email
-            </label>
+            </label> */}
             <div className="relative">
               <input
                 type="email"
-                placeholder="Enter email address..."
-                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 pr-10 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all duration-200 placeholder-gray-400"
+                placeholder="Add people by email"
+                className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 pr-10 focus:border-gray-500 focus:ring-2 focus:ring-gray-200 outline-none transition-all duration-200 placeholder-gray-400"
                 value={email}
                 onChange={(e) => {
                   setEmail(e.target.value);
@@ -234,82 +251,84 @@ export default function PermissionDialog({
                   if (e.key === "Enter") {
                     e.preventDefault();
                     handleAddUser(e);
+                    setEmailStatus({ valid: false })
                   }
                 }}
               />
               {email && (
                 <button
-                  onClick={() => setEmail("")}
+                  onClick={() => {
+                    setEmail("")
+                    setEmailStatus({ valid: false })
+                  }}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-colors"
                 >
                   <FaTimes size={16} />
                 </button>
               )}
+              
+              {/* Email Status Popup */}
+              {emailStatus.valid && (
+                <div className={`absolute top-full left-0 right-0 z-[1002] mt-1 border rounded-lg p-3 shadow-lg ${
+                  emailStatus.isExistingUser ? 'bg-yellow-50 border-yellow-300' : 'bg-white border-gray-200'
+                }`}>
+                  {isCheckingEmail ? (
+                    <div className="flex items-center gap-2 text-gray-700">
+                      <FaSpinner className="animate-spin" size={14} />
+                      <span className="text-sm">Checking email...</span>
+                    </div>
+                  ) : emailStatus.user ? (
+                    <div className="flex items-center gap-2">
+                      <FaUser size={14} className={emailStatus.isExistingUser ? 'text-yellow-600' : 'text-gray-700'} />
+                      <span className={`font-medium ${emailStatus.isExistingUser ? 'text-yellow-800' : 'text-gray-700'}`}>
+                        {emailStatus.user.name}
+                      </span>
+                      <span className={emailStatus.isExistingUser ? 'text-yellow-600' : 'text-gray-600'}>
+                        ({emailStatus.user.email})
+                      </span>
+                    </div>
+                  ) : emailStatus.message ? (
+                    <p className={`text-sm ${emailStatus.isExistingUser ? 'text-yellow-700' : 'text-gray-600'}`}>
+                      {emailStatus.message}
+                    </p>
+                  ) : null}
+                </div>
+              )}
             </div>
 
-            {/* Email Status */}
-            {(emailStatus.valid || isAddingUser || email !== "" || isCheckingEmail) && (
-              <div className={`border rounded-lg p-3 ${
-                isCheckingEmail 
-                  ? 'bg-blue-50 border-blue-200' 
-                  : emailStatus.valid 
-                    ? 'bg-green-50 border-green-200' 
-                    : 'bg-red-50 border-red-200'
-              }`}>
-                {isCheckingEmail ? (
-                  <div className="flex items-center gap-2 text-blue-700">
-                    <FaSpinner className="animate-spin" size={14} />
-                    <span className="text-sm">Checking email...</span>
-                  </div>
-                ) : emailStatus.user ? (
-                  <div className="flex items-center gap-2 text-green-700">
-                    <FaUser size={14} />
-                    <span className="font-medium">{emailStatus.user.name}</span>
-                    <span className="text-green-600">({emailStatus.user.email})</span>
-                  </div>
-                ) : emailStatus.message ? (
-                  <p className={`text-sm ${emailStatus.valid ? 'text-green-600' : 'text-red-600'}`}>
-                    {emailStatus.message}
-                  </p>
-                ) : null}
-              </div>
-            )}
-
             {/* Invited Users Tags */}
+            {(isAddingUser || invitedUsers.length > 0 || email !== "") && (<div className="space-y-2 mt-2 h-40">
             {invitedUsers.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-700">Pending invitations:</p>
+
                 <div className="flex flex-wrap gap-2">
                   {invitedUsers.map((user, index) => (
-                    <div key={index} className="flex items-center gap-2 bg-blue-50 border border-blue-200 rounded-full px-3 py-1.5 text-sm">
-                      <span className="text-blue-700 font-medium">{user}</span>
+                    <div key={index} className="flex items-center gap-2 border border-black rounded-full px-3 py-1.5 text-sm">
+                      <span className="text-gray-700 font-medium">{user}</span>
                       <button
                         onClick={() => handleRemoveInvitedUser(user)}
-                        className="text-blue-500 hover:text-blue-700 hover:bg-blue-200 rounded-full p-0.5 transition-all"
+                        className="text-gray-500 hover:text-gray-700 hover:bg-gray-200 rounded-full p-0.5 transition-all"
                       >
                         <FaTimes size={12} />
                       </button>
                     </div>
                   ))}
                 </div>
-              </div>
             )}
+            </div>)}
           </div>
 
           {/* Current Users List */}
           {!isAddingUser && invitedUsers.length === 0 && email === "" && (
-            <div className="space-y-3">
-              <div className="flex items-center gap-2 mb-3">
+            <div className="">
+              {/* <div className="flex items-center gap-2 mb-3">
                 <FaUsers className="text-gray-600" />
                 <h3 className="text-lg font-semibold text-gray-800">People with access</h3>
-              </div>
+              </div> */}
               <div className="bg-gray-50 rounded-xl border border-gray-200 divide-y divide-gray-200">
                 {listUsers.map((user, index) => (
                   <div key={index} className="p-4 flex items-center justify-between hover:bg-gray-100 transition-colors">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center text-white font-semibold">
-                        {user.name.charAt(0).toUpperCase()}
-                      </div>
+                      <Avatar name={user.name} />
                       <div>
                         <p className="font-medium text-gray-900">{user.name}</p>
                         <p className="text-sm text-gray-500">{user.email}</p>
@@ -330,7 +349,7 @@ export default function PermissionDialog({
                           </select>
                         </div>
                       ) : (
-                        <span className="bg-yellow-100 text-yellow-800 px-3 py-2 rounded-lg text-sm font-medium">
+                        <span className="text-gray-500 italic px-3 py-2 rounded-lg text-sm font-medium">
                           Owner
                         </span>
                       )}
@@ -340,17 +359,17 @@ export default function PermissionDialog({
               </div>
             </div>
           )}
+        </div>
 
-          {/* Permission Level Selection */}
-          {(isAddingUser || invitedUsers.length > 0 || email !== "") && (
-            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <FaUsers className="text-gray-600" />
-                  <span className="font-medium text-gray-700">Permission level for new invitations</span>
-                </div>
+        {/* Footer Actions */}
+        <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
+          {(isAddingUser || invitedUsers.length > 0 || email !== "") ? (
+            <div className="flex items-center justify-between">
+              {/* Permission Level Selection */}
+              <div className="flex items-center gap-3">
+                <span className="font-medium text-gray-700">People Invited</span>
                 <select
-                  className="border-2 border-gray-200 rounded-lg px-3 py-2 font-medium focus:border-blue-500 focus:ring-2 focus:ring-blue-200 outline-none transition-all"
+                  className="rounded-lg px-3 py-2 font-medium focus:border-gray-400 focus:ring-gray-400 focus:ring-2 transition-all"
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
                 >
@@ -358,38 +377,34 @@ export default function PermissionDialog({
                   <option value="editor">Can edit</option>
                 </select>
               </div>
-            </div>
-          )}
-        </div>
-
-        {/* Footer Actions */}
-        <div className="bg-gray-50 px-6 py-4 border-t border-gray-200">
-          {(isAddingUser || invitedUsers.length > 0 || email !== "") ? (
-            <div className="flex items-center justify-end gap-3">
-              <button
-                onClick={() => {
-                  resetForm();
-                  onClose();
-                }}
-                disabled={isSendingInvitations}
-                className="px-6 py-2.5 text-gray-700 bg-white border-2 border-gray-300 rounded-xl font-medium hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSubmitShare}
-                disabled={isSendingInvitations || invitedUsers.length === 0}
-                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl font-medium hover:from-blue-700 hover:to-indigo-700 transition-all duration-200 active:scale-95 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-blue-600 disabled:hover:to-indigo-600 flex items-center gap-2"
-              >
-                {isSendingInvitations ? (
-                  <>
-                    <FaSpinner className="animate-spin" size={14} />
-                    Sending...
-                  </>
-                ) : (
-                  'Send Invitations'
-                )}
-              </button>
+              
+              {/* Action Buttons */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => {
+                    resetForm();
+                    onClose();
+                  }}
+                  disabled={isSendingInvitations}
+                  className="px-6 py-2.5 text-gray-700 bg-gray-200 border-2 border-gray-300 rounded-xl font-medium hover:bg-gray-300 hover:border-gray-400 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmitShare}
+                  disabled={isSendingInvitations || invitedUsers.length === 0}
+                  className="px-6 py-2.5 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition-all duration-200 active:scale-95 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-blue-600 disabled:hover:to-indigo-600 flex items-center gap-2"
+                >
+                  {isSendingInvitations ? (
+                    <>
+                      <FaSpinner className="animate-spin" size={14} />
+                      Sending...
+                    </>
+                  ) : (
+                    'Send Invitations'
+                  )}
+                </button>
+              </div>
             </div>
           ) : (
             <div className="flex items-center justify-end gap-3">
@@ -399,14 +414,14 @@ export default function PermissionDialog({
                   onClose();
                 }}
                 disabled={isSavingChanges}
-                className="px-6 py-2.5 text-gray-700 bg-white border-2 border-gray-300 rounded-xl font-medium hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-6 py-2.5 text-gray-700 bg-gray-200 border-2 border-gray-300 rounded-xl font-medium hover:bg-gray-300 hover:border-gray-400 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveRoleChanges}
                 disabled={isSavingChanges || pendingRoleChanges.length === 0}
-                className="px-6 py-2.5 bg-gradient-to-r from-green-600 to-emerald-600 text-white rounded-xl font-medium hover:from-green-700 hover:to-emerald-700 transition-all duration-200 active:scale-95 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-green-600 disabled:hover:to-emerald-600 flex items-center gap-2"
+                className="px-6 py-2.5 bg-black text-white rounded-xl font-medium hover:bg-gray-800 transition-all duration-200 active:scale-95 shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:from-green-600 disabled:hover:to-emerald-600 flex items-center gap-2"
               >
                 {isSavingChanges ? (
                   <>

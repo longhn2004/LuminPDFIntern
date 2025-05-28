@@ -582,7 +582,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
           {/* Shape Selection */}
           <div className="mb-4">
             <h3 className="text-lg font-medium text-gray-900 mb-3">Shape</h3>
-            <div className="flex gap-2">
+            <div className="flex gap-2 justify-center">
               {shapeOptions.map((shape) => (
                 <button
                   key={shape.value}
@@ -605,10 +605,10 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
             <h3 className="text-lg font-medium text-gray-900 mb-3">Style</h3>
             
             {/* Fill/Stroke Toggle */}
-            <div className="flex bg-gray-100 rounded-full p-1 mb-4 w-fit">
+            <div className="flex bg-gray-100 rounded-full p-1 mb-4 w-full">
       <button 
                 onClick={() => setStyleMode('fill')}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                className={`px-6 py-2 rounded-full w-1/2 text-sm font-medium transition-all ${
                   styleMode === 'fill'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
@@ -618,7 +618,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
       </button>
       <button 
                 onClick={() => setStyleMode('stroke')}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                className={`px-6 py-2 rounded-full w-1/2 text-sm font-medium transition-all ${
                   styleMode === 'stroke'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
@@ -634,7 +634,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
         <button 
                   key={index}
                   onClick={() => handleColorSelection(colorOption.color, colorOption.isTransparent)}
-                  className={`w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center transition-all hover:scale-110 ${
+                  className={`w-7 h-7 rounded-full border-2 border-gray-300 flex items-center justify-center transition-all hover:scale-110 ${
                     colorOption.isTransparent ? 'bg-white' : ''
                   }`}
                   style={{
@@ -644,9 +644,9 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
                   title={colorOption.label}
                 >
                   {colorOption.isTransparent && (
-                    <div className="w-6 h-6 flex items-center justify-center">
-                      <div className="w-6 h-0.5 bg-red-500 rotate-45 absolute"></div>
-                      <div className="w-4 h-4 border border-gray-400 rounded-full"></div>
+                    <div className="w-7 h-7 flex items-center justify-center">
+                      <div className="w-7 h-0.5 bg-red-500 rotate-45 absolute"></div>
+                      <div className="w-7 h-7 border border-gray-400 rounded-full"></div>
                     </div>
                   )}
         </button>
@@ -753,7 +753,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
       )}
 
       {/* Shape/Type Panel - Fixed at bottom right */}
-      <div className="fixed bottom-15 right-15 bg-white rounded-lg shadow-lg border border-gray-200 p-2 z-1000">
+      <div className="fixed bottom-15 right-15 bg-white rounded-lg shadow-sm border border-gray-200 p-2 z-1000">
         <div className="flex gap-3">
           {/* Shape Dropdown */}
           <div className="relative">
@@ -777,10 +777,10 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
                   <button
                     key={shape.value}
                     onClick={() => handleShapeSelection(shape.value)}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
+                    className="w-full flex items-center gap-2 px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
                   >
-                    <span className="text-lg">{shape.icon}</span>
-                    {shape.label}
+                    <span className="text-lg w-7">{shape.icon}</span>
+                    <span className="w-full text-left">{shape.label}</span>
                   </button>
                 ))}
               </div>
@@ -893,7 +893,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
           </div>
 
           {/* Text Color Palette */}
-          <div className="flex gap-2 mb-6">
+          <div className="flex gap-2 mb-6 justify-center">
             {colorPalette.filter(c => !c.isTransparent).map((colorOption, index) => (
               <button
                 key={index}
@@ -919,10 +919,10 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
             <h3 className="text-lg font-medium text-gray-900 mb-3">Frame Style</h3>
             
             {/* Fill/Border Toggle */}
-            <div className="flex bg-gray-100 rounded-full p-1 mb-4 w-fit">
+            <div className="flex bg-gray-100 rounded-full p-1 mb-4 w-full">
               <button
                 onClick={() => setStyleMode('fill')}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                className={`px-6 py-2 rounded-full w-1/2 text-sm font-medium transition-all ${
                   styleMode === 'fill'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
@@ -932,7 +932,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
               </button>
               <button
                 onClick={() => setStyleMode('stroke')}
-                className={`px-6 py-2 rounded-full text-sm font-medium transition-all ${
+                className={`px-6 py-2 rounded-full w-1/2 text-sm font-medium transition-all ${
                   styleMode === 'stroke'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
@@ -960,7 +960,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
                        updateStyles({ strokeColor: colorValue });
                      }
                    }}
-                   className={`w-8 h-8 rounded-full border-2 border-gray-300 flex items-center justify-center transition-all hover:scale-110 ${
+                   className={`w-7 h-7 rounded-full border-2 border-gray-300 flex items-center justify-center transition-all hover:scale-110 ${
                      colorOption.isTransparent ? 'bg-white' : ''
                    }`}
                    style={{
@@ -970,9 +970,9 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
                    title={colorOption.label}
                  >
                    {colorOption.isTransparent && (
-                     <div className="w-6 h-6 flex items-center justify-center">
-                       <div className="w-6 h-0.5 bg-red-500 rotate-45 absolute"></div>
-                       <div className="w-4 h-4 border border-gray-400 rounded-full"></div>
+                     <div className="w-7 h-7 flex items-center justify-center">
+                       <div className="w-7 h-0.5 bg-red-500 rotate-45 absolute"></div>
+                       <div className="w-7 h-7 border border-gray-400 rounded-full"></div>
                      </div>
                    )}
                  </button>

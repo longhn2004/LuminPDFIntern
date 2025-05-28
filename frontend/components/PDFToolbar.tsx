@@ -33,7 +33,7 @@ export default function PDFToolbar({
         >
           <FaArrowLeft size={16} />
         </button>
-        <h2 className="font-medium">{fileName}</h2>
+        <h2 className="font-medium">{fileName.replace('.pdf', '')}</h2>
       </div>
       
       <div className="flex items-center gap-2">

@@ -30,6 +30,8 @@ function DocumentList() {
   const [totalFiles, setTotalFiles] = useState<number>(0);
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
+  const [authChecked, setAuthChecked] = useState<boolean>(false);
   const [sortOrder, setSortOrder] = useState<'ASC' | 'DESC'>('DESC');
   const [page, setPage] = useState<number>(0);
   const [hasMore, setHasMore] = useState<boolean>(true);
@@ -39,6 +41,36 @@ function DocumentList() {
   
   // Ref for the loader element
   const loaderRef = useRef<HTMLDivElement | null>(null);
+
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      setAuthLoading(true);
+      try {
+        const response = await fetch('/api/auth/me', {
+          credentials: 'include',
+        });
+        if (response.ok) {
+          // User is authenticated, data should already be in Redux store
+          setAuthLoading(false);
+          setAuthChecked(true);
+        } else {
+          // User is not authenticated
+          setAuthLoading(false);
+          setAuthChecked(true);
+        }
+      } catch (error) {
+        console.error('Error checking authentication:', error);
+        setAuthLoading(false);
+        setAuthChecked(true);
+      }
+    };
+
+    // Always check auth on component mount if not already checked
+    if (!authChecked) {
+      checkAuth();
+    }
+  }, [authChecked]);
 
   // Fetch user data
   // useEffect(() => {
@@ -261,12 +293,12 @@ function DocumentList() {
   };
 
   return (
-    <div className="h-screen bg-white fixed inset-0">
+    <div className="h-screen bg-white fixed inset-0 flex flex-col w-full">
       <DashboardHeader />
 
       {/* Main */}
-      <main className="mx-auto  text-black h-100%">
-        <div className="bg-white p-6 h-100%">
+      <main className="mx-auto text-black flex-1 overflow-hidden w-full">
+        <div className="bg-white p-6 h-full">
           {/* First row with title and upload button */}
           <div className="flex justify-between items-center mb-6">
             <div className="flex items-center">
@@ -289,94 +321,141 @@ function DocumentList() {
             )}
           </div>
 
-          {/* Content based on whether user has files */}
-          {user.isAuthenticated ? (
+          {/* Content based on authentication and file status */}
+          {authLoading || !authChecked ? (
+            // Authentication loading state
+            <div className="text-center py-10">
+              <div className="flex justify-center mb-4">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
+              </div>
+              <p className="text-gray-500">Checking authentication...</p>
+            </div>
+          ) : user.isAuthenticated ? (
             totalFiles > 0 ? (
               // Files table view
-              <div className="w-full overflow-y-auto" style={{ height: '75vh' }}>
-                <table className="w-full border border-gray-200 rounded-lg overflow-hidden border-collapse">
-                  {/* Table header */}
-                  <thead className="bg-gray-100">
-                    <tr>
-                      <th className="text-left py-3 px-4 font-medium text-gray-700 border-l-2 border-gray-200">
-                        File Name
-                      </th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-700 w-48">
-                        Document Owner
-                      </th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-700 w-44 border-r-2 border-gray-200">
-                        <div className="flex items-center">
-                          <span>Last Updated</span>
-                          <button 
-                            onClick={toggleSort}
-                            className="ml-2 focus:outline-none hover:text-gray-900"
-                          >
-                            {sortOrder === 'ASC' ? <FaSortUp /> : <FaSortDown />}
-                          </button>
-                        </div>
-                      </th>
-                    </tr>
-                  </thead>
-
-                  {/* Table body */}
-                  <tbody>
-                    {files.map(file => (
-                      <tr 
-                        key={file.id} 
-                        className="hover:bg-gray-50 cursor-pointer border border-gray-200 transition-colors"
-                        onClick={() => router.push(`/dashboard/viewpdf/${file.id}`)}
-                      >
-                        <td className="py-3 px-4 border-b-2 border-gray-200">
+              <div className="w-full border border-gray-200 rounded-lg overflow-hidden flex flex-col" style={{ height: 'calc(100vh - 200px)' }}>
+                {/* Fixed Table header */}
+                <div className="bg-gray-100 border-b border-gray-200 flex-shrink-0">
+                  <table className="w-full border-collapse">
+                    <thead>
+                      <tr>
+                        <th className="text-left py-3 px-4 font-medium text-gray-700">
+                          File Name
+                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-700 w-48">
+                          Document Owner
+                        </th>
+                        <th className="text-left py-3 px-4 font-medium text-gray-700 w-44">
                           <div className="flex items-center">
-                            {/* <FaFileAlt className="text-blue-500 mr-3 flex-shrink-0" /> */}
-                            <span className="truncate">{file.name}</span>
+                            <span>Last Updated</span>
+                            <button 
+                              onClick={toggleSort}
+                              className="ml-2 focus:outline-none hover:text-gray-900"
+                            >
+                              {sortOrder === 'ASC' ? <FaSortUp /> : <FaSortDown />}
+                            </button>
                           </div>
-                        </td>
-                        <td className="py-3 px-4 border-b-2 border-gray-200">
-                          <div className="flex items-center">
-                            <Avatar name={file.owner} size="sm" className="mr-3 flex-shrink-0" />
-                            <span className="truncate">
-                              {file.owner}
-                              {file.owner === user.name && (
-                                <span className="text-gray-500 font-normal ml-1">(You)</span>
-                              )}
-                            </span>
-                          </div>
-                        </td>
-                        <td className="py-3 px-4 text-gray-500 border-r-2 border-b-2 border-gray-200">
-                          {formatDate(file.updatedAt)}
-                        </td>
+                        </th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                  </table>
+                </div>
 
-                {/* Loader for infinite scroll */}
-                {hasMore && (
-                  <div ref={loaderRef} className="text-center py-4">
-                    {loading && <p>Loading more files...</p>}
-                  </div>
-                )}
+                {/* Scrollable Table body */}
+                <div className="overflow-y-auto flex-1">
+                  <table className="w-full border-collapse">
+                    <tbody>
+                      {loading && page === 0 ? (
+                        // Loading skeleton rows
+                        Array.from({ length: 5 }).map((_, index) => (
+                          <tr key={`skeleton-${index}`} className="border-b border-gray-200">
+                            <td className="py-3 px-4">
+                              <div className="flex items-center">
+                                <div className="h-4 bg-gray-200 rounded animate-pulse w-3/4"></div>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 w-48">
+                              <div className="flex items-center">
+                                <div className="w-8 h-8 bg-gray-200 rounded-full animate-pulse mr-3 flex-shrink-0"></div>
+                                <div className="h-4 bg-gray-200 rounded animate-pulse w-2/3"></div>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 text-gray-500 w-44">
+                              <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2"></div>
+                            </td>
+                          </tr>
+                        ))
+                      ) : (
+                        files.map(file => (
+                          <tr 
+                            key={file.id} 
+                            className="hover:bg-gray-50 cursor-pointer border-b border-gray-200 transition-colors"
+                            onClick={() => router.push(`/dashboard/viewpdf/${file.id}`)}
+                          >
+                            <td className="py-3 px-4">
+                              <div className="flex items-center">
+                                {/* <FaFileAlt className="text-blue-500 mr-3 flex-shrink-0" /> */}
+                                <span className="truncate">{file.name}</span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 w-48">
+                              <div className="flex items-center">
+                                <Avatar name={file.owner} size="sm" className="mr-3 flex-shrink-0" />
+                                <span className="truncate">
+                                  {file.owner}
+                                  {file.owner === user.name && (
+                                    <span className="text-gray-500 font-normal ml-1">(You)</span>
+                                  )}
+                                </span>
+                              </div>
+                            </td>
+                            <td className="py-3 px-4 text-gray-500 w-44">
+                              {formatDate(file.updatedAt)}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+
+                  {/* Loader for infinite scroll */}
+                  {hasMore && (
+                    <div ref={loaderRef} className="text-center py-4">
+                      {loading && page > 0 && <p>Loading more files...</p>}
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               // Empty state
-              <div className="text-center py-10">
-                <div className="flex justify-center mb-4">
-                  <FaFileAlt className="text-gray-400 text-5xl" />
+              <div className="text-center w-full h-full">
+                <div className="flex flex-col items-center justify-center h-full">
+                  <div className="flex justify-center mb-4">
+                    <FaFileAlt className="text-gray-400 text-5xl" />
+                  </div>
+                  <p className="text-gray-500 mb-6">There is no document found</p>
+                  <button 
+                    onClick={triggerFileInput}
+                    className="bg-yellow-400 hover:bg-yellow-500 px-6 py-2 rounded-md transition-colors duration-300"
+                  >
+                    Upload Document
+                  </button>
                 </div>
-                <p className="text-gray-500 mb-6">There is no document found</p>
-                <button 
-                  onClick={triggerFileInput}
-                  className="bg-yellow-400 hover:bg-yellow-500 px-6 py-2 rounded-md transition-colors duration-300"
-                >
-                  Upload Document
-                </button>
               </div>
             )
           ) : (
-            // Loading state
+            // Not authenticated state
             <div className="text-center py-10">
-              <p className="text-gray-500">Loading user data...</p>
+              <div className="flex justify-center mb-4">
+                <FaFileAlt className="text-gray-400 text-5xl" />
+              </div>
+              <p className="text-gray-500 mb-4">Please log in to view your documents</p>
+              <button 
+                onClick={() => router.push('/auth/signin')}
+                className="bg-yellow-400 hover:bg-yellow-500 px-6 py-2 rounded-md transition-colors duration-300"
+              >
+                Sign In
+              </button>
             </div>
           )}
         </div>
