@@ -579,26 +579,6 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
             className="bg-white rounded-lg shadow-lg border border-gray-200 p-4 w-80 transition-all ease-out"
             style={getStylePanelPosition() as React.CSSProperties}
           >
-          {/* Shape Selection */}
-          <div className="mb-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Shape</h3>
-            <div className="flex gap-2 justify-center">
-              {shapeOptions.map((shape) => (
-                <button
-                  key={shape.value}
-                  onClick={() => handleShapeSelection(shape.value)}
-                  className={`w-12 h-12 rounded-lg border-2 flex items-center justify-center text-xl transition-all ${
-                    selectedShape === shape.value
-                      ? 'bg-pink-100 border-pink-300 text-pink-700'
-                      : 'bg-gray-50 border-gray-200 text-gray-600 hover:bg-gray-100'
-                  }`}
-                  title={shape.label}
-                >
-                  {shape.icon}
-                </button>
-              ))}
-            </div>
-          </div>
 
           {/* Style Section */}
           <div>

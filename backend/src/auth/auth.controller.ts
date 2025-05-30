@@ -3,13 +3,15 @@ import { AuthService } from './auth.service';
 import { AuthGuard } from '@nestjs/passport';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { RefreshTokenDto } from './dto/refresh-token.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
 import { Response as ExpressResponse } from 'express';
+import { ConfigService } from '@nestjs/config';
 
 @Controller('api/auth')
 export class AuthController {
-  constructor(private authService: AuthService) {}
+  private static readonly COOKIE_MAX_AGE = 30 * 60 * 1000; // 30 minutes
+
+  constructor(private authService: AuthService, private configService: ConfigService) {}
 
   @Post('register')
   @HttpCode(201)
@@ -21,12 +23,8 @@ export class AuthController {
   @HttpCode(200)
   async verifyEmail(@Query('token', ParseUUIDPipe) token: string, @Response({ passthrough: true }) res) {
     const { accessToken } = await this.authService.verifyEmail(token);
-    res.cookie('access_token', accessToken, {
-      httpOnly: false,
-      secure: false,
-      sameSite: 'lax',
-      maxAge: 30 * 60 * 1000, // 30p 
-    });
+    
+    this.setAuthCookie(res, accessToken);
     return { message: 'Email verified successfully' };
   }
 
@@ -40,19 +38,9 @@ export class AuthController {
   @Post('login')
   @HttpCode(200)
   async login(@Body(ValidationPipe) loginDto: LoginDto, @Response({ passthrough: true }) res) {
-    const { accessToken} = await this.authService.login(loginDto);
-    res.cookie('access_token', accessToken, {
-      httpOnly: false, 
-      secure: false, 
-      sameSite: 'lax',
-      maxAge: 30 * 60 * 1000, // 30p 
-    });
-    // res.cookie('refresh_token', refreshToken, {
-    //   httpOnly: true, 
-    //   secure: false, 
-    //   sameSite: 'lax',
-    //   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 ngày
-    // });
+    const { accessToken } = await this.authService.login(loginDto);
+    
+    this.setAuthCookie(res, accessToken);
     return { message: 'Login successful' };
   }
 
@@ -66,51 +54,14 @@ export class AuthController {
   @UseGuards(AuthGuard('google'))
   async googleAuthRedirect(@Request() req, @Response({ passthrough: true }) res) {
     try {
-      const { accessToken} = await this.authService.googleLogin(req.user);
-      // Gửi Access Token trong cookie
-      res.cookie('access_token', accessToken, {
-        httpOnly: false,
-        secure: false,
-        sameSite: 'lax',
-        maxAge: 30 * 60 * 1000,
-      });
+      const { accessToken } = await this.authService.googleLogin(req.user);
       
-      res.redirect('http://localhost:3000/dashboard/document-list');
+      this.setAuthCookie(res, accessToken);
+      res.redirect(`${this.configService.get('FRONTEND_URL')}/dashboard/document-list`);
     } catch (error) {
-      // Check if error is because email already used with password
-      if (error?.message?.includes('email and password') || 
-          error?.response?.message?.includes('email and password')) {
-        res.redirect('http://localhost:3000/auth/signin?verification=conflictemail');
-      } else {
-        // Generic error - redirect to signin
-        res.redirect('http://localhost:3000/auth/signin');
-      }
+      this.handleGoogleAuthError(error, res);
     }
   }
-
-  // @Post('refresh')
-  // @UseGuards(AuthGuard('jwt'))
-  // @HttpCode(200)
-  // async refreshToken(
-  //   @Request() req,
-  //   @Body() refreshTokenDto: RefreshTokenDto,
-  //   @Response({ passthrough: true }) res,
-  // ) {
-  //   const { accessToken, refreshToken } = await this.authService.refreshToken(req.user['_id'], refreshTokenDto);
-  //   res.cookie('access_token', accessToken, {
-  //     httpOnly: false,
-  //     secure: false,
-  //     sameSite: 'lax',
-  //     maxAge: 15 * 60 * 1000,
-  //   });
-  //   res.cookie('refresh_token', refreshToken, {
-  //     httpOnly: true,
-  //     secure: false,
-  //     sameSite: 'lax',
-  //     maxAge: 7 * 24 * 60 * 60 * 1000,
-  //   });
-  //   return { message: 'Token refreshed' };
-  // }
 
   @UseGuards(AuthGuard('jwt'))
   @Get('profile')
@@ -123,9 +74,7 @@ export class AuthController {
   @UseGuards(AuthGuard('jwt'))
   @HttpCode(204)
   async logout(@Request() req, @Response({ passthrough: true }) res) {
-    // await this.authService.invalidateRefreshToken(req.user['_id']);
     res.clearCookie('access_token');
-    // res.clearCookie('refresh_token');
     return { message: 'Logout successful' };
   }
 
@@ -141,5 +90,25 @@ export class AuthController {
   @HttpCode(200)
   async getUserByEmail(@Request() req, @Query('email') email: string) {
     return this.authService.getUserByEmail(email);
+  }
+
+  private setAuthCookie(res: ExpressResponse, accessToken: string) {
+    res.cookie('access_token', accessToken, {
+      httpOnly: false,
+      secure: false,
+      sameSite: 'lax',
+      maxAge: AuthController.COOKIE_MAX_AGE,
+    });
+  }
+
+  private handleGoogleAuthError(error: any, res: ExpressResponse) {
+    // Check if error is because email already used with password
+    if (error?.message?.includes('email and password') || 
+        error?.response?.message?.includes('email and password')) {
+      res.redirect(`${this.configService.get('FRONTEND_URL')}/auth/signin?verification=conflictemail`);
+    } else {
+      // Generic error - redirect to signin
+      res.redirect(`${this.configService.get('FRONTEND_URL')}/auth/signin`);
+    }
   }
 }

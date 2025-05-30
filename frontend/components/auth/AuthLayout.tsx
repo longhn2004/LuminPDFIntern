@@ -1,4 +1,7 @@
+"use client";
+
 import React from "react";
+import { useRouter } from "next/navigation";
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -11,6 +14,8 @@ export default function AuthLayout({
   rightWidthClass = "w-1/3",
   leftContent,
 }: AuthLayoutProps) {
+  const router = useRouter();
+
   return (
     <div className="flex h-screen w-full bg-[url('@/public/images/backgroundauth.png')] fixed bg-cover bg-center">
       {/* left div */}

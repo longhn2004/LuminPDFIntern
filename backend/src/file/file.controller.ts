@@ -16,6 +16,14 @@ import { ChangeRolesDto } from './dto/change-roles.dto';
 export class FileController {
   constructor(private readonly fileService: FileService) {}
 
+  private validateObjectId(id: string): void {
+    try {
+      new ObjectId(id);
+    } catch (error) {
+      throw new NotFoundException('File not found');
+    }
+  }
+
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(@UploadedFile() file: Express.Multer.File, @Req() req: Request & { user: any }) {
@@ -34,11 +42,7 @@ export class FileController {
 
   @Get(':id/annotation')
   async getAnnotations(@Param('id') fileId: string, @Req() req: Request & { user: any }) {
-    try {
-      const objectId = new ObjectId(fileId);
-    } catch (error) {
-      throw new NotFoundException('File not found');
-    }
+    this.validateObjectId(fileId);
     return this.fileService.getAnnotations(fileId, req.user);
   }
 
@@ -49,41 +53,25 @@ export class FileController {
 
   @Get(':id/download')
   async downloadFile(@Param('id') id: string, @Req() req: Request & { user: any }, @Res() res: Response) {
-    try {
-      const objectId = new ObjectId(id);
-    } catch (error) {
-      throw new NotFoundException('File not found');
-    }
+    this.validateObjectId(id);
     return this.fileService.downloadFile(id, req.user, res);
   }
 
   @Get(':id/download-with-annotations')
   async downloadFileWithAnnotations(@Param('id') id: string, @Req() req: Request & { user: any }) {
-    try {
-      const objectId = new ObjectId(id);
-    } catch (error) {
-      throw new NotFoundException('File not found');
-    }
+    this.validateObjectId(id);
     return this.fileService.downloadFileWithAnnotations(id, req.user);
   }
 
   @Get(':id/users')
   async getFileUsers(@Param('id') id: string, @Req() req: Request & { user: any }) {
-    try {
-      const objectId = new ObjectId(id);
-    } catch (error) {
-      throw new NotFoundException('File not found');
-    }
+    this.validateObjectId(id);
     return this.fileService.getFileUsers(id, req.user);
   }
 
   @Get(':id/user-role')
   async getFileUserRole(@Param('id') id: string, @Req() req: Request & { user: any }) {
-    try {
-      const objectId = new ObjectId(id);
-    } catch (error) {
-      throw new NotFoundException('File not found');
-    }
+    this.validateObjectId(id);
     return this.fileService.getFileUserRole(id, req.user);
   }
 
@@ -102,53 +90,21 @@ export class FileController {
     return this.fileService.changeRoles(changeRolesDto, req.user);
   }
 
-  // @Post(':id/annotation')
-  // async createAnnotation(@Param('id') fileId: string, @Body() annotationDto: CreateAnnotationDto, @Req() req: Request & { user: any }) {
-  //   return this.fileService.createAnnotation(fileId, annotationDto, req.user);
-  // }
-
-  // @Put(':id/annotation/:annotationId')
-  // async updateAnnotation(
-  //   @Param('id') fileId: string,
-  //   @Param('annotationId') annotationId: string,
-  //   @Body() annotationDto: CreateAnnotationDto,
-  //   @Req() req: Request & { user: any },
-  // ) {
-  //   return this.fileService.updateAnnotation(fileId, annotationId, annotationDto, req.user);
-  // }
-
-  // @Delete(':id/annotation/:annotationId')
-  // async deleteAnnotation(@Param('id') fileId: string, @Param('annotationId') annotationId: string, @Req() req: Request & { user: any }) {
-  //   return this.fileService.deleteAnnotation(fileId, annotationId, req.user);
-  // }
-
   @Post(':id/annotation/save')
   async saveAnnotation(@Param('id') fileId: string, @Body() annotationDto: CreateAnnotationDto, @Req() req: Request & { user: any }) {
-    try {
-      const objectId = new ObjectId(fileId);
-    } catch (error) {
-      throw new NotFoundException('File not found');
-    }
+    this.validateObjectId(fileId);
     return this.fileService.saveAnnotation(fileId, annotationDto, req.user);
   }
 
   @Delete(':id')
   async deleteFile(@Param('id') id: string, @Req() req: Request & { user: any }) {
-    try {
-      const objectId = new ObjectId(id);
-    } catch (error) {
-      throw new NotFoundException('File not found');
-    }
+    this.validateObjectId(id);
     return this.fileService.deleteFile(id, req.user);
   }
 
   @Get(':id/info')
   async getFileInfo(@Param('id') id: string) {
-    try {
-      const objectId = new ObjectId(id);
-    } catch (error) {
-      throw new NotFoundException('File not found');
-    }
+    this.validateObjectId(id);
     return this.fileService.getFileInfo(id);
   }
 }

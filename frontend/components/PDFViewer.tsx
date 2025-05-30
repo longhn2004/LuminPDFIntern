@@ -1,7 +1,7 @@
 "use client"
 import { HTTP_STATUS } from "@/libs/constants/httpStatus";
 import { useRouter } from "next/navigation";
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import PermissionDialog from './PermissionDialog';
@@ -11,19 +11,45 @@ import NotFoundPage from './NotFoundPage';
 import UnauthorizedPage from './UnauthorizedPage';
 
 interface PDFViewerProps {
-    pdfId: string;
+  pdfId: string;
+  className?: string;
 }
 
-export default function PDFViewer({pdfId}: PDFViewerProps) {
-  const router = useRouter();
+interface UserInfo {
+  id: string;
+  email: string;
+  role: string;
+  name: string;
+}
+
+interface FileInfo {
+  name: string;
+  size?: number;
+  uploadedAt?: string;
+  owner?: UserInfo;
+}
+
+/**
+ * Hook for managing user permissions and file data
+ */
+const useFilePermissions = (pdfId: string) => {
   const [fileName, setFileName] = useState('');
   const [isOwner, setIsOwner] = useState(false);
   const [userRole, setUserRole] = useState<string>('');
-  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
-  const [listUsers, setListUsers] = useState<{ id: string, email: string, role: string, name: string }[]>([]);
+  const [listUsers, setListUsers] = useState<UserInfo[]>([]);
   const [isFileLoading, setIsFileLoading] = useState(true);
   const [notFoundError, setNotFoundError] = useState(false);
   const [unauthorizedError, setUnauthorizedError] = useState(false);
+
+  const resetState = useCallback(() => {
+    setFileName('');
+    setIsOwner(false);
+    setUserRole('');
+    setListUsers([]);
+    setNotFoundError(false);
+    setUnauthorizedError(false);
+    setIsFileLoading(true);
+  }, []);
 
   const fetchListUsers = useCallback(async () => {
     try {
@@ -113,57 +139,27 @@ export default function PDFViewer({pdfId}: PDFViewerProps) {
     }
   }, [pdfId]);
 
-  useEffect(() => {
-    let isMounted = true;
-    console.log("PDFViewer: Main useEffect triggered for pdfId:", pdfId);
+  return {
+    fileName,
+    isOwner,
+    userRole,
+    listUsers,
+    isFileLoading,
+    notFoundError,
+    unauthorizedError,
+    resetState,
+    fetchListUsers,
+    fetchUserRole,
+    fetchFileInfo,
+    setIsFileLoading
+  };
+};
 
-    setFileName('');
-    setIsOwner(false);
-    setUserRole('');
-    setListUsers([]);
-    setNotFoundError(false);
-    setUnauthorizedError(false);
-    setIsFileLoading(true);
-
-    if (!pdfId) {
-      if (isMounted) {
-        setNotFoundError(true);
-        setIsFileLoading(false);
-      }
-      return;
-    }
-
-    const loadAllData = async () => {
-      const fileInfoSuccess = await fetchFileInfo();
-      if (!isMounted || !fileInfoSuccess) {
-        if(isMounted) setIsFileLoading(false);
-        return;
-      }
-
-      const fetchedRole = await fetchUserRole();
-      if (!isMounted || !fetchedRole) {
-        if(isMounted) setIsFileLoading(false);
-        return;
-      }
-      
-      if (fetchedRole === 'owner') {
-         await fetchListUsers();
-      }
-
-      if (isMounted) {
-        setIsFileLoading(false);
-      }
-    };
-
-    loadAllData();
-
-    return () => {
-      isMounted = false;
-      console.log("PDFViewer: Cleanup for pdfId:", pdfId);
-    };
-  }, [pdfId, fetchFileInfo, fetchUserRole, fetchListUsers]);
-
-  const downloadFile = async () => {
+/**
+ * Hook for download functionality
+ */
+const useDownloadHandlers = (pdfId: string, fileName: string, userRole: string) => {
+  const downloadFile = useCallback(async () => {
     try {
       toast.info("Preparing download...");
       const downloadUrl = `/api/file/${pdfId}/download`;
@@ -187,9 +183,9 @@ export default function PDFViewer({pdfId}: PDFViewerProps) {
       console.error("PDFViewer: Error downloading file:", error);
       toast.error("Failed to download document");
     }
-  }
+  }, [pdfId, fileName]);
 
-  const downloadFileWithAnnotations = async () => {
+  const downloadFileWithAnnotations = useCallback(async () => {
     try {
       toast.info("Preparing download with annotations...");
       
@@ -221,13 +217,13 @@ export default function PDFViewer({pdfId}: PDFViewerProps) {
       }
 
       try {
-        const doc = window.documentViewer.getDocument();
+        const doc = (window.documentViewer as any).getDocument();
         if (!doc) {
           toast.error("Document not loaded. Please wait for the document to load completely.");
           return;
         }
 
-        const annotationManager = window.documentViewer.getAnnotationManager();
+        const annotationManager = (window.documentViewer as any).getAnnotationManager();
         
         const annotations = annotationManager.getAnnotationsList();
         if (annotations.length === 0) {
@@ -269,9 +265,45 @@ export default function PDFViewer({pdfId}: PDFViewerProps) {
       console.error("PDFViewer: Error downloading file with annotations:", error);
       toast.error("Failed to download document with annotations");
     }
-  }
+  }, [pdfId, userRole, downloadFile, fileName]);
 
-  const deleteFile = async () => {
+  return {
+    downloadFile,
+    downloadFileWithAnnotations
+  };
+};
+
+/**
+ * PDFViewer component provides a complete PDF viewing experience
+ * with permission management, annotations, and download functionality
+ */
+export default function PDFViewer({ pdfId, className = "" }: PDFViewerProps) {
+  const router = useRouter();
+  const [showPermissionDialog, setShowPermissionDialog] = useState(false);
+
+  const {
+    fileName,
+    isOwner,
+    userRole,
+    listUsers,
+    isFileLoading,
+    notFoundError,
+    unauthorizedError,
+    resetState,
+    fetchListUsers,
+    fetchUserRole,
+    fetchFileInfo,
+    setIsFileLoading
+  } = useFilePermissions(pdfId);
+
+  const { downloadFile, downloadFileWithAnnotations } = useDownloadHandlers(pdfId, fileName, userRole);
+
+  // Memoize computed values
+  const shouldShowContent = useMemo(() => {
+    return !isFileLoading && !notFoundError && !unauthorizedError;
+  }, [isFileLoading, notFoundError, unauthorizedError]);
+
+  const deleteFile = useCallback(async () => {
     if (!confirm("Are you sure you want to delete this document? This action cannot be undone.")) {
       return;
     }
@@ -293,8 +325,65 @@ export default function PDFViewer({pdfId}: PDFViewerProps) {
       console.error("PDFViewer: Error deleting file:", error);
       toast.error("Failed to delete document");
     }
-  }
-  
+  }, [pdfId, router]);
+
+  const handleNavigateBack = useCallback(() => {
+    router.push('/dashboard/document-list');
+  }, [router]);
+
+  const handleShare = useCallback(() => {
+    setShowPermissionDialog(true);
+  }, []);
+
+  const handleClosePermissionDialog = useCallback(() => {
+    setShowPermissionDialog(false);
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    console.log("PDFViewer: Main useEffect triggered for pdfId:", pdfId);
+
+    if (!pdfId) {
+      if (isMounted) {
+        resetState();
+        setIsFileLoading(false);
+      }
+      return;
+    }
+
+    resetState();
+
+    const loadAllData = async () => {
+      const fileInfoSuccess = await fetchFileInfo();
+      if (!isMounted || !fileInfoSuccess) {
+        if (isMounted) setIsFileLoading(false);
+        return;
+      }
+
+      const fetchedRole = await fetchUserRole();
+      if (!isMounted || !fetchedRole) {
+        if (isMounted) setIsFileLoading(false);
+        return;
+      }
+      
+      if (fetchedRole === 'owner') {
+        await fetchListUsers();
+      }
+
+      if (isMounted) {
+        setIsFileLoading(false);
+      }
+    };
+
+    loadAllData();
+
+    return () => {
+      isMounted = false;
+      console.log("PDFViewer: Cleanup for pdfId:", pdfId);
+    };
+  }, [pdfId, resetState, fetchFileInfo, fetchUserRole, fetchListUsers, setIsFileLoading]);
+
+  // Loading state
   if (isFileLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
@@ -306,6 +395,7 @@ export default function PDFViewer({pdfId}: PDFViewerProps) {
     );
   }
 
+  // Error states
   if (notFoundError) {
     return <NotFoundPage />;
   }
@@ -315,27 +405,29 @@ export default function PDFViewer({pdfId}: PDFViewerProps) {
   }
   
   return (
-    <div className="max-w-full text-black bg-white flex flex-col h-full min-h-0">
+    <div className={`max-w-full text-black bg-white flex flex-col h-full min-h-0 ${className}`}>
       <ToastContainer position="bottom-right" />
       
-      <div className="flex-1 min-h-0 text-black bg-white flex flex-col">
-        <PDFToolbar 
-          fileName={fileName}
-          isOwner={isOwner}
-          userRole={userRole}
-          onNavigateBack={() => router.push('/dashboard/document-list')}
-          onDelete={deleteFile}
-          onDownload={downloadFile}
-          onDownloadWithAnnotations={downloadFileWithAnnotations}
-          onShare={() => setShowPermissionDialog(true)}
-        />
-        
-        <PDFViewerCore pdfId={pdfId} />
-      </div>
+      {shouldShowContent && (
+        <div className="flex-1 min-h-0 text-black bg-white flex flex-col">
+          <PDFToolbar 
+            fileName={fileName}
+            isOwner={isOwner}
+            userRole={userRole}
+            onNavigateBack={handleNavigateBack}
+            onDelete={deleteFile}
+            onDownload={downloadFile}
+            onDownloadWithAnnotations={downloadFileWithAnnotations}
+            onShare={handleShare}
+          />
+          
+          <PDFViewerCore pdfId={pdfId} />
+        </div>
+      )}
 
       <PermissionDialog 
         isOpen={showPermissionDialog}
-        onClose={() => setShowPermissionDialog(false)}
+        onClose={handleClosePermissionDialog}
         fileName={fileName}
         pdfId={pdfId}
         listUsers={listUsers}

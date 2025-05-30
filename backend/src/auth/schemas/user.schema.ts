@@ -18,6 +18,9 @@ export class User extends Document {
   @Prop()
   verificationToken: string; 
 
+  @Prop({ required: false, type: Date })
+  verificationTokenExpires?: Date;
+
   @Prop()
   name: string;
 

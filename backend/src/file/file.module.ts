@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { File, FileSchema } from './schemas/file.schema';
-import { Annotation, AnnotationSchema } from './schemas/annotation.schema';
 import { Invitation, InvitationSchema } from './schemas/invitation.schema';
 import { User, UserSchema } from '../auth/schemas/user.schema';
 import { FileController } from './file.controller';
@@ -17,7 +16,6 @@ import { ConfigModule } from '@nestjs/config';
   imports: [
     MongooseModule.forFeature([
       { name: File.name, schema: FileSchema },
-      { name: Annotation.name, schema: AnnotationSchema },
       { name: Invitation.name, schema: InvitationSchema },
       { name: User.name, schema: UserSchema },
     ]),
