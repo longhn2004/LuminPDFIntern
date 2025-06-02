@@ -22,6 +22,7 @@ import { ChangeRolesDto } from './dto/change-roles.dto';
 
 // Services
 import { EmailService } from '../email/email.service';
+import { CacheService } from '../cache/cache.service';
 
 @Injectable()
 export class FileService {
@@ -35,13 +36,17 @@ export class FileService {
     @InjectModel(User.name) private userModel: Model<User>,
     private configService: ConfigService,
     private emailService: EmailService,
-  ) {}
+    private cacheService: CacheService,
+  ) {
+    console.log('🚀 FileService initialized with Redis caching support');
+  }
 
   // =============================================
   // FILE UPLOAD & MANAGEMENT
   // =============================================
 
   async uploadFile(file: Express.Multer.File, user: User) {    
+    console.log(`📤 Uploading file: ${file.originalname} for user: ${user.email}`);
     if (!file) {      
       throw new BadRequestException('No file uploaded');    
     }    
@@ -53,11 +58,17 @@ export class FileService {
       viewers: [],      
       editors: [],    
     });    
-    await newFile.save();    
+    await newFile.save();
+    console.log(`✅ File uploaded successfully: ${newFile._id}`);
+    
+    // Invalidate user cache since file list changed
+    await this.cacheService.invalidateUserCache((user._id as Types.ObjectId).toString());
+    
     return newFile;  
   }
 
   async uploadFromDrive(fileId: string, user: User) {
+    console.log(`📤 Uploading from Google Drive: ${fileId} for user: ${user.email}`);
     const auth = new google.auth.GoogleAuth({
       keyFile: join(__dirname, '..', '..', 'config', 'service-account-key.json'),
       scopes: ['https://www.googleapis.com/auth/drive.readonly'],
@@ -93,17 +104,26 @@ export class FileService {
                       editors: [],          
                     });
           await newFile.save();
+          console.log(`✅ File from Google Drive uploaded successfully: ${newFile._id}`);
+          
+          // Invalidate user cache since file list changed
+          await this.cacheService.invalidateUserCache((user._id as Types.ObjectId).toString());
+          
           resolve(newFile);
         });
         writeStream.on('error', (err) => reject(new BadRequestException('Failed to save file')));
       });
     } catch (error) {
+      console.error(`❌ Error uploading from Google Drive:`, error);
       throw new BadRequestException(`Failed to upload from Google Drive: ${error.message}`);
     }
   }
 
   async totalFiles(user: User) {
-    return this.fileModel.countDocuments({ $or: [{ ownerEmail: user.email }, { viewers: user.email }, { editors: user.email }] });
+    console.log(`📊 Getting total files count for user: ${user.email}`);
+    const count = await this.fileModel.countDocuments({ $or: [{ ownerEmail: user.email }, { viewers: user.email }, { editors: user.email }] });
+    console.log(`📊 Total files for user ${user.email}: ${count}`);
+    return count;
   }
 
   // =============================================
@@ -112,10 +132,19 @@ export class FileService {
 
   async listFiles(query: ListFilesDto, user: User) {
     const { page = 0, sort = 'DESC' } = query;
+    console.log(`📋 Listing files for user: ${user.email}, page: ${page}, sort: ${sort}`);
+    
+    // Try to get from cache first
+    const cachedFiles = await this.cacheService.getUserFileList((user._id as Types.ObjectId).toString(), page, sort);
+    if (cachedFiles) {
+      console.log(`💰 Cache HIT: Returning cached file list for user: ${user.email}`);
+      return cachedFiles;
+    }
+    
+    console.log(`🔍 Cache MISS: Fetching file list from database for user: ${user.email}`);
     const limit = FileService.FILES_PER_PAGE;
     const skip = page * limit;
     const sortOrder = sort === 'ASC' ? 1 : -1;
-
 
     const files = await this.fileModel      
     .find({        
@@ -131,13 +160,19 @@ export class FileService {
     .populate('owner', 'name')      
     .exec();
 
-    return files.map((file) => ({
+    const result = files.map((file) => ({
       id: file._id,
       name: file.name,
       owner: file.owner.name,
       role: this.getUserRole(file, user),
       updatedAt: file.updatedAt,
     }));
+    
+    // Cache the result
+    await this.cacheService.setUserFileList((user._id as Types.ObjectId).toString(), page, sort, result);
+    console.log(`💾 Cached file list for user: ${user.email}, files count: ${result.length}`);
+    
+    return result;
   }
 
   // =============================================
@@ -145,12 +180,14 @@ export class FileService {
   // =============================================
 
   async downloadFile(id: string, user: User, res: Response) {
+    console.log(`⬇️ Download file request: ${id} by user: ${user.email}`);
     const file = await this.fileModel.findById(id).exec();
     if (!file) {
       throw new NotFoundException('File not found');
     }
 
     const role = this.getUserRole(file, user);
+    console.log(`👤 User role for file ${id}: ${role}`);
     if (role === 'none') {
       throw new ForbiddenException('You do not have permission to access this file');
     }
@@ -158,12 +195,24 @@ export class FileService {
     if (role === 'owner' || role === 'editor') {
       // Send file with annotations (xfdf is now part of the file)
       res.setHeader('X-Annotations', JSON.stringify([file.xfdf]));
+      console.log(`📝 Including annotations in download for file: ${id}`);
     }
 
+    console.log(`✅ File download authorized for: ${id}`);
     res.download(file.path);
   }
 
   async downloadFileWithAnnotations(id: string, user: User) {
+    console.log(`⬇️ Download file with annotations request: ${id} by user: ${user.email}`);
+    
+    // Try to get annotations from cache first
+    const cachedAnnotations = await this.cacheService.getFileAnnotations(id);
+    if (cachedAnnotations) {
+      console.log(`💰 Cache HIT: Returning cached annotations for file: ${id}`);
+      return cachedAnnotations;
+    }
+    
+    console.log(`🔍 Cache MISS: Fetching annotations from database for file: ${id}`);
     const file = await this.fileModel.findById(id).exec();
     if (!file) {
       throw new NotFoundException('File not found');
@@ -179,7 +228,7 @@ export class FileService {
       throw new ForbiddenException('You do not have permission to download with annotations');
     }
     
-    return {
+    const result = {
       fileId: id,
       fileName: file.name,
       filePath: file.path,
@@ -187,6 +236,12 @@ export class FileService {
       annotations: file.xfdf,
       hasAnnotations: !!file.xfdf && file.xfdf !== FileService.DEFAULT_XFDF
     };
+    
+    // Cache the annotations
+    await this.cacheService.setFileAnnotations(id, result);
+    console.log(`💾 Cached annotations for file: ${id}`);
+    
+    return result;
   }
 
   // =============================================
@@ -194,6 +249,16 @@ export class FileService {
   // =============================================
 
   async getFileInfo(id: string) {    
+    console.log(`ℹ️ Getting file info for: ${id}`);
+    
+    // Try to get from cache first
+    const cachedInfo = await this.cacheService.getFileInfo(id);
+    if (cachedInfo) {
+      console.log(`💰 Cache HIT: Returning cached file info for: ${id}`);
+      return cachedInfo;
+    }
+    
+    console.log(`🔍 Cache MISS: Fetching file info from database for: ${id}`);
     const file = await this.fileModel.findById(id).exec();    
     if (!file) {      
       throw new NotFoundException('File not found');    
@@ -201,7 +266,7 @@ export class FileService {
     // Get owner information    
     const ownerUser = await this.userModel.findOne({ email: file.ownerEmail }).exec();    
     const ownerName = ownerUser ? ownerUser.name : '[Unregistered User]';        // Format response with detailed information    
-    return {      
+    const result = {      
       id: file._id,      
       name: file.name,      
       createdAt: file.createdAt,      
@@ -212,10 +277,17 @@ export class FileService {
       },      
       viewers: file.viewers || [],      
       editors: file.editors || []    
-    };  
+    };
+    
+    // Cache the file info
+    await this.cacheService.setFileInfo(id, result);
+    console.log(`💾 Cached file info for: ${id}`);
+    
+    return result;
   }
 
   async deleteFile(id: string, user: User) {
+    console.log(`🗑️ Delete file request: ${id} by user: ${user.email}`);
     const file = await this.fileModel.findById(id).exec();
     if (!file) {
       throw new NotFoundException('File not found');
@@ -229,16 +301,23 @@ export class FileService {
 
     //Delete from storage
     const filePath = join(this.configService.get<string>('FILE_UPLOAD_PATH') || './uploads', file.path.slice(8));
-    console.log('filePath ', filePath);
+    console.log('🗂️ Deleting file from storage:', filePath);
     if (existsSync(filePath)) {
-      console.log('Deleting file from storage:', filePath);
+      console.log('✅ File exists, deleting from storage:', filePath);
       unlinkSync(filePath);
 
       //Delete invitations
       await this.invitationModel.deleteMany({ file: id }).exec();
-      
+      console.log('✅ Deleted related invitations for file:', id);
     }
-
+    
+    // Invalidate all caches related to this file
+    await this.cacheService.invalidateFileCache(id);
+    
+    // Invalidate user cache since file list changed
+    await this.cacheService.invalidateUserCache((user._id as Types.ObjectId).toString());
+    
+    console.log(`✅ File deleted successfully: ${id}`);
     return { message: 'File deleted successfully' };
   }
 
@@ -247,8 +326,17 @@ export class FileService {
   // =============================================
 
   async getFileUsers(fileId: string, user: User) {
+    console.log(`👥 Getting file users for: ${fileId} by user: ${user.email}`);
     const file = await this.validateOwnerAccess(fileId, user);
-
+    
+    // Try to get from cache first
+    const cachedUsers = await this.cacheService.getFileUsers(fileId);
+    if (cachedUsers) {
+      console.log(`💰 Cache HIT: Returning cached file users for: ${fileId}`);
+      return cachedUsers;
+    }
+    
+    console.log(`🔍 Cache MISS: Fetching file users from database for: ${fileId}`);
     const users: { id?: Types.ObjectId; email: string; role: string, name: string }[] = [];
     
         // Add owner    
@@ -281,12 +369,17 @@ export class FileService {
         name: editorUser?.name || '[Unregistered User]'       
       });    
     }
+    
+    // Cache the file users
+    await this.cacheService.setFileUsers(fileId, users);
+    console.log(`💾 Cached file users for: ${fileId}, users count: ${users.length}`);
 
     return users;
   }
 
   async inviteUser(inviteDto: InviteUserDto, owner: User) {
     const { fileId, emails, role } = inviteDto;
+    console.log(`📨 Inviting users to file: ${fileId}, emails: ${emails.join(', ')}, role: ${role}`);
     const file = await this.fileModel.findById(fileId).exec();
     if (!file) {
       throw new NotFoundException('File not found');
@@ -298,6 +391,7 @@ export class FileService {
     
     // Process emails sequentially instead of in parallel
     for (const email of emails) {
+      console.log(`📧 Processing invitation for: ${email}`);
       // Check if the user is registered
       if (role === 'viewer' && !file.viewers.includes(email)) {
         file.viewers.push(email);
@@ -308,8 +402,10 @@ export class FileService {
       
       if (existingUser) {
         // Notify registered user about access
+        console.log(`✅ Notifying registered user: ${email}`);
         await this.emailService.sendAccessNotification(email, file.name, role);
       } else {
+        console.log(`📝 Creating invitation for unregistered user: ${email}`);
         const invitationToken = uuidv4();
         const invitation = new this.invitationModel({
           email,
@@ -327,11 +423,16 @@ export class FileService {
     // Save the file once after all emails are processed
     await file.save();
     
+    // Invalidate caches related to this file
+    await this.cacheService.invalidateFileCache(fileId);
+    
+    console.log(`✅ Invitations sent successfully for file: ${fileId}`);
     return { message: 'Invitations sent successfully' };
   }
 
   async changeRole(changeRoleDto: ChangeRoleDto, owner: User) {    
-    const { fileId, email, role } = changeRoleDto;    
+    const { fileId, email, role } = changeRoleDto;
+    console.log(`🔄 Changing role for file: ${fileId}, email: ${email}, new role: ${role}`);
     const file = await this.fileModel.findById(fileId).exec();    
     if (!file) {      
       throw new NotFoundException('File not found');    
@@ -359,10 +460,14 @@ export class FileService {
     }
 
     await file.save();
+    
+    // Invalidate caches related to this file
+    await this.cacheService.invalidateFileCache(fileId);
 
     // Find user to send email if they exist
     const targetUser = await this.userModel.findOne({ email }).exec();
     if (targetUser) {
+      console.log(`📧 Sending role change notification to: ${email}`);
       // Send email notification
       if (role === 'none') {
         await this.emailService.sendRoleRemovedNotification(email, file.name);
@@ -371,11 +476,13 @@ export class FileService {
       }
     }
 
+    console.log(`✅ Role changed successfully for file: ${fileId}, email: ${email}`);
     return { message: role === 'none' ? 'Role removed successfully' : 'Role changed successfully' };
   }
 
   async changeRoles(changeRolesDto: ChangeRolesDto, owner: User) {
     const { fileId, changes } = changeRolesDto;
+    console.log(`🔄 Changing multiple roles for file: ${fileId}, changes count: ${changes.length}`);
     const file = await this.fileModel.findById(fileId).exec();
     if (!file) {
       throw new NotFoundException('File not found');
@@ -385,6 +492,7 @@ export class FileService {
       await this.changeRole(change, owner);
     }
 
+    console.log(`✅ Multiple roles changed successfully for file: ${fileId}`);
     return { message: 'Roles changed successfully' };
   }
 
@@ -393,9 +501,19 @@ export class FileService {
   // =============================================
 
   async getAnnotations(fileId: string, user: User) {
+    console.log(`📝 Getting annotations for file: ${fileId} by user: ${user.email}`);
+    
+    // Try to get from cache first
+    const cachedAnnotations = await this.cacheService.getFileAnnotations(fileId);
+    if (cachedAnnotations) {
+      console.log(`💰 Cache HIT: Returning cached annotations for file: ${fileId}`);
+      return cachedAnnotations;
+    }
+    
+    console.log(`🔍 Cache MISS: Fetching annotations from database for file: ${fileId}`);
     const file = await this.validateEditAccess(fileId, user);
     
-    return {
+    const result = {
       _id: file._id,
       file: fileId,
       xfdf: file.xfdf,
@@ -403,9 +521,16 @@ export class FileService {
       createdAt: file.createdAt,
       updatedAt: file.updatedAt
     };
+    
+    // Cache the annotations
+    await this.cacheService.setFileAnnotations(fileId, result);
+    console.log(`💾 Cached annotations for file: ${fileId}`);
+    
+    return result;
   }
 
   async saveAnnotation(fileId: string, annotationDto: CreateAnnotationDto, user: User) {
+    console.log(`💾 Saving annotations for file: ${fileId} by user: ${user.email}`);
     const file = await this.validateEditAccess(fileId, user);
 
     // Update the file's xfdf and increment version
@@ -421,6 +546,14 @@ export class FileService {
     if (!updatedFile) {
       throw new NotFoundException('File not found');
     }
+    
+    // Invalidate annotation cache since it changed
+    await this.cacheService.deleteFileAnnotations(fileId);
+    
+    // Invalidate file info cache since it was updated
+    await this.cacheService.deleteFileInfo(fileId);
+    
+    console.log(`✅ Annotations saved successfully for file: ${fileId}, new version: ${updatedFile.version}`);
 
     return {
       _id: updatedFile._id,
@@ -450,6 +583,16 @@ export class FileService {
   }
 
   async getFileUserRole(fileId: string, user: User) {
+    console.log(`👤 Getting user role for file: ${fileId} by user: ${user.email}`);
+    
+    // Try to get from cache first
+    const cachedRole = await this.cacheService.getUserFileRole(fileId, (user._id as Types.ObjectId).toString());
+    if (cachedRole) {
+      console.log(`💰 Cache HIT: Returning cached user role for file: ${fileId}, user: ${user.email}`);
+      return cachedRole;
+    }
+    
+    console.log(`🔍 Cache MISS: Fetching user role from database for file: ${fileId}, user: ${user.email}`);
     const file = await this.fileModel.findById(fileId).exec();
     if (!file) {
       throw new NotFoundException('File not found');
@@ -459,8 +602,14 @@ export class FileService {
     if (role === 'none') {
       throw new ForbiddenException('You do not have access to this file');
     }
+    
+    const result = { role };
+    
+    // Cache the user role
+    await this.cacheService.setUserFileRole(fileId, (user._id as Types.ObjectId).toString(), role);
+    console.log(`💾 Cached user role for file: ${fileId}, user: ${user.email}, role: ${role}`);
 
-    return { role };
+    return result;
   }
 
   private async validateFileAccess(fileId: string, user: User, allowedRoles: string[] = ['owner', 'editor', 'viewer']): Promise<File> {
@@ -483,5 +632,136 @@ export class FileService {
 
   private async validateEditAccess(fileId: string, user: User): Promise<File> {
     return this.validateFileAccess(fileId, user, ['owner', 'editor']);
+  }
+
+  // Debug method for cache troubleshooting
+  async debugCache(): Promise<any> {
+    console.log('🔧 Running cache debug diagnostics...');
+    
+    try {
+      // Test cache service functionality
+      const cacheState = await this.cacheService.debugCacheState();
+      const roundTripTest = await this.cacheService.testCacheRoundTrip();
+      
+      // Test file-specific cache operations
+      const testFileId = '507f1f77bcf86cd799439011';
+      const testUserId = '507f1f77bcf86cd799439012';
+      
+      // Test setting and getting a simple value
+      console.log('🧪 Testing file info cache...');
+      const testFileInfo = {
+        id: testFileId,
+        name: 'debug-test.pdf',
+        owner: { name: 'Debug User', email: 'debug@test.com' },
+        viewers: [],
+        editors: []
+      };
+      
+      await this.cacheService.setFileInfo(testFileId, testFileInfo, 60);
+      const retrievedFileInfo = await this.cacheService.getFileInfo(testFileId);
+      
+      // Test user role cache
+      console.log('🧪 Testing user role cache...');
+      await this.cacheService.setUserFileRole(testFileId, testUserId, 'owner', 60);
+      const retrievedUserRole = await this.cacheService.getUserFileRole(testFileId, testUserId);
+      
+      // Cleanup test data
+      await this.cacheService.deleteFileInfo(testFileId);
+      await this.cacheService.deleteUserFileRole(testFileId, testUserId);
+      
+      return {
+        timestamp: new Date().toISOString(),
+        cacheService: {
+          state: cacheState,
+          roundTrip: roundTripTest
+        },
+        fileCache: {
+          fileInfo: {
+            set: testFileInfo,
+            retrieved: retrievedFileInfo,
+            success: !!retrievedFileInfo
+          },
+          userRole: {
+            set: 'owner',
+            retrieved: retrievedUserRole,
+            success: !!retrievedUserRole
+          }
+        },
+        recommendations: this.generateCacheRecommendations(cacheState, roundTripTest, !!retrievedFileInfo, !!retrievedUserRole)
+      };
+    } catch (error) {
+      console.error('❌ Cache debug error:', error);
+      return {
+        error: error.message,
+        stack: error.stack
+      };
+    }
+  }
+
+  private generateCacheRecommendations(cacheState: any, roundTrip: any, fileInfoSuccess: boolean, userRoleSuccess: boolean): string[] {
+    const recommendations: string[] = [];
+    
+    if (!roundTrip.success) {
+      recommendations.push('❌ Basic cache operations failing - check Redis connection');
+    }
+    
+    if (!fileInfoSuccess) {
+      recommendations.push('❌ File info caching not working - check TTL and serialization');
+    }
+    
+    if (!userRoleSuccess) {
+      recommendations.push('❌ User role caching not working - check key generation');
+    }
+    
+    if (roundTrip.success && fileInfoSuccess && userRoleSuccess) {
+      recommendations.push('✅ All cache operations working correctly');
+    }
+    
+    if (cacheState.error) {
+      recommendations.push('🔧 Cache state error detected - check cache manager configuration');
+    }
+    
+    return recommendations;
+  }
+
+  // Cache management methods for controller endpoints
+  async getCacheStats(): Promise<any> {
+    console.log('📊 Getting cache statistics from FileService...');
+    return this.cacheService.getCacheStats();
+  }
+
+  async deleteByPattern(pattern: string): Promise<any> {
+    console.log(`🗑️ Deleting cache pattern from FileService: ${pattern}`);
+    try {
+      const result = await this.cacheService.deleteByPattern(pattern);
+      
+      if (result.success) {
+        console.log(`✅ Pattern deletion successful: ${result.message}`);
+        return {
+          success: true,
+          message: result.message,
+          deletedCount: result.deletedCount || 0,
+          pattern: pattern,
+          timestamp: new Date().toISOString()
+        };
+      } else {
+        console.error(`❌ Pattern deletion failed: ${result.error}`);
+        return {
+          success: false,
+          error: result.error || 'Unknown error',
+          message: result.message || 'Pattern deletion failed',
+          pattern: pattern,
+          timestamp: new Date().toISOString()
+        };
+      }
+    } catch (error) {
+      console.error(`❌ Error deleting cache pattern ${pattern}:`, error);
+      return {
+        success: false,
+        error: error.message,
+        pattern: pattern,
+        timestamp: new Date().toISOString()
+      };
+    }
   }
 }

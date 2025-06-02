@@ -30,7 +30,7 @@ import { EmailModule } from 'src/email/email.module';
       }),
       inject: [ConfigService],
     }),
-    EmailModule
+    EmailModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, JwtStrategy, GoogleStrategy],

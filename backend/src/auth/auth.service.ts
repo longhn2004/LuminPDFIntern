@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException, ConflictException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  ConflictException,
+  BadRequestException,
+} from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from './schemas/user.schema';
@@ -31,21 +36,28 @@ export class AuthService {
 
   async register(dto: RegisterDto): Promise<any> {
     const { email, password, name } = dto;
-    
+
     const existingUser = await this.userModel.findOne({ email }).exec();
     if (existingUser) {
       if (existingUser.password) {
-        throw new ConflictException('Email already registered with email/password');
+        throw new ConflictException(
+          'Email already registered with email/password',
+        );
       } else if (existingUser.googleId) {
-        throw new ConflictException('Email already registered with Google account');
+        throw new ConflictException(
+          'Email already registered with Google account',
+        );
       }
     }
 
     const hashedPassword = await bcrypt.hash(password, AuthService.SALT_ROUNDS);
     const verificationToken = uuidv4();
     const verificationTokenExpires = new Date();
-    verificationTokenExpires.setHours(verificationTokenExpires.getHours() + AuthService.VERIFICATION_TOKEN_EXPIRY_HOURS);
-    
+    verificationTokenExpires.setHours(
+      verificationTokenExpires.getHours() +
+        AuthService.VERIFICATION_TOKEN_EXPIRY_HOURS,
+    );
+
     const user = new this.userModel({
       email,
       password: hashedPassword,
@@ -54,30 +66,37 @@ export class AuthService {
       isEmailVerified: false,
       name,
     });
-    
+
     const savedUser = await user.save();
     await this.emailService.sendVerificationEmail(email, verificationToken);
-    
-    return { 
-      email: savedUser.email, 
-      name: savedUser.name, 
-      isEmailVerified: savedUser.isEmailVerified 
+
+    return {
+      email: savedUser.email,
+      name: savedUser.name,
+      isEmailVerified: savedUser.isEmailVerified,
     };
   }
 
   async verifyEmail(token: string): Promise<{ accessToken: string }> {
-    const user = await this.userModel.findOne({ verificationToken: token }).exec();
+    const user = await this.userModel
+      .findOne({ verificationToken: token })
+      .exec();
     if (!user) {
       throw new BadRequestException('Invalid or expired verification token');
     }
 
     // Check if the verification token has expired
-    if (user.verificationTokenExpires && new Date() > user.verificationTokenExpires) {
-      throw new BadRequestException('Verification token has expired. Please request a new verification email.');
+    if (
+      user.verificationTokenExpires &&
+      new Date() > user.verificationTokenExpires
+    ) {
+      throw new BadRequestException(
+        'Verification token has expired. Please request a new verification email.',
+      );
     }
 
     user.isEmailVerified = true;
-    user.verificationToken = "";
+    user.verificationToken = '';
     user.verificationTokenExpires = undefined;
     await user.save();
 
@@ -87,8 +106,12 @@ export class AuthService {
   async login(dto: LoginDto): Promise<{ accessToken: string }> {
     const { email, password } = dto;
     const user = await this.userModel.findOne({ email }).exec();
-    
-    if (!user || !user.password || !(await bcrypt.compare(password, user.password))) {
+
+    if (
+      !user ||
+      !user.password ||
+      !(await bcrypt.compare(password, user.password))
+    ) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
@@ -99,7 +122,11 @@ export class AuthService {
     return this.generateTokens(user);
   }
 
-  async findOrCreateGoogleUser(googleId: string, email: string, name: string): Promise<User> {
+  async findOrCreateGoogleUser(
+    googleId: string,
+    email: string,
+    name: string,
+  ): Promise<User> {
     // First, try to find user by Google ID
     let user = await this.userModel.findOne({ googleId }).exec();
     if (user) {
@@ -113,7 +140,7 @@ export class AuthService {
         // Update existing Google user
         user.googleId = googleId;
         user.isEmailVerified = true;
-        user.name = user.name || name; 
+        user.name = user.name || name;
         await user.save();
         return user;
       }
@@ -126,24 +153,26 @@ export class AuthService {
       email,
       googleId,
       isEmailVerified: true,
-      name, 
+      name,
     });
     await user.save();
     return user;
   }
 
-  async googleLogin(user: User): Promise<{ accessToken: string}> {
-    const existingUser = await this.userModel.findOne({ email: user.email }).exec();
+  async googleLogin(user: User): Promise<{ accessToken: string }> {
+    const existingUser = await this.userModel
+      .findOne({ email: user.email })
+      .exec();
     if (existingUser && existingUser.password) {
       throw new ConflictException(
         'An account with this email already exists. Please sign in with email and password.',
-        'EMAIL_PASSWORD_EXISTS'
+        'EMAIL_PASSWORD_EXISTS',
       );
     }
     return this.generateTokens(user);
   }
 
-  async generateTokens(user: User): Promise<{ accessToken: string}> {
+  async generateTokens(user: User): Promise<{ accessToken: string }> {
     const payload = { email: user.email, sub: user._id };
     const jwtSecret = this.configService.get<string>('JWT_SECRET');
 
@@ -169,7 +198,9 @@ export class AuthService {
     return this.userModel.findById(payload.sub).exec();
   }
 
-  async getCurrentUser(user: User): Promise<{ email: string; isEmailVerified: boolean; name: string }> {
+  async getCurrentUser(
+    user: User,
+  ): Promise<{ email: string; isEmailVerified: boolean; name: string }> {
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
@@ -180,7 +211,9 @@ export class AuthService {
     };
   }
 
-  async getUserByEmail(email: string): Promise<{ email: string; isEmailVerified: boolean; name: string }> {
+  async getUserByEmail(
+    email: string,
+  ): Promise<{ email: string; isEmailVerified: boolean; name: string }> {
     const user = await this.userModel.findOne({ email }).exec();
     if (!user) {
       throw new BadRequestException('User not found');
@@ -195,7 +228,7 @@ export class AuthService {
   async resendVerificationEmail(dto: ResendVerificationDto): Promise<void> {
     const { email } = dto;
     const user = await this.userModel.findOne({ email }).exec();
-    
+
     if (!user) {
       throw new BadRequestException('User not found');
     }
@@ -208,8 +241,11 @@ export class AuthService {
 
     const verificationToken = uuidv4();
     const verificationTokenExpires = new Date();
-    verificationTokenExpires.setHours(verificationTokenExpires.getHours() + AuthService.VERIFICATION_TOKEN_EXPIRY_HOURS);
-    
+    verificationTokenExpires.setHours(
+      verificationTokenExpires.getHours() +
+        AuthService.VERIFICATION_TOKEN_EXPIRY_HOURS,
+    );
+
     user.verificationToken = verificationToken;
     user.verificationTokenExpires = verificationTokenExpires;
     await user.save();
@@ -228,17 +264,19 @@ export class AuthService {
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
   async cleanupExpiredVerificationTokens(): Promise<void> {
     const now = new Date();
-    await this.userModel.updateMany(
-      { 
-        verificationTokenExpires: { $lt: now },
-        isEmailVerified: false 
-      },
-      { 
-        $unset: { 
-          verificationToken: "",
-          verificationTokenExpires: ""
-        }
-      }
-    ).exec();
+    await this.userModel
+      .updateMany(
+        {
+          verificationTokenExpires: { $lt: now },
+          isEmailVerified: false,
+        },
+        {
+          $unset: {
+            verificationToken: '',
+            verificationTokenExpires: '',
+          },
+        },
+      )
+      .exec();
   }
 }

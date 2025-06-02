@@ -8,7 +8,7 @@ import { clearUser } from '@/redux/features/userSlice';
 import { isTokenExpired } from '@/libs/auth/tokenUtils';
 
 // Check interval in milliseconds (1 minute)
-const TOKEN_CHECK_INTERVAL = 60000;
+const TOKEN_CHECK_INTERVAL = 10000;
 
 interface TokenExpirationCheckerProps {
   onTokenExpired?: () => void;

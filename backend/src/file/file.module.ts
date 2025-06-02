@@ -11,6 +11,7 @@ import { extname } from 'path';
 import { EmailModule } from '../email/email.module';
 import { BadRequestException } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { CacheModule } from '../cache/cache.module';
 
 @Module({
   imports: [
@@ -40,6 +41,7 @@ import { ConfigModule } from '@nestjs/config';
     }),
     EmailModule,
     ConfigModule,
+    CacheModule,
   ],
   controllers: [FileController],
   providers: [FileService],

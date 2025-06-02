@@ -1,4 +1,18 @@
-import { Controller, Post, Body, Get, UseGuards, Request, HttpCode, Query, Response, Res, Req, ValidationPipe, ParseUUIDPipe } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Body,
+  Get,
+  UseGuards,
+  Request,
+  HttpCode,
+  Query,
+  Response,
+  Res,
+  Req,
+  ValidationPipe,
+  ParseUUIDPipe,
+} from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { AuthGuard } from '@nestjs/passport';
 import { RegisterDto } from './dto/register.dto';
@@ -11,7 +25,10 @@ import { ConfigService } from '@nestjs/config';
 export class AuthController {
   private static readonly COOKIE_MAX_AGE = 30 * 60 * 1000; // 30 minutes
 
-  constructor(private authService: AuthService, private configService: ConfigService) {}
+  constructor(
+    private authService: AuthService,
+    private configService: ConfigService,
+  ) {}
 
   @Post('register')
   @HttpCode(201)
@@ -21,9 +38,12 @@ export class AuthController {
 
   @Get('verify-email')
   @HttpCode(200)
-  async verifyEmail(@Query('token', ParseUUIDPipe) token: string, @Response({ passthrough: true }) res) {
+  async verifyEmail(
+    @Query('token', ParseUUIDPipe) token: string,
+    @Response({ passthrough: true }) res,
+  ) {
     const { accessToken } = await this.authService.verifyEmail(token);
-    
+
     this.setAuthCookie(res, accessToken);
     return { message: 'Email verified successfully' };
   }
@@ -37,9 +57,12 @@ export class AuthController {
 
   @Post('login')
   @HttpCode(200)
-  async login(@Body(ValidationPipe) loginDto: LoginDto, @Response({ passthrough: true }) res) {
+  async login(
+    @Body(ValidationPipe) loginDto: LoginDto,
+    @Response({ passthrough: true }) res,
+  ) {
     const { accessToken } = await this.authService.login(loginDto);
-    
+
     this.setAuthCookie(res, accessToken);
     return { message: 'Login successful' };
   }
@@ -52,12 +75,17 @@ export class AuthController {
   @Get('google/callback')
   @HttpCode(200)
   @UseGuards(AuthGuard('google'))
-  async googleAuthRedirect(@Request() req, @Response({ passthrough: true }) res) {
+  async googleAuthRedirect(
+    @Request() req,
+    @Response({ passthrough: true }) res,
+  ) {
     try {
       const { accessToken } = await this.authService.googleLogin(req.user);
-      
+
       this.setAuthCookie(res, accessToken);
-      res.redirect(`${this.configService.get('FRONTEND_URL')}/dashboard/document-list`);
+      res.redirect(
+        `${this.configService.get('APP_URL')}/dashboard/document-list`,
+      );
     } catch (error) {
       this.handleGoogleAuthError(error, res);
     }
@@ -103,12 +131,16 @@ export class AuthController {
 
   private handleGoogleAuthError(error: any, res: ExpressResponse) {
     // Check if error is because email already used with password
-    if (error?.message?.includes('email and password') || 
-        error?.response?.message?.includes('email and password')) {
-      res.redirect(`${this.configService.get('FRONTEND_URL')}/auth/signin?verification=conflictemail`);
+    if (
+      error?.message?.includes('email and password') ||
+      error?.response?.message?.includes('email and password')
+    ) {
+      res.redirect(
+        `${this.configService.get('APP_URL')}/auth/signin?verification=conflictemail`,
+      );
     } else {
       // Generic error - redirect to signin
-      res.redirect(`${this.configService.get('FRONTEND_URL')}/auth/signin`);
+      res.redirect(`${this.configService.get('APP_URL')}/auth/signin`);
     }
   }
 }

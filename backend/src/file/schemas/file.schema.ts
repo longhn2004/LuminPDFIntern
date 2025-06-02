@@ -22,7 +22,11 @@ export class File extends Document {
   @Prop([{ type: String }])
   editors: string[];
 
-  @Prop({ required: true, default: "<?xml version=\"1.0\" encoding=\"UTF-8\" ?><xfdf xmlns=\"http://ns.adobe.com/xfdf/\" xml:space=\"preserve\"><annots></annots></xfdf>" })
+  @Prop({
+    required: true,
+    default:
+      '<?xml version="1.0" encoding="UTF-8" ?><xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve"><annots></annots></xfdf>',
+  })
   xfdf: string;
 
   @Prop({ required: true, default: 0 })

@@ -184,15 +184,6 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                   aria-orientation="vertical"
                   aria-labelledby="user-menu-button"
                 >
-                  {/* User Info */}
-                  {showGreeting && (
-                    <div className="px-2 py-1 border-b border-gray-100 mb-1">
-                      <div className="text-sm text-gray-600">
-                        {greetingText}
-                      </div>
-                    </div>
-                  )}
-                  
                   <LogoutButton 
                     variant="minimal"
                     size="sm"

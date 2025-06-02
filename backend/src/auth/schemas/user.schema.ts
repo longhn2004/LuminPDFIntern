@@ -7,16 +7,16 @@ export class User extends Document {
   email: string;
 
   @Prop({ required: false })
-  password: string; 
+  password: string;
 
   @Prop({ required: false })
-  googleId: string; 
+  googleId: string;
 
   @Prop({ default: false })
   isEmailVerified: boolean;
 
   @Prop()
-  verificationToken: string; 
+  verificationToken: string;
 
   @Prop({ required: false, type: Date })
   verificationTokenExpires?: Date;
