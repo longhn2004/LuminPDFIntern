@@ -51,7 +51,11 @@ export class EmailService {
     });
   }
 
-  async sendRoleChangedNotification(email: string, fileName: string, role: string) {
+  async sendRoleChangedNotification(
+    email: string,
+    fileName: string,
+    role: string,
+  ) {
     await this.transporter.sendMail({
       from: this.configService.get<string>('EMAIL_USER'),
       to: email,
