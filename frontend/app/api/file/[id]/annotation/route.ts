@@ -14,7 +14,7 @@ export async function POST(
 ) {
   try {
     // Properly await the params object
-    const { id } = context.params;
+    const { id } = await context.params;
     
     if (!id) {
       return NextResponse.json(
@@ -74,7 +74,7 @@ export async function GET(
 ) {
   try {
     // Properly await the params object
-    const { id } = context.params;
+    const { id } = await context.params;
     
     if (!id) {
       return NextResponse.json(
@@ -96,8 +96,7 @@ export async function GET(
     }
     
     // Use api client to call backend with token
-    const response = await api.get(`/file/annotations`, {
-      params: { fileId: id },
+    const response = await api.get(`/file/${id}/annotation`, {
       headers: {
         'Authorization': `Bearer ${accessToken}`
       }

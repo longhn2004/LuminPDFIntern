@@ -16,6 +16,7 @@ import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 import { Request, Response } from 'express';
 import { ChangeRoleDto } from './dto/change-role.dto';
+import { ChangeRolesDto } from './dto/change-roles.dto';
 
 @Injectable()
 export class FileService {
@@ -137,10 +138,38 @@ export class FileService {
     if (role === 'owner' || role === 'editor') {
       const annotations = await this.annotationModel.find({ file: id }).exec();
       // Gửi file kèm annotations (giả sử frontend xử lý XML với Apryse WebViewer)
-      res.setHeader('X-Annotations', JSON.stringify(annotations.map(a => a.xml)));
+      res.setHeader('X-Annotations', JSON.stringify(annotations.map(a => a.xfdf)));
     }
 
     res.download(file.path);
+  }
+
+  async downloadFileWithAnnotations(id: string, user: User) {
+    const file = await this.fileModel.findById(id).exec();
+    if (!file) {
+      throw new NotFoundException('File not found');
+    }
+
+    const role = this.getUserRole(file, user);
+    if (role === 'none') {
+      throw new ForbiddenException('You do not have permission to access this file');
+    }
+
+    // Only owners and editors can download with annotations
+    if (role !== 'owner' && role !== 'editor') {
+      throw new ForbiddenException('You do not have permission to download with annotations');
+    }
+
+    const annotations = await this.annotationModel.findOne({ file: id }).exec();
+    
+    return {
+      fileId: id,
+      fileName: file.name,
+      filePath: file.path,
+      downloadUrl: `/api/file/${id}/download`,
+      annotations: annotations ? annotations.xfdf : null,
+      hasAnnotations: !!annotations?.xfdf
+    };
   }
 
   async getFileInfo(id: string) {    
@@ -176,6 +205,9 @@ export class FileService {
         }
 
     await this.fileModel.findByIdAndDelete(id).exec();
+
+    //delete annotation
+    await this.annotationModel.deleteMany({ file: id }).exec();
 
     //Delete from storage
     const filePath = join(this.configService.get<string>('FILE_UPLOAD_PATH') || './uploads', file.path.slice(8));
@@ -331,11 +363,21 @@ export class FileService {
     return { message: role === 'none' ? 'Role removed successfully' : 'Role changed successfully' };
   }
 
-  async getAnnotations(fileId: string) {
-    return this.annotationModel.find({ file: fileId }).exec();
+  async changeRoles(changeRolesDto: ChangeRolesDto, owner: User) {
+    const { fileId, changes } = changeRolesDto;
+    const file = await this.fileModel.findById(fileId).exec();
+    if (!file) {
+      throw new NotFoundException('File not found');
+    }
+
+    for (const change of changes) {
+      await this.changeRole(change, owner);
+    }
+
+    return { message: 'Roles changed successfully' };
   }
 
-  async createAnnotation(fileId: string, annotationDto: CreateAnnotationDto, user: User) {
+  async getAnnotations(fileId: string, user: User) {
     const file = await this.fileModel.findById(fileId).exec();
     if (!file) {
       throw new NotFoundException('File not found');
@@ -343,45 +385,116 @@ export class FileService {
 
     const role = this.getUserRole(file, user);
     if (role !== 'owner' && role !== 'editor') {
-      throw new ForbiddenException('You do not have permission to add annotations');
+      throw new ForbiddenException('You do not have permission to get annotations');
     }
-
-    const newAnnotation = new this.annotationModel({
-      file: fileId,
-      creator: user._id,
-      xml: annotationDto.xml,
-    });
-
-    await newAnnotation.save();
-    return newAnnotation;
-  }
-
-  async updateAnnotation(fileId: string, annotationId: string, annotationDto: CreateAnnotationDto, user: User) {
-    const file = await this.fileModel.findById(fileId).exec();
-    if (!file) {
-      throw new NotFoundException('File not found');
-    }
-
-    const role = this.getUserRole(file, user);
-    if (role !== 'owner' && role !== 'editor') {
-      throw new ForbiddenException('You do not have permission to update annotations');
-    }
-
-    const annotation = await this.annotationModel.findById(annotationId).exec();
+    // create new annotation if not exist
+    const annotation = await this.annotationModel.findOne({ file: fileId }).exec();
     if (!annotation) {
-      throw new NotFoundException('Annotation not found');
+      const newAnnotation = new this.annotationModel({ file: fileId});
+      await newAnnotation.save();
+      return newAnnotation;
     }
-
-    if (annotation.creator.toString() !== (user._id as Types.ObjectId).toString()) {
-      throw new ForbiddenException('You can only update your own annotations');
-    }
-
-    annotation.xml = annotationDto.xml;
-    await annotation.save();
     return annotation;
   }
 
-  async deleteAnnotation(fileId: string, annotationId: string, user: User) {
+  // async createAnnotation(fileId: string, annotationDto: CreateAnnotationDto, user: User) {
+  //   const file = await this.fileModel.findById(fileId).exec();
+  //   if (!file) {
+  //     throw new NotFoundException('File not found');
+  //   }
+
+  //   const role = this.getUserRole(file, user);
+  //   if (role !== 'owner' && role !== 'editor') {
+  //     throw new ForbiddenException('You do not have permission to add annotations');
+  //   }
+
+  //   const newAnnotation = new this.annotationModel({
+  //     file: fileId,
+  //     // creator: user._id, // Consider re-adding if you need to track original creator by ObjectId
+  //     xfdf: annotationDto.xfdf,
+  //   });
+
+  //   await newAnnotation.save(); // MongoDB assigns _id here
+
+  //   // Modify the XFDF to include the MongoDB ObjectId as the 'name' attribute
+  //   let modifiedXfdf = newAnnotation.xfdf;
+  //   const annotationIdString = newAnnotation._id ? newAnnotation._id.toString() : '';
+
+  //   // This is a simplified regex targeting the first annotation element (e.g., square, circle, freetext)
+  //   // and its name attribute. For more complex XFDF or multiple annotations in one XFDF string (not our case here),
+  //   // a proper XML parser would be more robust.
+  //   const nameAttrRegex = /(<\w+\s+[^>]*name=")([^"\s]+)("[^>]*>)/;
+  //   const match = modifiedXfdf.match(nameAttrRegex);
+
+  //   if (match && match[2]) {
+  //     modifiedXfdf = modifiedXfdf.replace(nameAttrRegex, `$1${annotationIdString}$3`);
+  //   } else {
+  //     // Fallback: If no 'name' attribute, try to inject it. This is less likely with WebViewer XFDF.
+  //     // This regex looks for the first opening tag like <square or <freetext etc.
+  //     const firstTagRegex = /(<\w+)(\s+[^>]*>)/;
+  //     if (modifiedXfdf.match(firstTagRegex)) {
+  //       modifiedXfdf = modifiedXfdf.replace(firstTagRegex, `$1 name="${annotationIdString}"$2`);
+  //     } else {
+  //       console.warn(`Could not find or inject name attribute in XFDF for new annotation: ${annotationIdString}. XFDF: ${modifiedXfdf}`);
+  //     }
+  //   }
+
+  //   // Return the annotation data including the _id and the modified XFDF
+  //   return {
+  //     _id: newAnnotation._id,
+  //     file: newAnnotation.file, // or fileId
+  //     xfdf: modifiedXfdf,       // Crucially, this is the modified XFDF
+  //     version: newAnnotation.version, // if used
+  //     createdAt: newAnnotation.get('createdAt'),
+  //     updatedAt: newAnnotation.get('updatedAt'),
+  //     // Include other fields if the client expects them from the Mongoose document directly
+  //   };
+  // }
+
+  // async updateAnnotation(fileId: string, annotationId: string, annotationDto: CreateAnnotationDto, user: User) {
+  //   const file = await this.fileModel.findById(fileId).exec();
+  //   if (!file) {
+  //     throw new NotFoundException('File not found');
+  //   }
+
+  //   const role = this.getUserRole(file, user);
+  //   if (role !== 'owner' && role !== 'editor') {
+  //     throw new ForbiddenException('You do not have permission to update annotations');
+  //   }
+
+  //   const annotation = await this.annotationModel.findById(annotationId).exec();
+  //   if (!annotation) {
+  //     throw new NotFoundException('Annotation not found');
+  //   }
+
+
+  //   annotation.xfdf = annotationDto.xfdf;
+  //   await annotation.save();
+  //   return annotation;
+  // }
+
+  // async deleteAnnotation(fileId: string, annotationId: string, user: User) {
+  //   const file = await this.fileModel.findById(fileId).exec();
+  //   if (!file) {
+  //     throw new NotFoundException('File not found');
+  //   }
+
+  //   const role = this.getUserRole(file, user);
+  //   if (role !== 'owner' && role !== 'editor') {
+  //     throw new ForbiddenException('You do not have permission to delete annotations');
+  //   }
+
+  //   const annotation = await this.annotationModel.findById(annotationId).exec();
+  //   if (!annotation) {
+  //     throw new NotFoundException('Annotation not found');
+  //   }
+
+
+  //   await annotation.deleteOne();
+  //   return { message: 'Annotation deleted successfully' };
+  // }
+
+  async saveAnnotation(fileId: string, annotationDto: CreateAnnotationDto, user: User) {
     const file = await this.fileModel.findById(fileId).exec();
     if (!file) {
       throw new NotFoundException('File not found');
@@ -389,20 +502,28 @@ export class FileService {
 
     const role = this.getUserRole(file, user);
     if (role !== 'owner' && role !== 'editor') {
-      throw new ForbiddenException('You do not have permission to delete annotations');
+      throw new ForbiddenException('You do not have permission to save annotations');
     }
 
-    const annotation = await this.annotationModel.findById(annotationId).exec();
+    // const existingAnnotation = await this.annotationModel.findOne({ file: fileId, version: annotationDto.version }).exec();
+    // if (!existingAnnotation) {
+    //   throw new NotFoundException('Annotation version does not match');
+    // }
+
+    const annotation = await this.annotationModel.findOneAndUpdate(
+      { file: fileId }, 
+      { 
+        xfdf: annotationDto.xfdf, 
+        file: fileId,
+        $inc: { version: 1 }
+      }, 
+      { upsert: true, new: true })
+      .exec();
     if (!annotation) {
       throw new NotFoundException('Annotation not found');
     }
 
-    if (annotation.creator.toString() !== (user._id as Types.ObjectId).toString()) {
-      throw new ForbiddenException('You can only delete your own annotations');
-    }
-
-    await annotation.deleteOne();
-    return { message: 'Annotation deleted successfully' };
+    return annotation;
   }
 
   private getUserRole(file: File, user: User): string {
@@ -416,5 +537,19 @@ export class FileService {
       return 'editor';
     }
     return 'none';
+  }
+
+  async getFileUserRole(fileId: string, user: User) {
+    const file = await this.fileModel.findById(fileId).exec();
+    if (!file) {
+      throw new NotFoundException('File not found');
+    }
+
+    const role = this.getUserRole(file, user);
+    if (role === 'none') {
+      throw new ForbiddenException('You do not have access to this file');
+    }
+
+    return { role };
   }
 }

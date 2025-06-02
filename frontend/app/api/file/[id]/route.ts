@@ -72,7 +72,7 @@ export async function DELETE(
 ) {
   try {
     // Properly await the params object
-    const { id } = context.params;
+    const { id } = await context.params;
     
     if (!id) {
       return NextResponse.json(

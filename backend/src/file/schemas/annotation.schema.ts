@@ -5,14 +5,14 @@ import { User } from '../../auth/schemas/user.schema';
 
 @Schema({ timestamps: true })
 export class Annotation extends Document {
-  @Prop({ required: true, type: Types.ObjectId, ref: 'File' })
+  @Prop({ required: true, type: Types.ObjectId, ref: 'File', index: true })
   file: File;
 
-  @Prop({ required: true, type: Types.ObjectId, ref: 'User' })
-  creator: User;
+  @Prop({ required: true, default:  "<?xml version=\"1.0\" encoding=\"UTF-8\" ?><xfdf xmlns=\"http://ns.adobe.com/xfdf/\" xml:space=\"preserve\"><annots></annots></xfdf>" })
+  xfdf: string;
 
-  @Prop({ required: true })
-  xml: string;
+  @Prop({ required: true, default: 0 })
+  version: number;
 }
 
 export const AnnotationSchema = SchemaFactory.createForClass(Annotation);
