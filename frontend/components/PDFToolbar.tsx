@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { FaArrowLeft, FaTrash, FaDownload, FaUsers, FaChevronDown } from "react-icons/fa";
 
 interface PDFToolbarProps {
@@ -65,7 +65,7 @@ const useDropdown = () => {
   }, []);
 
   // Cleanup timeout on unmount
-  React.useEffect(() => {
+  useEffect(() => {
     return () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);

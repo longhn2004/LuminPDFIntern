@@ -184,9 +184,9 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                   aria-orientation="vertical"
                   aria-labelledby="user-menu-button"
                 >
-                  {/* User Info (visible on small screens) */}
+                  {/* User Info */}
                   {showGreeting && (
-                    <div className="sm:hidden px-2 py-1 border-b border-gray-100 mb-1">
+                    <div className="px-2 py-1 border-b border-gray-100 mb-1">
                       <div className="text-sm text-gray-600">
                         {greetingText}
                       </div>
