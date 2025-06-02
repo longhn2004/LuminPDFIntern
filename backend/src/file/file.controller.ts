@@ -198,24 +198,4 @@ export class FileController {
       }
     };
   }
-
-  @Get('cache/debug')
-  async debugCache() {
-    console.log(`🔧 Cache debug endpoint called`);
-    return this.fileService.debugCache();
-  }
-
-  @Get('cache/stats')
-  async getCacheStats() {
-    console.log(`📊 Cache stats endpoint called`);
-    return this.fileService.getCacheStats();
-  }
-
-  @Delete('cache/pattern/:pattern')
-  async deleteByPattern(@Param('pattern') pattern: string) {
-    console.log(`🗑️ Delete by pattern endpoint called with pattern: ${pattern}`);
-    // Decode the pattern parameter
-    const decodedPattern = decodeURIComponent(pattern);
-    return this.fileService.deleteByPattern(decodedPattern);
-  }
 }
