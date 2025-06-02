@@ -69,53 +69,102 @@ export class FileService {
 
   async uploadFromDrive(fileId: string, user: User) {
     console.log(`📤 Uploading from Google Drive: ${fileId} for user: ${user.email}`);
+    
+    // Validate Google Drive file ID format
+    if (!fileId || typeof fileId !== 'string' || !/^[a-zA-Z0-9_-]{10,}$/.test(fileId)) {
+      throw new BadRequestException('Invalid Google Drive file ID format');
+    }
+    
+    const serviceAccountKeyPath = this.configService.get<string>('GOOGLE_SERVICE_ACCOUNT_KEY_PATH') || 
+                                  join(__dirname, '..', '..', 'config', 'service-account-key.json');
+    
     const auth = new google.auth.GoogleAuth({
-      keyFile: join(__dirname, '..', '..', 'config', 'service-account-key.json'),
+      keyFile: serviceAccountKeyPath,
       scopes: ['https://www.googleapis.com/auth/drive.readonly'],
     });
 
     const drive = google.drive({ version: 'v3', auth });
 
     try {
-      // Lấy metadata để kiểm tra định dạng và kích thước
-      const fileMetadata = await drive.files.get({ fileId, fields: 'name,mimeType,size' });
+      // Get metadata to check format and size
+      const fileMetadata = await drive.files.get({ 
+        fileId, 
+        fields: 'name,mimeType,size,id' 
+      });
+      
+      if (!fileMetadata.data.id) {
+        throw new BadRequestException('File not found in Google Drive');
+      }
+      
       if (fileMetadata.data.mimeType !== 'application/pdf') {
         throw new BadRequestException('Only PDF files are allowed');
       }
+      
       const fileSize = parseInt(fileMetadata.data.size || '0');
       if (fileSize > FileService.MAX_FILE_SIZE) {
-        throw new BadRequestException('File size exceeds 20MB limit');
+        throw new BadRequestException(`File size exceeds ${FileService.MAX_FILE_SIZE / (1024 * 1024)}MB limit`);
       }
 
-      // Tải file
-      const res = await drive.files.get({ fileId, alt: 'media' }, { responseType: 'stream' });
-      const filePath = join(this.configService.get<string>('FILE_UPLOAD_PATH') || './uploads', `${uuidv4()}.pdf`);
+      // Download file
+      const res = await drive.files.get({ 
+        fileId, 
+        alt: 'media' 
+      }, { 
+        responseType: 'stream' 
+      });
+      
+      const uploadPath = this.configService.get<string>('FILE_UPLOAD_PATH') || './uploads';
+      const filePath = join(uploadPath, `${uuidv4()}.pdf`);
       const writeStream = createWriteStream(filePath);
+      
       res.data.pipe(writeStream);
 
       return new Promise((resolve, reject) => {
         writeStream.on('finish', async () => {
-                    const newFile = new this.fileModel({            
-                      name: fileMetadata.data.name || `drive-file-${fileId}.pdf`,            
-                      path: filePath,            
-                      owner: user._id,            
-                      ownerEmail: user.email,            
-                      viewers: [],            
-                      editors: [],          
-                    });
-          await newFile.save();
-          console.log(`✅ File from Google Drive uploaded successfully: ${newFile._id}`);
-          
-          // Invalidate user cache since file list changed
-          await this.cacheService.invalidateUserCache((user._id as Types.ObjectId).toString());
-          
-          resolve(newFile);
+          try {
+            const newFile = new this.fileModel({            
+              name: fileMetadata.data.name || `drive-file-${fileId}.pdf`,            
+              path: filePath,            
+              owner: user._id,            
+              ownerEmail: user.email,            
+              viewers: [],            
+              editors: [],          
+            });
+            
+            await newFile.save();
+            console.log(`✅ File from Google Drive uploaded successfully: ${newFile._id}`);
+            
+            // Invalidate user cache since file list changed
+            await this.cacheService.invalidateUserCache((user._id as Types.ObjectId).toString());
+            
+            resolve(newFile);
+          } catch (saveError) {
+            console.error(`❌ Error saving file to database:`, saveError);
+            // Clean up the downloaded file if database save fails
+            if (existsSync(filePath)) {
+              unlinkSync(filePath);
+            }
+            reject(new BadRequestException('Failed to save file to database'));
+          }
         });
-        writeStream.on('error', (err) => reject(new BadRequestException('Failed to save file')));
+        
+        writeStream.on('error', (err) => {
+          console.error(`❌ Error writing file:`, err);
+          reject(new BadRequestException('Failed to save file to disk'));
+        });
       });
     } catch (error) {
       console.error(`❌ Error uploading from Google Drive:`, error);
-      throw new BadRequestException(`Failed to upload from Google Drive: ${error.message}`);
+      
+      if (error.response?.status === 404) {
+        throw new BadRequestException('File not found in Google Drive or access denied');
+      } else if (error.response?.status === 403) {
+        throw new BadRequestException('Access denied to Google Drive file');
+      } else if (error instanceof BadRequestException) {
+        throw error;
+      } else {
+        throw new BadRequestException(`Failed to upload from Google Drive: ${error.message || 'Unknown error'}`);
+      }
     }
   }
 

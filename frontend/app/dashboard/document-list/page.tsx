@@ -12,6 +12,7 @@ import EmptyState from '@/components/document-list/EmptyState';
 import UploadModal from '@/components/document-list/UploadModal';
 import { useDocumentList } from '@/hooks/useDocumentList';
 import { useFileUpload } from '@/hooks/useFileUpload';
+import { useGoogleDriveUpload } from '@/hooks/useGoogleDriveUpload';
 import 'react-toastify/dist/ReactToastify.css';
 
 function DocumentList() {
@@ -36,6 +37,14 @@ function DocumentList() {
   } = useDocumentList({ isAuthenticated: user.isAuthenticated });
 
   const { uploadState, uploadFile, cancelUpload } = useFileUpload({
+    onUploadComplete: refreshFiles
+  });
+
+  const { 
+    uploadState: googleDriveUploadState, 
+    uploadFromDrive, 
+    cancelUpload: cancelGoogleDriveUpload 
+  } = useGoogleDriveUpload({
     onUploadComplete: refreshFiles
   });
 
@@ -79,6 +88,16 @@ function DocumentList() {
     router.push('/auth/signin');
   };
 
+  // Handle Google Drive upload
+  const handleGoogleDriveUpload = async (fileIdOrUrl: string) => {
+    await uploadFromDrive(fileIdOrUrl);
+  };
+
+  // Determine which upload modal to show and which cancel function to use
+  const isAnyUploading = uploadState.uploading || googleDriveUploadState.uploading;
+  const currentUploadState = uploadState.uploading ? uploadState : googleDriveUploadState;
+  const currentCancelFunction = uploadState.uploading ? cancelUpload : cancelGoogleDriveUpload;
+
   return (
     <div className="h-screen bg-white fixed inset-0 flex flex-col w-full">
       <DashboardHeader />
@@ -90,7 +109,9 @@ function DocumentList() {
             totalFiles={totalFiles}
             isAuthenticated={user.isAuthenticated}
             onUpload={uploadFile}
+            onGoogleDriveUpload={handleGoogleDriveUpload}
             uploading={uploadState.uploading}
+            googleDriveUploading={googleDriveUploadState.uploading}
           />
 
           {/* Content based on authentication and file status */}
@@ -114,19 +135,21 @@ function DocumentList() {
             ) : (
               <EmptyState
                 onUpload={uploadFile}
+                onGoogleDriveUpload={handleGoogleDriveUpload}
                 uploading={uploadState.uploading}
+                googleDriveUploading={googleDriveUploadState.uploading}
               />
             )}
           </AuthGuard>
         </div>
       </main>
 
-      {/* Upload progress modal */}
+      {/* Upload progress modal - shows for both regular and Google Drive uploads */}
       <UploadModal
-        isVisible={uploadState.uploading}
-        fileName={uploadState.fileName}
-        progress={uploadState.progress}
-        onCancel={cancelUpload}
+        isVisible={isAnyUploading}
+        fileName={currentUploadState.fileName}
+        progress={currentUploadState.progress}
+        onCancel={currentCancelFunction}
       />
 
       {/* Toast container */}

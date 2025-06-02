@@ -19,6 +19,7 @@ import { FileInterceptor } from '@nestjs/platform-express';
 import { InviteUserDto } from './dto/invite-user.dto';
 import { ListFilesDto } from './dto/list-files.dto';
 import { CreateAnnotationDto } from './dto/create-annotation.dto';
+import { UploadFromDriveDto } from './dto/upload-from-drive.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { Request, Response } from 'express';
 import { ObjectId } from 'mongodb';
@@ -50,10 +51,13 @@ export class FileController {
 
   @Post('upload-from-drive')
   async uploadFromDrive(
-    @Body('fileId') fileId: string,
+    @Body() uploadFromDriveDto: UploadFromDriveDto,
     @Req() req: Request & { user: any },
   ) {
-    return this.fileService.uploadFromDrive(fileId, req.user);
+    if (!uploadFromDriveDto.fileId) {
+      throw new BadRequestException('Google Drive file ID is required');
+    }
+    return this.fileService.uploadFromDrive(uploadFromDriveDto.fileId, req.user);
   }
 
   @Get('total-files')
