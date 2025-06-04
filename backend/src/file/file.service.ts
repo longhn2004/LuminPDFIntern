@@ -11,6 +11,7 @@ import { v4 as uuidv4 } from 'uuid';
 // Schemas
 import { File } from './schemas/file.schema';
 import { Invitation } from './schemas/invitation.schema';
+import { ShareableLink } from './schemas/shareable-link.schema';
 import { User } from '../auth/schemas/user.schema';
 
 // DTOs
@@ -19,6 +20,8 @@ import { ListFilesDto } from './dto/list-files.dto';
 import { CreateAnnotationDto } from './dto/create-annotation.dto';
 import { ChangeRoleDto } from './dto/change-role.dto';
 import { ChangeRolesDto } from './dto/change-roles.dto';
+import { CreateShareableLinkDto } from './dto/create-shareable-link.dto';
+import { ToggleShareableLinkDto } from './dto/toggle-shareable-link.dto';
 
 // Services
 import { EmailService } from '../email/email.service';
@@ -33,6 +36,7 @@ export class FileService {
   constructor(
     @InjectModel(File.name) private fileModel: Model<File>,
     @InjectModel(Invitation.name) private invitationModel: Model<Invitation>,
+    @InjectModel(ShareableLink.name) private shareableLinkModel: Model<ShareableLink>,
     @InjectModel(User.name) private userModel: Model<User>,
     private configService: ConfigService,
     private emailService: EmailService,
@@ -228,14 +232,29 @@ export class FileService {
   // FILE DOWNLOAD & ACCESS
   // =============================================
 
-  async downloadFile(id: string, user: User, res: Response) {
-    console.log(`⬇️ Download file request: ${id} by user: ${user.email}`);
+  async downloadFile(id: string, user: User, res: Response, token?: string) {
+    console.log(`⬇️ Download file request: ${id} by user: ${user.email}${token ? ' via shareable link' : ''}`);
     const file = await this.fileModel.findById(id).exec();
     if (!file) {
       throw new NotFoundException('File not found');
     }
 
-    const role = this.getUserRole(file, user);
+    let role = this.getUserRole(file, user);
+    
+    // If user doesn't have direct access, check for shareable link access
+    if (role === 'none' && token) {
+      const shareableLink = await this.shareableLinkModel.findOne({
+        token: token,
+        file: id,
+        enabled: true
+      }).exec();
+      
+      if (shareableLink && file.shareableLinkEnabled) {
+        role = shareableLink.role;
+        console.log(`🔗 Access granted via shareable link: ${role} for file: ${id}`);
+      }
+    }
+
     console.log(`👤 User role for file ${id}: ${role}`);
     if (role === 'none') {
       throw new ForbiddenException('You do not have permission to access this file');
@@ -251,8 +270,8 @@ export class FileService {
     res.download(file.path);
   }
 
-  async downloadFileWithAnnotations(id: string, user: User) {
-    console.log(`⬇️ Download file with annotations request: ${id} by user: ${user.email}`);
+  async downloadFileWithAnnotations(id: string, user: User, token?: string) {
+    console.log(`⬇️ Download file with annotations request: ${id} by user: ${user.email}${token ? ' via shareable link' : ''}`);
     
     // Try to get annotations from cache first
     const cachedAnnotations = await this.cacheService.getFileAnnotations(id);
@@ -267,7 +286,22 @@ export class FileService {
       throw new NotFoundException('File not found');
     }
 
-    const role = this.getUserRole(file, user);
+    let role = this.getUserRole(file, user);
+    
+    // If user doesn't have direct access, check for shareable link access
+    if (role === 'none' && token) {
+      const shareableLink = await this.shareableLinkModel.findOne({
+        token: token,
+        file: id,
+        enabled: true
+      }).exec();
+      
+      if (shareableLink && file.shareableLinkEnabled) {
+        role = shareableLink.role;
+        console.log(`🔗 Access granted via shareable link: ${role} for file: ${id}`);
+      }
+    }
+
     if (role === 'none') {
       throw new ForbiddenException('You do not have permission to access this file');
     }
@@ -314,7 +348,15 @@ export class FileService {
     }        
     // Get owner information    
     const ownerUser = await this.userModel.findOne({ email: file.ownerEmail }).exec();    
-    const ownerName = ownerUser ? ownerUser.name : '[Unregistered User]';        // Format response with detailed information    
+    const ownerName = ownerUser ? ownerUser.name : '[Unregistered User]';        
+    
+    // Get shareable links for this file
+    const shareableLinks = await this.shareableLinkModel.find({
+      file: id,
+      enabled: true
+    }).exec();
+    
+    // Format response with detailed information    
     const result = {      
       id: file._id,      
       name: file.name,      
@@ -325,7 +367,15 @@ export class FileService {
         name: ownerName      
       },      
       viewers: file.viewers || [],      
-      editors: file.editors || []    
+      editors: file.editors || [],
+      shareableLinkEnabled: file.shareableLinkEnabled,
+      shareableLinks: shareableLinks.map(link => ({
+        id: link._id,
+        role: link.role,
+        token: link.token,
+        enabled: link.enabled,
+        createdAt: link.createdAt
+      }))
     };
     
     // Cache the file info
@@ -452,7 +502,7 @@ export class FileService {
       if (existingUser) {
         // Notify registered user about access
         console.log(`✅ Notifying registered user: ${email}`);
-        await this.emailService.sendAccessNotification(email, file.name, role);
+        await this.emailService.sendAccessNotification(email, file.name, role, fileId);
       } else {
         console.log(`📝 Creating invitation for unregistered user: ${email}`);
         const invitationToken = uuidv4();
@@ -465,7 +515,7 @@ export class FileService {
         await invitation.save();
         
         // Send invitation to register
-        await this.emailService.sendInvitationEmail(email, invitationToken, file.name);
+        await this.emailService.sendInvitationEmail(email, invitationToken, file.name, fileId);
       }
     }
     
@@ -521,7 +571,7 @@ export class FileService {
       if (role === 'none') {
         await this.emailService.sendRoleRemovedNotification(email, file.name);
       } else {
-        await this.emailService.sendRoleChangedNotification(email, file.name, role || 'none');
+        await this.emailService.sendRoleChangedNotification(email, file.name, role || 'none', fileId);
       }
     }
 
@@ -549,8 +599,8 @@ export class FileService {
   // ANNOTATION MANAGEMENT
   // =============================================
 
-  async getAnnotations(fileId: string, user: User) {
-    console.log(`📝 Getting annotations for file: ${fileId} by user: ${user.email}`);
+  async getAnnotations(fileId: string, user: User, token?: string) {
+    console.log(`📝 Getting annotations for file: ${fileId} by user: ${user.email}${token ? ' via shareable link' : ''}`);
     
     // Try to get from cache first
     const cachedAnnotations = await this.cacheService.getFileAnnotations(fileId);
@@ -560,7 +610,35 @@ export class FileService {
     }
     
     console.log(`🔍 Cache MISS: Fetching annotations from database for file: ${fileId}`);
-    const file = await this.validateEditAccess(fileId, user);
+    const file = await this.fileModel.findById(fileId).exec();
+    if (!file) {
+      throw new NotFoundException('File not found');
+    }
+
+    let role = this.getUserRole(file, user);
+    
+    // If user doesn't have direct access, check for shareable link access
+    if (role === 'none' && token) {
+      const shareableLink = await this.shareableLinkModel.findOne({
+        token: token,
+        file: fileId,
+        enabled: true
+      }).exec();
+      
+      if (shareableLink && file.shareableLinkEnabled) {
+        role = shareableLink.role;
+        console.log(`🔗 Access granted via shareable link: ${role} for file: ${fileId}`);
+      }
+    }
+
+    if (role === 'none') {
+      throw new ForbiddenException('You do not have permission to access this file');
+    }
+
+    // Only owners and editors can access annotations
+    if (role !== 'owner' && role !== 'editor') {
+      throw new ForbiddenException('You do not have permission to access annotations');
+    }
     
     const result = {
       _id: file._id,
@@ -578,9 +656,38 @@ export class FileService {
     return result;
   }
 
-  async saveAnnotation(fileId: string, annotationDto: CreateAnnotationDto, user: User) {
-    console.log(`💾 Saving annotations for file: ${fileId} by user: ${user.email}`);
-    const file = await this.validateEditAccess(fileId, user);
+  async saveAnnotation(fileId: string, annotationDto: CreateAnnotationDto, user: User, token?: string) {
+    console.log(`💾 Saving annotations for file: ${fileId} by user: ${user.email}${token ? ' via shareable link' : ''}`);
+    
+    const file = await this.fileModel.findById(fileId).exec();
+    if (!file) {
+      throw new NotFoundException('File not found');
+    }
+
+    let role = this.getUserRole(file, user);
+    
+    // If user doesn't have direct access, check for shareable link access
+    if (role === 'none' && token) {
+      const shareableLink = await this.shareableLinkModel.findOne({
+        token: token,
+        file: fileId,
+        enabled: true
+      }).exec();
+      
+      if (shareableLink && file.shareableLinkEnabled) {
+        role = shareableLink.role;
+        console.log(`🔗 Access granted via shareable link: ${role} for file: ${fileId}`);
+      }
+    }
+
+    if (role === 'none') {
+      throw new ForbiddenException('You do not have permission to access this file');
+    }
+
+    // Only owners and editors can save annotations
+    if (role !== 'owner' && role !== 'editor') {
+      throw new ForbiddenException('You do not have permission to save annotations');
+    }
 
     // Update the file's xfdf and increment version
     const updatedFile = await this.fileModel.findByIdAndUpdate(
@@ -611,6 +718,183 @@ export class FileService {
       version: updatedFile.version,
       createdAt: updatedFile.createdAt,
       updatedAt: updatedFile.updatedAt
+    };
+  }
+
+  // =============================================
+  // SHAREABLE LINK MANAGEMENT
+  // =============================================
+
+  async createShareableLink(createShareableLinkDto: CreateShareableLinkDto, user: User) {
+    const { fileId, role } = createShareableLinkDto;
+    console.log(`🔗 Creating shareable link for file: ${fileId}, role: ${role} by user: ${user.email}`);
+    
+    // Validate that user is the owner
+    const file = await this.validateOwnerAccess(fileId, user);
+    
+    // Check if shareable links are enabled for this file
+    if (!file.shareableLinkEnabled) {
+      throw new ForbiddenException('Shareable links are disabled for this file');
+    }
+    
+    // Check if a link with this role already exists
+    const existingLink = await this.shareableLinkModel.findOne({
+      file: fileId,
+      role: role,
+      enabled: true
+    }).exec();
+    
+    if (existingLink) {
+      console.log(`🔗 Returning existing shareable link for file: ${fileId}, role: ${role}`);
+      return {
+        id: existingLink._id,
+        token: existingLink.token,
+        role: existingLink.role,
+        enabled: existingLink.enabled,
+        url: `${this.configService.get<string>('APP_URL') || 'http://localhost:3000'}/share?token=${existingLink.token}`,
+        createdAt: existingLink.createdAt
+      };
+    }
+    
+    // Create new shareable link
+    const token = uuidv4();
+    const shareableLink = new this.shareableLinkModel({
+      file: fileId,
+      role: role,
+      token: token,
+      enabled: true
+    });
+    
+    await shareableLink.save();
+    
+    console.log(`✅ Shareable link created successfully for file: ${fileId}, role: ${role}`);
+    
+    return {
+      id: shareableLink._id,
+      token: shareableLink.token,
+      role: shareableLink.role,
+      enabled: shareableLink.enabled,
+      url: `${this.configService.get<string>('APP_URL') || 'http://localhost:3000'}/share?token=${shareableLink.token}`,
+      createdAt: shareableLink.createdAt
+    };
+  }
+
+  async getShareableLinks(fileId: string, user: User) {
+    console.log(`🔗 Getting shareable links for file: ${fileId} by user: ${user.email}`);
+    
+    // Validate that user is the owner
+    await this.validateOwnerAccess(fileId, user);
+    
+    const links = await this.shareableLinkModel.find({
+      file: fileId,
+      enabled: true
+    }).exec();
+    
+    const frontendUrl = this.configService.get<string>('APP_URL') || 'http://localhost:3000';
+    
+    return links.map(link => ({
+      id: link._id,
+      token: link.token,
+      role: link.role,
+      enabled: link.enabled,
+      url: `${frontendUrl}/share?token=${link.token}`,
+      createdAt: link.createdAt
+    }));
+  }
+
+  async deleteShareableLink(linkId: string, user: User) {
+    console.log(`🗑️ Deleting shareable link: ${linkId} by user: ${user.email}`);
+    
+    const link = await this.shareableLinkModel.findById(linkId).populate('file').exec();
+    if (!link) {
+      throw new NotFoundException('Shareable link not found');
+    }
+    
+    // Validate that user is the owner of the file
+    const file = link.file as any;
+    if (file.ownerEmail !== user.email) {
+      throw new ForbiddenException('Only the file owner can delete shareable links');
+    }
+    
+    await this.shareableLinkModel.findByIdAndDelete(linkId).exec();
+    
+    console.log(`✅ Shareable link deleted successfully: ${linkId}`);
+    return { message: 'Shareable link deleted successfully' };
+  }
+
+  async toggleShareableLinkFeature(toggleDto: ToggleShareableLinkDto, user: User) {
+    const { fileId, enabled } = toggleDto;
+    console.log(`🔄 Toggling shareable link feature for file: ${fileId}, enabled: ${enabled} by user: ${user.email}`);
+    
+    // Validate that user is the owner
+    const file = await this.validateOwnerAccess(fileId, user);
+    
+    // Update the file's shareable link setting
+    await this.fileModel.findByIdAndUpdate(
+      fileId,
+      { shareableLinkEnabled: enabled }
+    ).exec();
+    
+    // If disabling, also disable all existing links
+    if (!enabled) {
+      await this.shareableLinkModel.updateMany(
+        { file: fileId },
+        { enabled: false }
+      ).exec();
+    }
+    
+    // Invalidate file info cache since it was updated
+    await this.cacheService.deleteFileInfo(fileId);
+    
+    console.log(`✅ Shareable link feature ${enabled ? 'enabled' : 'disabled'} for file: ${fileId}`);
+    return { 
+      message: `Shareable link feature ${enabled ? 'enabled' : 'disabled'} successfully`,
+      shareableLinkEnabled: enabled
+    };
+  }
+
+  async accessViaLink(token: string, user: User) {
+    console.log(`🔗 Accessing file via shareable link token by user: ${user.email}`);
+    
+    const shareableLink = await this.shareableLinkModel.findOne({
+      token: token,
+      enabled: true
+    }).populate('file').exec();
+    
+    if (!shareableLink) {
+      throw new NotFoundException('Invalid or expired shareable link');
+    }
+    
+    const file = shareableLink.file as any;
+    
+    // Check if the file's shareable link feature is enabled
+    if (!file.shareableLinkEnabled) {
+      throw new ForbiddenException('Shareable links are disabled for this file');
+    }
+    
+    // Check if user already has access to this file
+    const existingRole = this.getUserRole(file, user);
+    if (existingRole !== 'none') {
+      console.log(`👤 User already has access to file: ${file._id}, existing role: ${existingRole}`);
+      return {
+        fileId: file._id,
+        fileName: file.name,
+        accessGranted: true,
+        role: existingRole,
+        message: `You already have ${existingRole} access to this file`
+      };
+    }
+    
+    // Grant temporary access without permanently adding to viewers/editors
+    console.log(`✅ Temporary access granted via shareable link: ${shareableLink.role} access to file: ${file._id}`);
+    
+    return {
+      fileId: file._id,
+      fileName: file.name,
+      accessGranted: true,
+      role: shareableLink.role,
+      temporary: true,
+      message: `Temporary ${shareableLink.role} access granted via shareable link`
     };
   }
 

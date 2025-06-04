@@ -85,18 +85,37 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
       });
       
       if (response.ok) {
-        const data = await response.json();
-        dispatch(setUser({
-          email: data.email,
-          isEmailVerified: data.isEmailVerified,
-          name: data.name || 'User',
-          isAuthenticated: true
-        }));
+        // Check if response is actually JSON
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const data = await response.json();
+          dispatch(setUser({
+            email: data.email,
+            isEmailVerified: data.isEmailVerified,
+            name: data.name || 'User',
+            isAuthenticated: true
+          }));
+        } else {
+          console.warn('Expected JSON response but received:', contentType);
+          console.warn('Response text:', await response.text());
+        }
       } else {
-        console.warn('User not authenticated or session expired');
+        // Try to get error message from response
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          const errorData = await response.json();
+          console.warn('User not authenticated:', errorData.message || 'Session expired');
+        } else {
+          console.warn('User not authenticated or session expired. Non-JSON response:', response.status);
+        }
       }
     } catch (error) {
-      console.error('Error fetching user data:', error);
+      if (error instanceof SyntaxError && error.message.includes('Unexpected token')) {
+        console.error('Backend returned HTML instead of JSON. Check if backend is running and NEXT_APP_BACKEND_URL is configured correctly.');
+        console.error('Current backend URL:', process.env.NEXT_APP_BACKEND_URL || 'http://localhost:5000/api');
+      } else {
+        console.error('Error fetching user data:', error);
+      }
     } finally {
       setIsLoading(false);
     }

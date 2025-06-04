@@ -83,6 +83,10 @@ export async function GET(
       );
     }
     
+    // Extract shareable link token from query parameters
+    const url = new URL(request.url);
+    const shareToken = url.searchParams.get('token');
+    
     // Extract access token from cookies
     const cookieHeader = request.headers.get('cookie') || '';
     const accessTokenMatch = cookieHeader.match(/access_token=([^;]+)/);
@@ -95,8 +99,16 @@ export async function GET(
       );
     }
     
+    // Build the backend URL with token parameter if provided
+    let backendUrl = `/file/${id}/annotation`;
+    if (shareToken) {
+      backendUrl += `?token=${shareToken}`;
+    }
+    
+    console.log(`Frontend annotation GET API: Requesting ${backendUrl}${shareToken ? ' with shareable link token' : ''}`);
+    
     // Use api client to call backend with token
-    const response = await api.get(`/file/${id}/annotation`, {
+    const response = await api.get(backendUrl, {
       headers: {
         'Authorization': `Bearer ${accessToken}`
       }

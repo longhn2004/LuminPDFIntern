@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { File, FileSchema } from './schemas/file.schema';
 import { Invitation, InvitationSchema } from './schemas/invitation.schema';
+import { ShareableLink, ShareableLinkSchema } from './schemas/shareable-link.schema';
 import { User, UserSchema } from '../auth/schemas/user.schema';
 import { FileController } from './file.controller';
 import { FileService } from './file.service';
@@ -18,6 +19,7 @@ import { CacheModule } from '../cache/cache.module';
     MongooseModule.forFeature([
       { name: File.name, schema: FileSchema },
       { name: Invitation.name, schema: InvitationSchema },
+      { name: ShareableLink.name, schema: ShareableLinkSchema },
       { name: User.name, schema: UserSchema },
     ]),
     MulterModule.register({

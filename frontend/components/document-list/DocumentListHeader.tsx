@@ -34,7 +34,7 @@ const DocumentListHeader: React.FC<DocumentListHeaderProps> = ({
       
       {/* Upload buttons, only if there are files */}
       {totalFiles > 0 && (
-        <div className="flex space-x-3">
+        <div className="flex gap-2">
           <UploadButton 
             onUpload={onUpload}
             disabled={isAnyUploading}

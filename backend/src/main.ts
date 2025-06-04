@@ -46,6 +46,5 @@ async function bootstrap() {
 
   await app.listen(port);
   console.log(`🎉 Application is running on port ${port} with Redis cache enabled`);
-  console.log(`🔧 Test cache endpoint: GET /api/file/cache/test/{fileId}`);
 }
 bootstrap();

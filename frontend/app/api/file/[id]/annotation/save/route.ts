@@ -23,6 +23,10 @@ export async function POST(
       );
     }
     
+    // Extract shareable link token from query parameters
+    const url = new URL(request.url);
+    const shareToken = url.searchParams.get('token');
+    
     // Extract access token from cookies
     const cookieHeader = request.headers.get('cookie') || '';
     const accessTokenMatch = cookieHeader.match(/access_token=([^;]+)/);
@@ -37,8 +41,16 @@ export async function POST(
     
     const data = await request.json();
     
+    // Build the backend URL with token parameter if provided
+    let backendUrl = `/file/${id}/annotation/save`;
+    if (shareToken) {
+      backendUrl += `?token=${shareToken}`;
+    }
+    
+    console.log(`Frontend annotation save API: Requesting ${backendUrl}${shareToken ? ' with shareable link token' : ''}`);
+    
     // Use api client to call backend with token
-    const response = await api.post(`/file/${id}/annotation/save`, data, {
+    const response = await api.post(backendUrl, data, {
       headers: {
         'Authorization': `Bearer ${accessToken}`
       }

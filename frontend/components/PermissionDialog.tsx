@@ -2,6 +2,7 @@ import { FaTimes, FaUser, FaUsers, FaShare, FaSpinner } from "react-icons/fa";
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import Avatar from "./Avatar";
+import ShareableLinkManager from "./ShareableLinkManager";
 
 interface PermissionDialogProps {
   isOpen: boolean;
@@ -37,11 +38,34 @@ export default function PermissionDialog({
   const [isSendingInvitations, setIsSendingInvitations] = useState(false);
   const [isSavingChanges, setIsSavingChanges] = useState(false);
 
+  // Shareable link state
+  const [shareableLinkEnabled, setShareableLinkEnabled] = useState(true);
+  const [isLoadingFileInfo, setIsLoadingFileInfo] = useState(false);
+
+  // Fetch file info to get shareable link status
+  const fetchFileInfo = async () => {
+    if (!pdfId) return;
+    
+    setIsLoadingFileInfo(true);
+    try {
+      const response = await fetch(`/api/file/${pdfId}/info`);
+      if (response.ok) {
+        const data = await response.json();
+        setShareableLinkEnabled(data.shareableLinkEnabled ?? true);
+      }
+    } catch (error) {
+      console.error('Error fetching file info:', error);
+    } finally {
+      setIsLoadingFileInfo(false);
+    }
+  };
+
   useEffect(() => {
     if (isOpen) {
       fetchListUsers();
+      fetchFileInfo();
     }
-  }, [isOpen, fetchListUsers]);
+  }, [isOpen, fetchListUsers, pdfId]);
 
   const handleCheckEmail = async (email: string) => {
     if (!email.trim()) {
@@ -204,6 +228,10 @@ export default function PermissionDialog({
     setPendingRoleChanges([]); // Clear pending role changes
   };
 
+  const handleShareableLinkToggle = (enabled: boolean) => {
+    setShareableLinkEnabled(enabled);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -227,7 +255,22 @@ export default function PermissionDialog({
           </div>
         </div>
 
-        <div className="px-6 space-y-6 max-h-[calc(90vh-120px)] overflow-y-auto">
+        <div className="px-6 space-y-6 ">
+          {/* Shareable Links Section */}
+          {!isLoadingFileInfo && (
+            <ShareableLinkManager 
+              fileId={pdfId}
+              shareableLinkEnabled={shareableLinkEnabled}
+              onToggleFeature={handleShareableLinkToggle}
+              className="mb-6"
+            />
+          )}
+
+          {/* Divider */}
+          {!isAddingUser && invitedUsers.length === 0 && email === "" && (
+            <div className="border-t border-gray-200"></div>
+          )}
+
           {/* Email Input Section */}
           <div className="">
             {/* <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -319,7 +362,7 @@ export default function PermissionDialog({
 
           {/* Current Users List */}
           {!isAddingUser && invitedUsers.length === 0 && email === "" && (
-            <div className="">
+            <div className="max-h-[150px] overflow-y-auto">
               {/* <div className="flex items-center gap-2 mb-3">
                 <FaUsers className="text-gray-600" />
                 <h3 className="text-lg font-semibold text-gray-800">People with access</h3>
