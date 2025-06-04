@@ -22,11 +22,25 @@ export class File extends Document {
   @Prop([{ type: String }])
   editors: string[];
 
+  @Prop({
+    required: true,
+    default:
+      '<?xml version="1.0" encoding="UTF-8" ?><xfdf xmlns="http://ns.adobe.com/xfdf/" xml:space="preserve"><annots></annots></xfdf>',
+  })
+  xfdf: string;
+
+  @Prop({ required: true, default: 0 })
+  version: number;
+
   @Prop({ default: Date.now })
   createdAt: Date;
 
   @Prop({ default: Date.now })
   updatedAt: Date;
+
+  // Shareable link settings
+  @Prop({ required: true, default: true })
+  shareableLinkEnabled: boolean;
 }
 
 export const FileSchema = SchemaFactory.createForClass(File);

@@ -1,0 +1,48 @@
+"use client";
+
+import React from 'react';
+import Avatar from '@/components/Avatar';
+import { FileItem } from '@/types/document';
+
+interface DocumentTableRowProps {
+  file: FileItem;
+  currentUserName: string;
+  onClick: (fileId: string) => void;
+  formatDate: (dateString: string) => string;
+}
+
+const DocumentTableRow: React.FC<DocumentTableRowProps> = ({
+  file,
+  currentUserName,
+  onClick,
+  formatDate
+}) => {
+  return (
+    <tr 
+      className="hover:bg-gray-50 cursor-pointer border-b border-gray-200 transition-colors"
+      onClick={() => onClick(file.id)}
+    >
+      <td className="py-3 px-4">
+        <div className="flex items-center">
+          <span className="truncate">{file.name}</span>
+        </div>
+      </td>
+      <td className="py-3 px-4 w-48">
+        <div className="flex items-center">
+          <Avatar name={file.owner} size="sm" className="mr-3 flex-shrink-0" />
+          <span className="truncate">
+            {file.owner}
+            {file.owner === currentUserName && (
+              <span className="text-gray-500 font-normal ml-1">(You)</span>
+            )}
+          </span>
+        </div>
+      </td>
+      <td className="py-3 px-4 text-gray-500 w-44">
+        {formatDate(file.updatedAt)}
+      </td>
+    </tr>
+  );
+};
+
+export default DocumentTableRow; 

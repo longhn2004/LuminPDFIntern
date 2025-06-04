@@ -17,6 +17,10 @@ export async function GET(
       );
     }
     
+    // Extract shareable link token from query parameters
+    const url = new URL(request.url);
+    const shareToken = url.searchParams.get('token');
+    
     const cookieHeader = request.headers.get('cookie') || '';
     const accessTokenMatch = cookieHeader.match(/access_token=([^;]+)/);
     const accessToken = accessTokenMatch ? accessTokenMatch[1] : null;
@@ -28,7 +32,15 @@ export async function GET(
       );
     }
     
-    const response = await api.get(`/file/${id}/download`, { 
+    // Build the backend URL with token parameter if provided
+    let backendUrl = `/file/${id}/download`;
+    if (shareToken) {
+      backendUrl += `?token=${shareToken}`;
+    }
+    
+    console.log(`Frontend download API: Requesting ${backendUrl}${shareToken ? ' with shareable link token' : ''}`);
+    
+    const response = await api.get(backendUrl, { 
       responseType: 'arraybuffer',
       headers: {
         'Authorization': `Bearer ${accessToken}`
@@ -45,6 +57,7 @@ export async function GET(
       headers: {
         'Content-Type': contentType,
         'Content-Disposition': `inline; filename="${filename}"`,
+        'X-Shareable-Access': shareToken ? 'true' : 'false',
       },
     });
   } catch (error: any) {

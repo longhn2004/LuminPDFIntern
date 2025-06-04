@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { File, FileSchema } from './schemas/file.schema';
-import { Annotation, AnnotationSchema } from './schemas/annotation.schema';
 import { Invitation, InvitationSchema } from './schemas/invitation.schema';
+import { ShareableLink, ShareableLinkSchema } from './schemas/shareable-link.schema';
 import { User, UserSchema } from '../auth/schemas/user.schema';
 import { FileController } from './file.controller';
 import { FileService } from './file.service';
@@ -12,13 +12,14 @@ import { extname } from 'path';
 import { EmailModule } from '../email/email.module';
 import { BadRequestException } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { CacheModule } from '../cache/cache.module';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
       { name: File.name, schema: FileSchema },
-      { name: Annotation.name, schema: AnnotationSchema },
       { name: Invitation.name, schema: InvitationSchema },
+      { name: ShareableLink.name, schema: ShareableLinkSchema },
       { name: User.name, schema: UserSchema },
     ]),
     MulterModule.register({
@@ -42,6 +43,7 @@ import { ConfigModule } from '@nestjs/config';
     }),
     EmailModule,
     ConfigModule,
+    CacheModule,
   ],
   controllers: [FileController],
   providers: [FileService],

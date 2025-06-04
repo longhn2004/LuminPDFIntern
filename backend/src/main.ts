@@ -5,12 +5,29 @@ import * as cookieParser from 'cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
+  console.log('🚀 Starting LuminPDF Backend with Redis Cache...');
+  
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
   const port = configService.get<number>('PORT', 5000);
 
+  // Log Redis configuration
+  const redisUrl = configService.get<string>('REDIS_URL');
+  const redisHost = configService.get<string>('REDIS_HOST');
+  const redisPort = configService.get<number>('REDIS_PORT');
+  
+  if (redisUrl) {
+    console.log(`📡 Redis Cache: Using URL ${redisUrl}`);
+  } else if (redisHost && redisPort) {
+    console.log(`📡 Redis Cache: Using ${redisHost}:${redisPort}`);
+  } else {
+    console.log(`📡 Redis Cache: Using default localhost:6379`);
+  }
+  
+  console.log(`💾 Cache TTL: ${configService.get<number>('REDIS_TTL') || 300}s`);
+
   app.enableCors({
-    origin: 'http://localhost:3000',
+    origin: configService.get('FRONTEND_URL'),
     credentials: true,
   });
 
@@ -28,6 +45,6 @@ async function bootstrap() {
   app.use(cookieParser());
 
   await app.listen(port);
-  console.log(`Application is running on port ${port}`);
+  console.log(`🎉 Application is running on port ${port} with Redis cache enabled`);
 }
 bootstrap();

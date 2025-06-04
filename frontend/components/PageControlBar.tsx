@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FaSearchPlus, FaSearchMinus, FaCheck, FaStepBackward, FaStepForward, FaFastBackward, FaFastForward, FaPlus, FaMinus } from 'react-icons/fa';
+import { FaCheck, FaPlus, FaMinus, FaChevronDown } from 'react-icons/fa';
 import { MdOutlineTextFields } from 'react-icons/md';
 import { 
   zoomIn, 
@@ -11,151 +11,322 @@ import {
 } from './ZoomControls';
 import { ZOOM_PRESETS, MIN_ZOOM, MAX_ZOOM } from './ZoomConstants';
 
-interface PDFNavigationBarProps {
+interface PageControlBarProps {
   className?: string;
 }
 
-export default function PDFNavigationBar({ 
-  className = '' 
-}: PDFNavigationBarProps) {
+interface ZoomControlProps {
+  currentZoom: number;
+  isMinZoom: boolean;
+  isMaxZoom: boolean;
+  isDropdownOpen: boolean;
+  isCustomZoom: boolean;
+  customZoom: string;
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onToggleDropdown: () => void;
+  onDisplayDoubleClick: () => void;
+  onCustomZoomChange: (value: string) => void;
+  onCustomZoomKeyPress: (e: React.KeyboardEvent) => void;
+  onApplyCustomZoom: () => void;
+  onPresetZoom: (zoom: number) => void;
+  onOpenCustomZoom: () => void;
+  dropdownRef: React.RefObject<HTMLDivElement | null>;
+  customInputRef: React.RefObject<HTMLInputElement | null>;
+}
+
+interface PageNavigationProps {
+  currentPage: number;
+  totalPages: number;
+  isCustomPage: boolean;
+  customPage: string;
+  onGoToFirstPage: () => void;
+  onGoToPreviousPage: () => void;
+  onGoToNextPage: () => void;
+  onGoToLastPage: () => void;
+  onPageDisplayDoubleClick: () => void;
+  onCustomPageChange: (value: string) => void;
+  onCustomPageKeyPress: (e: React.KeyboardEvent) => void;
+  onApplyCustomPage: () => void;
+  customPageInputRef: React.RefObject<HTMLInputElement | null>;
+}
+
+/**
+ * Format current zoom for display
+ */
+const formatZoomDisplay = (currentZoom: number): string => {
+  const matchedPreset = ZOOM_PRESETS.find(preset => Math.abs(preset.value - currentZoom) < 0.01);
+  return matchedPreset ? matchedPreset.label : `${Math.round(currentZoom * 100)}%`;
+};
+
+/**
+ * Zoom Control Component
+ */
+const ZoomControl: React.FC<ZoomControlProps> = ({
+  currentZoom,
+  isMinZoom,
+  isMaxZoom,
+  isDropdownOpen,
+  isCustomZoom,
+  customZoom,
+  onZoomIn,
+  onZoomOut,
+  onToggleDropdown,
+  onDisplayDoubleClick,
+  onCustomZoomChange,
+  onCustomZoomKeyPress,
+  onApplyCustomZoom,
+  onPresetZoom,
+  onOpenCustomZoom,
+  dropdownRef,
+  customInputRef
+}) => {
+  return (
+    <div className="flex items-center space-x-1 relative">
+      {/* Zoom Out Button */}
+      <button
+        onClick={onZoomOut}
+        className={`p-2 rounded-md ${isMinZoom 
+          ? 'text-gray-300 cursor-not-allowed' 
+          : 'hover:bg-gray-100 text-gray-600'}`}
+        disabled={isMinZoom}
+        title={isMinZoom ? "Minimum zoom reached (50%)" : "Zoom Out"}
+        aria-label="Zoom out"
+      >
+        <div className="w-4 h-4 rounded-full flex items-center justify-center border border-black">
+          <FaMinus size={12} />
+        </div>
+      </button>
+      
+      {/* Zoom Display */}
+      <div 
+        ref={dropdownRef}
+        className="px-3 py-1 min-w-[80px] text-center font-medium text-gray-700 bg-gray-50 rounded cursor-pointer relative hover:bg-gray-100 transition-colors"
+        onDoubleClick={onDisplayDoubleClick}
+        title="Click to open zoom presets, double-click for custom zoom"
+      >
+        {isCustomZoom ? (
+          <div className="flex items-center justify-center">
+            <input
+              ref={customInputRef}
+              type="text" 
+              value={customZoom}
+              onChange={(e) => onCustomZoomChange(e.target.value.replace(/[^\d]/g, ''))}
+              onKeyDown={onCustomZoomKeyPress}
+              onBlur={onApplyCustomZoom}
+              className="w-[50px] text-center bg-transparent focus:outline-none"
+              autoFocus
+              placeholder="100"
+            />
+            <span>%</span>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onApplyCustomZoom();
+              }} 
+              className="ml-1 text-green-500 hover:text-green-600"
+              title="Apply"
+              aria-label="Apply custom zoom"
+            >
+              <FaCheck size={12} />
+            </button>
+          </div>
+        ) : (
+          <div onClick={onToggleDropdown} className="flex items-center justify-center">
+            <span>{formatZoomDisplay(currentZoom)}</span>
+            {/* TODO: Add a down arrow icon here */}
+            <span className="ml-1 text-xs text-gray-400"><FaChevronDown /></span>
+          </div>
+        )}
+        
+        {/* Zoom Dropdown */}
+        {isDropdownOpen && (
+          <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-20 bg-white rounded-lg shadow-xl border border-gray-200 overflow-hidden z-50">
+            <div className="py-1">
+              {ZOOM_PRESETS.map((preset) => (
+                <div 
+                  key={preset.value}
+                  className={`px-3 py-2 cursor-pointer hover:bg-gray-50 transition-colors text-sm ${
+                    Math.abs(preset.value - currentZoom) < 0.01 ? 'bg-gray-200 font-medium text-gray-800' : 'text-gray-700'
+                  }`}
+                  onClick={() => onPresetZoom(preset.value)}
+                >
+                  {preset.label}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+      
+      {/* Zoom In Button */}
+      <button
+        onClick={onZoomIn}
+        className={`p-2 rounded-md ${isMaxZoom 
+          ? 'text-gray-300 cursor-not-allowed' 
+          : 'hover:bg-gray-100 text-gray-600'}`}
+        disabled={isMaxZoom}
+        title={isMaxZoom ? "Maximum zoom reached (200%)" : "Zoom In"}
+        aria-label="Zoom in"
+      >
+        <div className="w-4 h-4 rounded-full flex items-center justify-center border border-black">
+          <FaPlus size={12} />
+        </div>
+      </button>
+    </div>
+  );
+};
+
+/**
+ * Page Navigation Component
+ */
+const PageNavigation: React.FC<PageNavigationProps> = ({
+  currentPage,
+  totalPages,
+  isCustomPage,
+  customPage,
+  onGoToFirstPage,
+  onGoToPreviousPage,
+  onGoToNextPage,
+  onGoToLastPage,
+  onPageDisplayDoubleClick,
+  onCustomPageChange,
+  onCustomPageKeyPress,
+  onApplyCustomPage,
+  customPageInputRef
+}) => {
+  return (
+    <div className="flex items-center space-x-1">
+      {/* First Page */}
+      <button
+        onClick={onGoToFirstPage}
+        className={`px-2 py-1 rounded-md text-sm font-medium ${currentPage === 1 
+          ? 'text-gray-300 cursor-not-allowed' 
+          : 'hover:bg-gray-100 text-gray-600'}`}
+        disabled={currentPage === 1}
+        title="First Page"
+        aria-label="Go to first page"
+      >
+        &lt;&lt;
+      </button>
+      
+      {/* Previous Page */}
+      <button
+        onClick={onGoToPreviousPage}
+        className={`px-2 py-1 rounded-md text-sm font-medium ${currentPage === 1 
+          ? 'text-gray-300 cursor-not-allowed' 
+          : 'hover:bg-gray-100 text-gray-600'}`}
+        disabled={currentPage === 1}
+        title="Previous Page"
+        aria-label="Go to previous page"
+      >
+        &lt;
+      </button>
+      
+      {/* Page Display */}
+      <div 
+        className="px-3 py-1 text-center font-medium text-gray-700 cursor-pointer"
+        onDoubleClick={onPageDisplayDoubleClick}
+        title="Double-click to go to specific page"
+      >
+        {isCustomPage ? (
+          <div className="flex items-center">
+            <input
+              ref={customPageInputRef}
+              type="text" 
+              value={customPage}
+              onChange={(e) => onCustomPageChange(e.target.value.replace(/[^\d]/g, ''))}
+              onKeyDown={onCustomPageKeyPress}
+              onBlur={onApplyCustomPage}
+              className="w-[50px] text-center bg-gray-50 rounded border focus:outline-none focus:ring-1 focus:ring-blue-500"
+              autoFocus
+            />
+            <span className="mx-1">/</span>
+            <span>{totalPages}</span>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation();
+                onApplyCustomPage();
+              }} 
+              className="ml-2 text-green-500"
+              title="Go to page"
+              aria-label="Go to specified page"
+            >
+              <FaCheck size={12} />
+            </button>
+          </div>
+        ) : (
+          <span>{currentPage}/{totalPages}</span>
+        )}
+      </div>
+      
+      {/* Next Page */}
+      <button
+        onClick={onGoToNextPage}
+        className={`px-2 py-1 rounded-md text-sm font-medium ${currentPage === totalPages 
+          ? 'text-gray-300 cursor-not-allowed' 
+          : 'hover:bg-gray-100 text-gray-600'}`}
+        disabled={currentPage === totalPages}
+        title="Next Page"
+        aria-label="Go to next page"
+      >
+        &gt;
+      </button>
+      
+      {/* Last Page */}
+      <button
+        onClick={onGoToLastPage}
+        className={`px-2 py-1 rounded-md text-sm font-medium ${currentPage === totalPages 
+          ? 'text-gray-300 cursor-not-allowed' 
+          : 'hover:bg-gray-100 text-gray-600'}`}
+        disabled={currentPage === totalPages}
+        title="Last Page"
+        aria-label="Go to last page"
+      >
+        &gt;&gt;
+      </button>
+    </div>
+  );
+};
+
+/**
+ * Custom hook for zoom management
+ */
+const useZoomControl = () => {
   const [currentZoom, setCurrentZoom] = useState<number>(1.0);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [customZoom, setCustomZoom] = useState('');
   const [isCustomZoom, setIsCustomZoom] = useState(false);
   const [isMinZoom, setIsMinZoom] = useState(false);
   const [isMaxZoom, setIsMaxZoom] = useState(false);
-  
-  // Page navigation state
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [totalPages, setTotalPages] = useState<number>(1);
-  const [isCustomPage, setIsCustomPage] = useState(false);
-  const [customPage, setCustomPage] = useState('');
-  
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const customInputRef = useRef<HTMLInputElement>(null);
-  const customPageInputRef = useRef<HTMLInputElement>(null);
-  const zoomDisplayRef = useRef<HTMLDivElement>(null);
-  const pageDisplayRef = useRef<HTMLDivElement>(null);
-  
-  // Update zoom display and page info when component mounts or PDF viewer changes
-  useEffect(() => {
-    const updateZoomAndPageInfo = () => {
-      // Update zoom info
-      const zoom = getCurrentZoom();
-      if (zoom !== null) {
-        setCurrentZoom(zoom);
-        setIsMinZoom(isAtMinZoom());
-        setIsMaxZoom(isAtMaxZoom());
-      }
-      
-      // Update page info
-      if (window.documentViewer) {
-        try {
-          const page = window.documentViewer.getCurrentPage();
-          const total = window.documentViewer.getPageCount();
-          setCurrentPage(page);
-          setTotalPages(total);
-        } catch (err) {
-          console.error("Error getting page info:", err);
-        }
-      }
-    };
-    
-    // Initial update
-    updateZoomAndPageInfo();
-    
-    // Set up interval to periodically check zoom level and page info
-    const intervalId = setInterval(updateZoomAndPageInfo, 500);
-    
-    return () => clearInterval(intervalId);
-  }, []);
-  
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsDropdownOpen(false);
-      }
-    }
-    
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-  
-  // Focus custom zoom input when custom zoom mode is enabled
-  useEffect(() => {
-    if (isCustomZoom && customInputRef.current) {
-      customInputRef.current.focus();
-    }
-  }, [isCustomZoom]);
 
-  // Focus custom page input when custom page mode is enabled
-  useEffect(() => {
-    if (isCustomPage && customPageInputRef.current) {
-      customPageInputRef.current.focus();
+  const updateZoomState = () => {
+    const zoom = getCurrentZoom();
+    if (zoom !== null) {
+      setCurrentZoom(zoom);
+      setIsMinZoom(isAtMinZoom());
+      setIsMaxZoom(isAtMaxZoom());
     }
-  }, [isCustomPage]);
-  
-  // Handle zoom in button click
+  };
+
   const handleZoomIn = () => {
-    if (!isMaxZoom) {
-      const success = zoomIn();
-      if (success) {
-        const zoom = getCurrentZoom();
-        if (zoom !== null) {
-          setCurrentZoom(zoom);
-          setIsMaxZoom(isAtMaxZoom());
-          setIsMinZoom(isAtMinZoom());
-        }
-      }
+    if (!isMaxZoom && zoomIn()) {
+      updateZoomState();
     }
   };
-  
-  // Handle zoom out button click
+
   const handleZoomOut = () => {
-    if (!isMinZoom) {
-      const success = zoomOut();
-      if (success) {
-        const zoom = getCurrentZoom();
-        if (zoom !== null) {
-          setCurrentZoom(zoom);
-          setIsMinZoom(isAtMinZoom());
-          setIsMaxZoom(isAtMaxZoom());
-        }
-      }
+    if (!isMinZoom && zoomOut()) {
+      updateZoomState();
     }
   };
-  
-  // Handle preset zoom click
+
   const handlePresetZoom = (zoom: number) => {
     setZoom(zoom);
     setIsDropdownOpen(false);
-    
-    setTimeout(() => {
-      const currentZoom = getCurrentZoom();
-      if (currentZoom !== null) {
-        setCurrentZoom(currentZoom);
-        setIsMinZoom(isAtMinZoom());
-        setIsMaxZoom(isAtMaxZoom());
-      }
-    }, 100);
+    setTimeout(updateZoomState, 100);
   };
-  
-  // Handle double click on zoom display
-  const handleZoomDisplayDoubleClick = () => {
-    if (!isCustomZoom) {
-      setIsCustomZoom(true);
-      setCustomZoom(Math.round(currentZoom * 100).toString());
-    }
-  };
-  
-  // Handle custom zoom input
-  const handleCustomZoomChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^\d]/g, '');
-    setCustomZoom(value);
-  };
-  
-  // Apply custom zoom
+
   const applyCustomZoom = () => {
     let zoomValue = parseInt(customZoom, 10);
     
@@ -169,18 +340,9 @@ export default function PDFNavigationBar({
     
     setZoom(zoomValue / 100);
     setIsCustomZoom(false);
-    
-    setTimeout(() => {
-      const zoom = getCurrentZoom();
-      if (zoom !== null) {
-        setCurrentZoom(zoom);
-        setIsMinZoom(isAtMinZoom());
-        setIsMaxZoom(isAtMaxZoom());
-      }
-    }, 100);
+    setTimeout(updateZoomState, 100);
   };
-  
-  // Handle key press in custom zoom input
+
   const handleCustomZoomKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       applyCustomZoom();
@@ -189,7 +351,47 @@ export default function PDFNavigationBar({
     }
   };
 
-  // Page navigation functions
+  return {
+    currentZoom,
+    isDropdownOpen,
+    setIsDropdownOpen,
+    customZoom,
+    setCustomZoom,
+    isCustomZoom,
+    setIsCustomZoom,
+    isMinZoom,
+    isMaxZoom,
+    handleZoomIn,
+    handleZoomOut,
+    handlePresetZoom,
+    applyCustomZoom,
+    handleCustomZoomKeyPress,
+    updateZoomState
+  };
+};
+
+/**
+ * Custom hook for page navigation
+ */
+const usePageNavigation = () => {
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [totalPages, setTotalPages] = useState<number>(1);
+  const [isCustomPage, setIsCustomPage] = useState(false);
+  const [customPage, setCustomPage] = useState('');
+
+  const updatePageState = () => {
+    if (window.documentViewer) {
+      try {
+        const page = window.documentViewer.getCurrentPage();
+        const total = window.documentViewer.getPageCount();
+        setCurrentPage(page);
+        setTotalPages(total);
+      } catch (err) {
+        console.error("Error getting page info:", err);
+      }
+    }
+  };
+
   const goToFirstPage = () => {
     if (window.documentViewer && currentPage > 1) {
       try {
@@ -236,21 +438,6 @@ export default function PDFNavigationBar({
     }
   };
 
-  // Handle double click on page display
-  const handlePageDisplayDoubleClick = () => {
-    if (!isCustomPage) {
-      setIsCustomPage(true);
-      setCustomPage(currentPage.toString());
-    }
-  };
-
-  // Handle custom page input
-  const handleCustomPageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value.replace(/[^\d]/g, '');
-    setCustomPage(value);
-  };
-
-  // Apply custom page
   const applyCustomPage = () => {
     let pageValue = parseInt(customPage, 10);
     
@@ -274,7 +461,6 @@ export default function PDFNavigationBar({
     setIsCustomPage(false);
   };
 
-  // Handle key press in custom page input
   const handleCustomPageKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       applyCustomPage();
@@ -282,209 +468,131 @@ export default function PDFNavigationBar({
       setIsCustomPage(false);
     }
   };
-  
-  // Format current zoom for display
-  const formattedZoom = () => {
-    const matchedPreset = ZOOM_PRESETS.find(preset => Math.abs(preset.value - currentZoom) < 0.01);
-    
-    if (matchedPreset) {
-      return matchedPreset.label;
-    } else {
-      return `${Math.round(currentZoom * 100)}%`;
-    }
+
+  return {
+    currentPage,
+    totalPages,
+    isCustomPage,
+    setIsCustomPage,
+    customPage,
+    setCustomPage,
+    goToFirstPage,
+    goToPreviousPage,
+    goToNextPage,
+    goToLastPage,
+    applyCustomPage,
+    handleCustomPageKeyPress,
+    updatePageState
   };
+};
+
+/**
+ * Main Page Control Bar Component
+ */
+export default function PageControlBar({ className = '' }: PageControlBarProps) {
+  const zoomControl = useZoomControl();
+  const pageNavigation = usePageNavigation();
   
+  // Refs
+  const dropdownRef = useRef<HTMLDivElement | null>(null);
+  const customInputRef = useRef<HTMLInputElement | null>(null);
+  const customPageInputRef = useRef<HTMLInputElement | null>(null);
+  
+  // Update zoom and page info
+  useEffect(() => {
+    const updateInfo = () => {
+      zoomControl.updateZoomState();
+      pageNavigation.updatePageState();
+    };
+    
+    updateInfo();
+    const intervalId = setInterval(updateInfo, 500);
+    return () => clearInterval(intervalId);
+  }, []);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        zoomControl.setIsDropdownOpen(false);
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+  
+  // Focus inputs when custom mode is enabled
+  useEffect(() => {
+    if (zoomControl.isCustomZoom && customInputRef.current) {
+      customInputRef.current.focus();
+    }
+  }, [zoomControl.isCustomZoom]);
+
+  useEffect(() => {
+    if (pageNavigation.isCustomPage && customPageInputRef.current) {
+      customPageInputRef.current.focus();
+    }
+  }, [pageNavigation.isCustomPage]);
+
   return (
     <div 
       className={`bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg ${className}`}
-      ref={dropdownRef}
     >
       <div className="flex items-center justify-center px-4 py-2">
         <div className="flex items-center space-x-6">
+          
           {/* Zoom Controls */}
-          <div className="flex items-center space-x-1 relative">
-            <button
-              onClick={handleZoomOut}
-              className={`p-2 rounded-md ${isMinZoom 
-                ? 'text-gray-300 cursor-not-allowed' 
-                : 'hover:bg-gray-100 text-gray-600'}`}
-              disabled={isMinZoom}
-              title={isMinZoom ? "Minimum zoom reached (50%)" : "Zoom Out"}
-            >
-              {/* <FaSearchMinus size={16} /> */}
-
-              {/* circle minus with black border */}
-              <div className="w-4 h-4 rounded-full flex items-center justify-center border border-black">
-                <FaMinus size={12} />
-              </div>
-
-            </button>
-            
-            <div 
-              ref={zoomDisplayRef}
-              className="px-3 py-1 min-w-[80px] text-center font-medium text-gray-700 bg-gray-50 rounded border cursor-pointer relative"
-              onDoubleClick={handleZoomDisplayDoubleClick}
-              title="Double-click to enter custom zoom"
-            >
-              {isCustomZoom ? (
-                <div className="flex items-center justify-center">
-                  <input
-                    ref={customInputRef}
-                    type="text" 
-                    value={customZoom}
-                    onChange={handleCustomZoomChange}
-                    onKeyDown={handleCustomZoomKeyPress}
-                    onBlur={applyCustomZoom}
-                    className="w-[50px] text-center bg-transparent focus:outline-none"
-                    autoFocus
-                  />
-                  <span>%</span>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      applyCustomZoom();
-                    }} 
-                    className="ml-1 text-green-500"
-                    title="Apply"
-                  >
-                    <FaCheck size={12} />
-                  </button>
-                </div>
-              ) : (
-                <div onClick={() => setIsDropdownOpen(!isDropdownOpen)}>
-                  {formattedZoom()}
-                </div>
-              )}
-              
-              {/* Zoom dropdown positioned relative to this element */}
-              {isDropdownOpen && (
-                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 overflow-hidden z-50">
-                  <div className="max-h-64 overflow-y-auto">
-                    {ZOOM_PRESETS.map((preset) => (
-                      <div 
-                        key={preset.value}
-                        className={`px-4 py-2 cursor-pointer hover:bg-gray-100 ${
-                          Math.abs(preset.value - currentZoom) < 0.01 ? 'bg-blue-50 font-medium text-blue-600' : ''
-                        }`}
-                        onClick={() => handlePresetZoom(preset.value)}
-                      >
-                        {preset.label}
-                      </div>
-                    ))}
-                    <div 
-                      className="px-4 py-2 cursor-pointer hover:bg-gray-100 flex items-center"
-                      onClick={() => {
-                        setIsDropdownOpen(false);
-                        setIsCustomZoom(true);
-                        setCustomZoom(Math.round(currentZoom * 100).toString());
-                      }}
-                    >
-                      <MdOutlineTextFields className="mr-2" />
-                      Custom...
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-            
-            <button
-              onClick={handleZoomIn}
-              className={`p-2 rounded-md ${isMaxZoom 
-                ? 'text-gray-300 cursor-not-allowed' 
-                : 'hover:bg-gray-100 text-gray-600'}`}
-              disabled={isMaxZoom}
-              title={isMaxZoom ? "Maximum zoom reached (200%)" : "Zoom In"}
-            >
-              {/* <FaSearchPlus size={16} /> */}
-
-              <div className="w-4 h-4 rounded-full flex items-center justify-center border border-black">
-                <FaPlus size={12} />
-              </div>
-            </button>
-          </div>
+          <ZoomControl
+            currentZoom={zoomControl.currentZoom}
+            isMinZoom={zoomControl.isMinZoom}
+            isMaxZoom={zoomControl.isMaxZoom}
+            isDropdownOpen={zoomControl.isDropdownOpen}
+            isCustomZoom={zoomControl.isCustomZoom}
+            customZoom={zoomControl.customZoom}
+            onZoomIn={zoomControl.handleZoomIn}
+            onZoomOut={zoomControl.handleZoomOut}
+            onToggleDropdown={() => zoomControl.setIsDropdownOpen(!zoomControl.isDropdownOpen)}
+            onDisplayDoubleClick={() => {
+              if (!zoomControl.isCustomZoom) {
+                zoomControl.setIsCustomZoom(true);
+                zoomControl.setCustomZoom(Math.round(zoomControl.currentZoom * 100).toString());
+              }
+            }}
+            onCustomZoomChange={zoomControl.setCustomZoom}
+            onCustomZoomKeyPress={zoomControl.handleCustomZoomKeyPress}
+            onApplyCustomZoom={zoomControl.applyCustomZoom}
+            onPresetZoom={zoomControl.handlePresetZoom}
+            onOpenCustomZoom={() => {
+              zoomControl.setIsDropdownOpen(false);
+              zoomControl.setIsCustomZoom(true);
+              zoomControl.setCustomZoom(Math.round(zoomControl.currentZoom * 100).toString());
+            }}
+            dropdownRef={dropdownRef}
+            customInputRef={customInputRef}
+          />
 
           {/* Page Navigation Controls */}
-          <div className="flex items-center space-x-1">
-            <button
-              onClick={goToFirstPage}
-              className={`px-2 py-1 rounded-md text-sm font-medium ${currentPage === 1 
-                ? 'text-gray-300 cursor-not-allowed' 
-                : 'hover:bg-gray-100 text-gray-600'}`}
-              disabled={currentPage === 1}
-              title="First Page"
-            >
-              &lt;&lt;
-            </button>
-            
-            <button
-              onClick={goToPreviousPage}
-              className={`px-2 py-1 rounded-md text-sm font-medium ${currentPage === 1 
-                ? 'text-gray-300 cursor-not-allowed' 
-                : 'hover:bg-gray-100 text-gray-600'}`}
-              disabled={currentPage === 1}
-              title="Previous Page"
-            >
-              &lt;
-            </button>
-            
-            <div 
-              ref={pageDisplayRef}
-              className="px-3 py-1 text-center font-medium text-gray-700 cursor-pointer"
-              onDoubleClick={handlePageDisplayDoubleClick}
-              title="Double-click to go to specific page"
-            >
-              {isCustomPage ? (
-                <div className="flex items-center">
-                  <input
-                    ref={customPageInputRef}
-                    type="text" 
-                    value={customPage}
-                    onChange={handleCustomPageChange}
-                    onKeyDown={handleCustomPageKeyPress}
-                    onBlur={applyCustomPage}
-                    className="w-[50px] text-center bg-gray-50 rounded border focus:outline-none focus:ring-1 focus:ring-blue-500"
-                    autoFocus
-                  />
-                  <span className="mx-1">/</span>
-                  <span>{totalPages}</span>
-                  <button 
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      applyCustomPage();
-                    }} 
-                    className="ml-2 text-green-500"
-                    title="Go to page"
-                  >
-                    <FaCheck size={12} />
-                  </button>
-                </div>
-              ) : (
-                <span>{currentPage}/{totalPages}</span>
-              )}
-            </div>
-            
-            <button
-              onClick={goToNextPage}
-              className={`px-2 py-1 rounded-md text-sm font-medium ${currentPage === totalPages 
-                ? 'text-gray-300 cursor-not-allowed' 
-                : 'hover:bg-gray-100 text-gray-600'}`}
-              disabled={currentPage === totalPages}
-              title="Next Page"
-            >
-              &gt;
-            </button>
-            
-            <button
-              onClick={goToLastPage}
-              className={`px-2 py-1 rounded-md text-sm font-medium ${currentPage === totalPages 
-                ? 'text-gray-300 cursor-not-allowed' 
-                : 'hover:bg-gray-100 text-gray-600'}`}
-              disabled={currentPage === totalPages}
-              title="Last Page"
-            >
-              &gt;&gt;
-            </button>
-          </div>
+          <PageNavigation
+            currentPage={pageNavigation.currentPage}
+            totalPages={pageNavigation.totalPages}
+            isCustomPage={pageNavigation.isCustomPage}
+            customPage={pageNavigation.customPage}
+            onGoToFirstPage={pageNavigation.goToFirstPage}
+            onGoToPreviousPage={pageNavigation.goToPreviousPage}
+            onGoToNextPage={pageNavigation.goToNextPage}
+            onGoToLastPage={pageNavigation.goToLastPage}
+            onPageDisplayDoubleClick={() => {
+              if (!pageNavigation.isCustomPage) {
+                pageNavigation.setIsCustomPage(true);
+                pageNavigation.setCustomPage(pageNavigation.currentPage.toString());
+              }
+            }}
+            onCustomPageChange={pageNavigation.setCustomPage}
+            onCustomPageKeyPress={pageNavigation.handleCustomPageKeyPress}
+            onApplyCustomPage={pageNavigation.applyCustomPage}
+            customPageInputRef={customPageInputRef}
+          />
         </div>
       </div>
     </div>

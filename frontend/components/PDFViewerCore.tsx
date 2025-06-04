@@ -9,13 +9,6 @@ interface PDFViewerCoreProps {
   pdfId: string;
 }
 
-declare global {
-  interface Window {
-    Core: any;
-    documentViewer: any;
-  }
-}
-
 export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
   const [isLoaded, setIsLoaded] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
