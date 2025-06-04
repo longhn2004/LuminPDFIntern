@@ -20,6 +20,9 @@ import { InviteUserDto } from './dto/invite-user.dto';
 import { ListFilesDto } from './dto/list-files.dto';
 import { CreateAnnotationDto } from './dto/create-annotation.dto';
 import { UploadFromDriveDto } from './dto/upload-from-drive.dto';
+import { CreateShareableLinkDto } from './dto/create-shareable-link.dto';
+import { ToggleShareableLinkDto } from './dto/toggle-shareable-link.dto';
+import { AccessViaLinkDto } from './dto/access-via-link.dto';
 import { AuthGuard } from '@nestjs/passport';
 import { Request, Response } from 'express';
 import { ObjectId } from 'mongodb';
@@ -68,10 +71,11 @@ export class FileController {
   @Get(':id/annotation')
   async getAnnotations(
     @Param('id') fileId: string,
+    @Query('token') token: string,
     @Req() req: Request & { user: any },
   ) {
     this.validateObjectId(fileId);
-    return this.fileService.getAnnotations(fileId, req.user);
+    return this.fileService.getAnnotations(fileId, req.user, token);
   }
 
   @Get('list')
@@ -85,20 +89,22 @@ export class FileController {
   @Get(':id/download')
   async downloadFile(
     @Param('id') id: string,
+    @Query('token') token: string,
     @Req() req: Request & { user: any },
     @Res() res: Response,
   ) {
     this.validateObjectId(id);
-    return this.fileService.downloadFile(id, req.user, res);
+    return this.fileService.downloadFile(id, req.user, res, token);
   }
 
   @Get(':id/download-with-annotations')
   async downloadFileWithAnnotations(
     @Param('id') id: string,
+    @Query('token') token: string,
     @Req() req: Request & { user: any },
   ) {
     this.validateObjectId(id);
-    return this.fileService.downloadFileWithAnnotations(id, req.user);
+    return this.fileService.downloadFileWithAnnotations(id, req.user, token);
   }
 
   @Get(':id/users')
@@ -147,10 +153,11 @@ export class FileController {
   async saveAnnotation(
     @Param('id') fileId: string,
     @Body() annotationDto: CreateAnnotationDto,
+    @Query('token') token: string,
     @Req() req: Request & { user: any },
   ) {
     this.validateObjectId(fileId);
-    return this.fileService.saveAnnotation(fileId, annotationDto, req.user);
+    return this.fileService.saveAnnotation(fileId, annotationDto, req.user, token);
   }
 
   @Delete(':id')
@@ -166,6 +173,54 @@ export class FileController {
   async getFileInfo(@Param('id') id: string) {
     this.validateObjectId(id);
     return this.fileService.getFileInfo(id);
+  }
+
+  // =============================================
+  // SHAREABLE LINK ENDPOINTS
+  // =============================================
+
+  @Post('shareable-link/create')
+  async createShareableLink(
+    @Body() createShareableLinkDto: CreateShareableLinkDto,
+    @Req() req: Request & { user: any },
+  ) {
+    this.validateObjectId(createShareableLinkDto.fileId);
+    return this.fileService.createShareableLink(createShareableLinkDto, req.user);
+  }
+
+  @Get(':id/shareable-links')
+  async getShareableLinks(
+    @Param('id') fileId: string,
+    @Req() req: Request & { user: any },
+  ) {
+    this.validateObjectId(fileId);
+    return this.fileService.getShareableLinks(fileId, req.user);
+  }
+
+  @Delete('shareable-link/:linkId')
+  async deleteShareableLink(
+    @Param('linkId') linkId: string,
+    @Req() req: Request & { user: any },
+  ) {
+    this.validateObjectId(linkId);
+    return this.fileService.deleteShareableLink(linkId, req.user);
+  }
+
+  @Put('shareable-link/toggle')
+  async toggleShareableLinkFeature(
+    @Body() toggleShareableLinkDto: ToggleShareableLinkDto,
+    @Req() req: Request & { user: any },
+  ) {
+    this.validateObjectId(toggleShareableLinkDto.fileId);
+    return this.fileService.toggleShareableLinkFeature(toggleShareableLinkDto, req.user);
+  }
+
+  @Post('access-via-link')
+  async accessViaLink(
+    @Body() accessViaLinkDto: AccessViaLinkDto,
+    @Req() req: Request & { user: any },
+  ) {
+    return this.fileService.accessViaLink(accessViaLinkDto.token, req.user);
   }
 
   @Get('cache/test/:id')

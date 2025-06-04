@@ -37,6 +37,10 @@ export class File extends Document {
 
   @Prop({ default: Date.now })
   updatedAt: Date;
+
+  // Shareable link settings
+  @Prop({ required: true, default: true })
+  shareableLinkEnabled: boolean;
 }
 
 export const FileSchema = SchemaFactory.createForClass(File);
