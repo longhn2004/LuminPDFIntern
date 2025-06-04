@@ -99,7 +99,6 @@ const GoogleDriveButton: React.FC<GoogleDriveButtonProps> = ({
                 <li>{translations.dashboard("googleDrive.step1")}</li>
                 <li>{translations.dashboard("googleDrive.step2")}</li>
                 <li>{translations.dashboard("googleDrive.step3")}</li>
-                <li>{translations.dashboard("googleDrive.step4")}</li>
               </ol>
             </div>
 

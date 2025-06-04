@@ -83,7 +83,7 @@
     "redirectingToDashboard": "Chuyển hướng đến bảng điều khiển trong {seconds} giây...",
     "verifyingEmail": "Đang xác minh email của bạn",
     "verifyingEmailMessage": "Vui lòng đợi trong khi chúng tôi xác minh địa chỉ email của bạn...",
-    "companySlogan": "Một thế giới nơi hợp tác tài liệu nhanh chóng, thú vị và dễ dàng"
+    "companySlogan": "Một thế giới nơi hợp tác tài liệu trở nên nhanh chóng, thú vị và dễ dàng"
   },
   "dashboard": {
     "title": "Bảng điều khiển",
@@ -137,11 +137,11 @@
     "emptyStateDescription": "Tải lên tài liệu đầu tiên để bắt đầu",
     "authGuardMessage": "Vui lòng xác thực để truy cập nội dung này",
     "googleDrive": {
-      "urlOrFileIdLabel": "URL Google Drive hoặc ID tập tin",
-      "urlPlaceholder": "Dán URL Google Drive hoặc ID tập tin...",
+      "urlOrFileIdLabel": "URL Google Drive",
+      "urlPlaceholder": "Dán URL Google Drive",
       "howToGetUrl": "Cách lấy URL:",
       "step1": "Nhấp chuột phải vào tập tin PDF trong Google Drive",
-      "step2": "Chọn \"Lấy liên kết\" hoặc \"Chia sẻ\"",
+      "step2": "Chọn \"Chia sẻ\", chuyển từ \"Hạn chế\" sang \"Bất kỳ ai có đường liên kết\" sau đó chọn \"Sao chép đường liên kết\"",
       "step3": "Sao chép URL và dán vào ô trên",
       "step4": "Đảm bảo tập tin được chia sẻ với tài khoản dịch vụ của chúng tôi"
     }

@@ -137,11 +137,11 @@
     "emptyStateDescription": "Upload your first document to get started",
     "authGuardMessage": "Please authenticate to access this content",
     "googleDrive": {
-      "urlOrFileIdLabel": "Google Drive URL or File ID",
-      "urlPlaceholder": "Paste Google Drive URL or file ID...",
+      "urlOrFileIdLabel": "Google Drive URL",
+      "urlPlaceholder": "Paste Google Drive URL",
       "howToGetUrl": "How to get the URL:",
       "step1": "Right-click on a PDF file in Google Drive",
-      "step2": "Select \"Get link\" or \"Share\"",
+      "step2": "Select \"Share\", change from \"Restricted\" to \"Anyone with the link\" then select \"Copy link\"",
       "step3": "Copy the URL and paste it above",
       "step4": "Make sure the file is shared with our service account"
     }

@@ -45,6 +45,7 @@ const isPublicPath = (path: string) => {
     path === publicPath || 
     path.startsWith(`${publicPath}/`) ||
     path.includes('images/') ||
+    path.startsWith('/webviewer/') ||  // Allow WebViewer static files
     path === '/_next' ||
     path.startsWith('/_next/')
   );
@@ -60,7 +61,7 @@ const isValidRoute = (path: string) => {
   // Allow Next.js internal paths
   if (path.startsWith('/_next/') || path === '/_next' || 
       path.includes('favicon.ico') || path.includes('images/') ||
-      path.startsWith('/api/')) {
+      path.startsWith('/api/') || path.startsWith('/webviewer/')) {
     return true;
   }
 
