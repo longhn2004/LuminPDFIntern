@@ -7,6 +7,7 @@ const publicPaths = [
   '/auth/signup', 
   '/auth/verify-email',
   '/auth/verify-success',
+  '/auth/verify-error',
   '/api/auth/login',
   '/api/auth/register',
   '/api/auth/resend-verification',
@@ -21,6 +22,21 @@ const authPages = [
   '/auth/signin',
   '/auth/signup',
   '/',  // Root path should redirect to document-list if logged in
+];
+
+// Valid routes in the application
+const validRoutes = [
+  '/',
+  '/auth/signin',
+  '/auth/signup',
+  '/auth/verify-email',
+  '/auth/verify-success', 
+  '/auth/verify-error',
+  '/dashboard/document-list',
+  '/dashboard/viewpdf',
+  '/share',
+  '/notfound',
+  '/api'
 ];
 
 // Check if the path is a public path or starts with one of the public paths
@@ -39,6 +55,30 @@ const isAuthPage = (path: string) => {
   return authPages.some(authPage => path === authPage);
 };
 
+// Check if the path is a valid route
+const isValidRoute = (path: string) => {
+  // Allow Next.js internal paths
+  if (path.startsWith('/_next/') || path === '/_next' || 
+      path.includes('favicon.ico') || path.includes('images/') ||
+      path.startsWith('/api/')) {
+    return true;
+  }
+
+  // Check if path matches any valid route exactly or starts with a valid route
+  return validRoutes.some(route => {
+    if (route === '/') {
+      return path === '/';
+    }
+    if (route === '/api') {
+      return path.startsWith('/api/');
+    }
+    if (route === '/dashboard/viewpdf') {
+      return path.startsWith('/dashboard/viewpdf/');
+    }
+    return path === route || path.startsWith(`${route}/`);
+  });
+};
+
 /**
  * Middleware function to handle authentication and API request forwarding
  */
@@ -47,6 +87,11 @@ export function middleware(request: NextRequest) {
   
   // Check for authentication token
   const token = request.cookies.get('access_token');
+
+  // Check if route is valid first (before authentication checks)
+  if (!isValidRoute(pathname)) {
+    return NextResponse.redirect(new URL('/notfound', request.url));
+  }
 
   // If user is logged in and tries to access auth pages, redirect to document-list
   if (token && isAuthPage(pathname)) {

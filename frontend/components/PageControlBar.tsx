@@ -10,6 +10,7 @@ import {
   isAtMaxZoom
 } from './ZoomControls';
 import { ZOOM_PRESETS, MIN_ZOOM, MAX_ZOOM } from './ZoomConstants';
+import { useAppTranslations } from '@/hooks/useTranslations';
 
 interface PageControlBarProps {
   className?: string;
@@ -33,6 +34,7 @@ interface ZoomControlProps {
   onOpenCustomZoom: () => void;
   dropdownRef: React.RefObject<HTMLDivElement | null>;
   customInputRef: React.RefObject<HTMLInputElement | null>;
+  translations: any;
 }
 
 interface PageNavigationProps {
@@ -49,6 +51,7 @@ interface PageNavigationProps {
   onCustomPageKeyPress: (e: React.KeyboardEvent) => void;
   onApplyCustomPage: () => void;
   customPageInputRef: React.RefObject<HTMLInputElement | null>;
+  translations: any;
 }
 
 /**
@@ -79,7 +82,8 @@ const ZoomControl: React.FC<ZoomControlProps> = ({
   onPresetZoom,
   onOpenCustomZoom,
   dropdownRef,
-  customInputRef
+  customInputRef,
+  translations
 }) => {
   return (
     <div className="flex items-center space-x-1 relative">
@@ -90,8 +94,8 @@ const ZoomControl: React.FC<ZoomControlProps> = ({
           ? 'text-gray-300 cursor-not-allowed' 
           : 'hover:bg-gray-100 text-gray-600'}`}
         disabled={isMinZoom}
-        title={isMinZoom ? "Minimum zoom reached (50%)" : "Zoom Out"}
-        aria-label="Zoom out"
+        title={isMinZoom ? translations.viewer('minimumZoomReached') : translations.viewer('zoomOut')}
+        aria-label={translations.viewer('zoomOut')}
       >
         <div className="w-4 h-4 rounded-full flex items-center justify-center border border-black">
           <FaMinus size={12} />
@@ -103,7 +107,7 @@ const ZoomControl: React.FC<ZoomControlProps> = ({
         ref={dropdownRef}
         className="px-3 py-1 min-w-[80px] text-center font-medium text-gray-700 bg-gray-50 rounded cursor-pointer relative hover:bg-gray-100 transition-colors"
         onDoubleClick={onDisplayDoubleClick}
-        title="Click to open zoom presets, double-click for custom zoom"
+        title={translations.viewer('clickForZoomPresets')}
       >
         {isCustomZoom ? (
           <div className="flex items-center justify-center">
@@ -125,8 +129,8 @@ const ZoomControl: React.FC<ZoomControlProps> = ({
                 onApplyCustomZoom();
               }} 
               className="ml-1 text-green-500 hover:text-green-600"
-              title="Apply"
-              aria-label="Apply custom zoom"
+              title={translations.common('apply')}
+              aria-label={translations.viewer('applyCustomZoom')}
             >
               <FaCheck size={12} />
             </button>
@@ -166,8 +170,8 @@ const ZoomControl: React.FC<ZoomControlProps> = ({
           ? 'text-gray-300 cursor-not-allowed' 
           : 'hover:bg-gray-100 text-gray-600'}`}
         disabled={isMaxZoom}
-        title={isMaxZoom ? "Maximum zoom reached (200%)" : "Zoom In"}
-        aria-label="Zoom in"
+        title={isMaxZoom ? translations.viewer('maximumZoomReached') : translations.viewer('zoomIn')}
+        aria-label={translations.viewer('zoomIn')}
       >
         <div className="w-4 h-4 rounded-full flex items-center justify-center border border-black">
           <FaPlus size={12} />
@@ -193,7 +197,8 @@ const PageNavigation: React.FC<PageNavigationProps> = ({
   onCustomPageChange,
   onCustomPageKeyPress,
   onApplyCustomPage,
-  customPageInputRef
+  customPageInputRef,
+  translations
 }) => {
   return (
     <div className="flex items-center space-x-1">
@@ -204,8 +209,8 @@ const PageNavigation: React.FC<PageNavigationProps> = ({
           ? 'text-gray-300 cursor-not-allowed' 
           : 'hover:bg-gray-100 text-gray-600'}`}
         disabled={currentPage === 1}
-        title="First Page"
-        aria-label="Go to first page"
+        title={translations.viewer('firstPage')}
+        aria-label={translations.viewer('firstPage')}
       >
         &lt;&lt;
       </button>
@@ -217,8 +222,8 @@ const PageNavigation: React.FC<PageNavigationProps> = ({
           ? 'text-gray-300 cursor-not-allowed' 
           : 'hover:bg-gray-100 text-gray-600'}`}
         disabled={currentPage === 1}
-        title="Previous Page"
-        aria-label="Go to previous page"
+        title={translations.viewer('previousPage')}
+        aria-label={translations.viewer('previousPage')}
       >
         &lt;
       </button>
@@ -227,7 +232,7 @@ const PageNavigation: React.FC<PageNavigationProps> = ({
       <div 
         className="px-3 py-1 text-center font-medium text-gray-700 cursor-pointer"
         onDoubleClick={onPageDisplayDoubleClick}
-        title="Double-click to go to specific page"
+        title={translations.viewer('doubleClickToGoToPage')}
       >
         {isCustomPage ? (
           <div className="flex items-center">
@@ -249,8 +254,8 @@ const PageNavigation: React.FC<PageNavigationProps> = ({
                 onApplyCustomPage();
               }} 
               className="ml-2 text-green-500"
-              title="Go to page"
-              aria-label="Go to specified page"
+              title={translations.viewer('goToPage')}
+              aria-label={translations.viewer('goToSpecifiedPage')}
             >
               <FaCheck size={12} />
             </button>
@@ -267,8 +272,8 @@ const PageNavigation: React.FC<PageNavigationProps> = ({
           ? 'text-gray-300 cursor-not-allowed' 
           : 'hover:bg-gray-100 text-gray-600'}`}
         disabled={currentPage === totalPages}
-        title="Next Page"
-        aria-label="Go to next page"
+        title={translations.viewer('nextPage')}
+        aria-label={translations.viewer('nextPage')}
       >
         &gt;
       </button>
@@ -280,8 +285,8 @@ const PageNavigation: React.FC<PageNavigationProps> = ({
           ? 'text-gray-300 cursor-not-allowed' 
           : 'hover:bg-gray-100 text-gray-600'}`}
         disabled={currentPage === totalPages}
-        title="Last Page"
-        aria-label="Go to last page"
+        title={translations.viewer('lastPage')}
+        aria-label={translations.viewer('lastPage')}
       >
         &gt;&gt;
       </button>
@@ -490,6 +495,7 @@ const usePageNavigation = () => {
  * Main Page Control Bar Component
  */
 export default function PageControlBar({ className = '' }: PageControlBarProps) {
+  const translations = useAppTranslations();
   const zoomControl = useZoomControl();
   const pageNavigation = usePageNavigation();
   
@@ -570,6 +576,7 @@ export default function PageControlBar({ className = '' }: PageControlBarProps) 
             }}
             dropdownRef={dropdownRef}
             customInputRef={customInputRef}
+            translations={translations}
           />
 
           {/* Page Navigation Controls */}
@@ -592,6 +599,7 @@ export default function PageControlBar({ className = '' }: PageControlBarProps) 
             onCustomPageKeyPress={pageNavigation.handleCustomPageKeyPress}
             onApplyCustomPage={pageNavigation.applyCustomPage}
             customPageInputRef={customPageInputRef}
+            translations={translations}
           />
         </div>
       </div>

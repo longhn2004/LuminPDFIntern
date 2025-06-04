@@ -7,6 +7,7 @@ import PDFToolbar from './SharedPDFToolbar';
 import PDFViewerCore from './SharedPDFViewerCore';
 import NotFoundPage from '../NotFoundPage';
 import UnauthorizedPage from '../UnauthorizedPage';
+import { useAppTranslations } from "@/hooks/useTranslations";
 
 interface SharedPDFViewerProps {
   shareToken: string;
@@ -26,6 +27,7 @@ interface AccessInfo {
  * Hook for managing shared file access via token
  */
 const useSharedFileAccess = (shareToken: string) => {
+  const translations = useAppTranslations();
   const [accessInfo, setAccessInfo] = useState<AccessInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -34,7 +36,7 @@ const useSharedFileAccess = (shareToken: string) => {
 
   const validateToken = useCallback(async () => {
     if (!shareToken) {
-      setError('No share token provided');
+      setError(translations.share("noShareToken"));
       setIsLoading(false);
       return;
     }
@@ -63,7 +65,7 @@ const useSharedFileAccess = (shareToken: string) => {
           setUnauthorized(true);
           return;
         }
-        throw new Error(`Failed to validate share token: ${response.statusText}`);
+        throw new Error(`${translations.share("failedToValidateShareToken")}: ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -83,7 +85,7 @@ const useSharedFileAccess = (shareToken: string) => {
 
     } catch (err: any) {
       console.error('SharedPDFViewer: Error validating token:', err);
-      setError(err.message || 'Failed to validate share token');
+      setError(err.message || translations.share("failedToValidateShareToken"));
     } finally {
       setIsLoading(false);
     }
@@ -100,52 +102,54 @@ const useSharedFileAccess = (shareToken: string) => {
 };
 
 /**
- * Hook for download functionality with token support
+ * Custom hook for shared download functionality
  */
 const useSharedDownloadHandlers = (accessInfo: AccessInfo | null, shareToken: string) => {
+  const translations = useAppTranslations();
+
   const downloadFile = useCallback(async () => {
-    if (!accessInfo) return;
+    if (!accessInfo || !accessInfo.accessGranted) {
+      toast.error(translations.errors("accessDenied"));
+      return;
+    }
 
     try {
-      toast.info("Preparing download...");
-      const downloadUrl = `/api/file/${accessInfo.fileId}/download?token=${shareToken}`;
-      const response = await fetch(downloadUrl);
-      
+      const response = await fetch(`/api/file/access-via-link?token=${shareToken}&action=download`);
       if (!response.ok) {
-        throw new Error(`Failed to download: ${response.status}`);
+        throw new Error(`Download failed: ${response.status}`);
       }
       
       const blob = await response.blob();
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.href = url;
-      link.download = accessInfo.fileName || "document.pdf";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      toast.success("Download started");
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = accessInfo.fileName || 'document.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("SharedPDFViewer: Error downloading file:", error);
-      toast.error("Failed to download document");
+      toast.error(translations.errors("fileNotFound"));
     }
   }, [accessInfo, shareToken]);
 
   const downloadFileWithAnnotations = useCallback(async () => {
-    if (!accessInfo) return;
+    if (!accessInfo || !accessInfo.accessGranted) {
+      toast.error(translations.errors("accessDenied"));
+      return;
+    }
+
+    if (accessInfo.role !== 'editor') {
+      toast.error(translations.errors("accessDenied"));
+      return;
+    }
 
     try {
-      toast.info("Preparing download with annotations...");
-      
-      if (accessInfo.role !== 'editor') {
-        toast.error("You don't have permission to download with annotations");
-        return;
-      }
-      
       const response = await fetch(`/api/file/${accessInfo.fileId}/download-with-annotations?token=${shareToken}`);
       if (!response.ok) {
         if (response.status === 403) {
-          toast.error("You don't have permission to download with annotations");
+          toast.error(translations.errors("accessDenied"));
           return;
         }
         throw new Error(`Failed to get download info: ${response.status}`);
@@ -154,20 +158,20 @@ const useSharedDownloadHandlers = (accessInfo: AccessInfo | null, shareToken: st
       const downloadInfo = await response.json();
       
       if (!downloadInfo.hasAnnotations) {
-        toast.info("No annotations found, downloading original file...");
+        toast.info(translations.viewer("failedToCreatePDFWithAnnotations"));
         await downloadFile();
         return;
       }
 
       if (!window.Core || !window.documentViewer) {
-        toast.error("PDF viewer not ready. Please wait for the document to load completely.");
+        toast.error(translations.share("pdfViewerNotReady"));
         return;
       }
 
       try {
         const doc = (window.documentViewer as any).getDocument();
         if (!doc) {
-          toast.error("Document not loaded. Please wait for the document to load completely.");
+          toast.error(translations.share("documentNotLoaded"));
           return;
         }
 
@@ -175,12 +179,10 @@ const useSharedDownloadHandlers = (accessInfo: AccessInfo | null, shareToken: st
         
         const annotations = annotationManager.getAnnotationsList();
         if (annotations.length === 0) {
-          toast.info("No visible annotations found, downloading original file...");
+          toast.info(translations.viewer("failedToCreatePDFWithAnnotations"));
           await downloadFile();
           return;
         }
-
-        toast.info("Flattening annotations into PDF...");
 
         const xfdfString = await annotationManager.exportAnnotations();
         
@@ -203,17 +205,17 @@ const useSharedDownloadHandlers = (accessInfo: AccessInfo | null, shareToken: st
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
         
-        toast.success("Download with annotations completed!");
+        toast.success(translations.viewer("downloadWithAnnotationsCompleted"));
       } catch (pdfError) {
         console.error("SharedPDFViewer: Error creating flattened PDF:", pdfError);
-        toast.error("Failed to create PDF with annotations. Downloading original file instead...");
+        toast.error(translations.viewer("failedToCreatePDFWithAnnotations"));
         await downloadFile();
       }
     } catch (error) {
       console.error("SharedPDFViewer: Error downloading file with annotations:", error);
-      toast.error("Failed to download document with annotations");
+      toast.error(translations.viewer("failedToDownloadWithAnnotations"));
     }
-  }, [accessInfo, shareToken, downloadFile]);
+  }, [accessInfo, shareToken, downloadFile, translations]);
 
   return {
     downloadFile,
@@ -226,6 +228,7 @@ const useSharedDownloadHandlers = (accessInfo: AccessInfo | null, shareToken: st
  * Designed specifically for temporary access without permanent permissions
  */
 export default function SharedPDFViewer({ shareToken, className = "" }: SharedPDFViewerProps) {
+  const translations = useAppTranslations();
   const router = useRouter();
 
   const {
@@ -265,7 +268,7 @@ export default function SharedPDFViewer({ shareToken, className = "" }: SharedPD
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center p-10">
-          <h1 className="text-2xl font-semibold mb-4 text-gray-700">Validating shared link...</h1>
+          <h1 className="text-2xl font-semibold mb-4 text-gray-700">{translations.share("validatingSharedLink")}</h1>
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
         </div>
       </div>
@@ -274,24 +277,34 @@ export default function SharedPDFViewer({ shareToken, className = "" }: SharedPD
 
   // Error states
   if (notFound || error?.includes('not found')) {
-    return <NotFoundPage />;
+    return <NotFoundPage 
+      title={translations.viewer("documentNotFound")}
+      message={translations.viewer("documentNotFoundMessage")}
+      showHeader={false}
+      showTokenChecker={false}
+    />;
   }
 
   if (unauthorized || error?.includes('access') || error?.includes('permission')) {
-    return <UnauthorizedPage />;
+    return <UnauthorizedPage 
+      title={translations.viewer("unauthorizedAccess")}
+      message={translations.viewer("unauthorizedMessage")}
+      showHeader={false}
+      showTokenChecker={false}
+    />;
   }
 
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center p-10 max-w-md">
-          <h1 className="text-2xl font-semibold mb-4 text-red-600">Error</h1>
+          <h1 className="text-2xl font-semibold mb-4 text-red-600">{translations.common("error")}</h1>
           <p className="text-gray-600 mb-4">{error}</p>
           <button
             onClick={validateToken}
             className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
           >
-            Try Again
+            {translations.common("retry")}
           </button>
         </div>
       </div>
@@ -309,11 +322,12 @@ export default function SharedPDFViewer({ shareToken, className = "" }: SharedPD
             <div className="flex items-center gap-2 text-sm">
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               <span className="text-green-700 font-medium">
-                Viewing shared file
+                {translations.share("viewingSharedFile")}
               </span>
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               <span className="text-green-600">
-                • {accessInfo.role} access
-                {accessInfo.temporary && ' (temporary)'}
+                {accessInfo.role === 'viewer' ? translations.share("ViewerRole") : translations.share("EditorRole")}
+                {accessInfo.temporary && ` (${translations.share("temporary")})`}
               </span>
             </div>
           </div>

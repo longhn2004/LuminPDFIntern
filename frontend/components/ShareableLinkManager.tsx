@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { FaLink, FaCopy, FaTrash, FaEye, FaEdit, FaToggleOn, FaToggleOff } from 'react-icons/fa';
+import { useAppTranslations } from '@/hooks/useTranslations';
 
 interface ShareableLink {
   id: string;
@@ -25,6 +26,7 @@ const ShareableLinkManager: React.FC<ShareableLinkManagerProps> = ({
   onToggleFeature,
   className = ''
 }) => {
+  const translations = useAppTranslations();
   const [links, setLinks] = useState<ShareableLink[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -45,7 +47,7 @@ const ShareableLinkManager: React.FC<ShareableLinkManagerProps> = ({
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to load shareable links');
+        throw new Error(data.error || translations.sharing('shareableLinks.failedToLoad'));
       }
       
       setLinks(data);
@@ -75,7 +77,7 @@ const ShareableLinkManager: React.FC<ShareableLinkManagerProps> = ({
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to create shareable link');
+        throw new Error(data.error || translations.sharing('shareableLinks.failedToCreate'));
       }
       
       // Reload links to get updated list
@@ -102,7 +104,7 @@ const ShareableLinkManager: React.FC<ShareableLinkManagerProps> = ({
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to delete shareable link');
+        throw new Error(data.error || translations.sharing('shareableLinks.failedToDelete'));
       }
       
       // Remove link from local state
@@ -144,7 +146,7 @@ const ShareableLinkManager: React.FC<ShareableLinkManagerProps> = ({
       const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(data.error || 'Failed to toggle shareable link feature');
+        throw new Error(data.error || translations.sharing('shareableLinks.failedToToggle'));
       }
       
       onToggleFeature(enabled);
@@ -197,8 +199,8 @@ const ShareableLinkManager: React.FC<ShareableLinkManagerProps> = ({
         <div className="flex items-center gap-3">
           <FaLink className="text-gray-600" />
           <div>
-            <h3 className="font-medium text-gray-900">Shareable Links</h3>
-            <p className="text-sm text-gray-600">Allow access via shareable links</p>
+            <h3 className="font-medium text-gray-900">{translations.sharing('shareableLinks.title')}</h3>
+            <p className="text-sm text-gray-600">{translations.sharing('shareableLinks.description')}</p>
           </div>
         </div>
         <button
@@ -212,7 +214,7 @@ const ShareableLinkManager: React.FC<ShareableLinkManagerProps> = ({
         >
           {shareableLinkEnabled ? <FaToggleOn size={18} /> : <FaToggleOff size={18} />}
           <span className="text-sm font-medium">
-            {shareableLinkEnabled ? 'Enabled' : 'Disabled'}
+            {shareableLinkEnabled ? translations.sharing('shareableLinks.enabled') : translations.sharing('shareableLinks.disabled')}
           </span>
         </button>
       </div>
@@ -227,7 +229,7 @@ const ShareableLinkManager: React.FC<ShareableLinkManagerProps> = ({
       {/* Shareable Links Section */}
       {shareableLinkEnabled && (
         <div className="space-y-3">
-          <h4 className="font-medium text-gray-900">Create Shareable Links</h4>
+          <h4 className="font-medium text-gray-900">{translations.sharing('shareableLinks.createTitle')}</h4>
           
           {/* Create Link Buttons */}
           <div className="grid grid-cols-2 gap-3">
@@ -242,14 +244,14 @@ const ShareableLinkManager: React.FC<ShareableLinkManagerProps> = ({
                         <div className="flex items-center gap-2">
                           {getRoleIcon(role)}
                           <span className={`text-sm font-medium capitalize ${getRoleColor(role)}`}>
-                            {role}
+                            {translations.sharing(`roles.${role}`)}
                           </span>
                         </div>
                         <button
                           onClick={() => deleteShareableLink(existingLink.id)}
                           disabled={loading}
                           className="text-gray-500 hover:text-gray-800 transition-colors"
-                          title="Delete link"
+                          title={translations.sharing('shareableLinks.deleteLink')}
                         >
                           <FaTrash size={12} />
                         </button>
@@ -268,14 +270,14 @@ const ShareableLinkManager: React.FC<ShareableLinkManagerProps> = ({
                               ? 'bg-gray-800 text-white'
                               : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
                           }`}
-                          title="Copy link"
+                          title={translations.sharing('shareableLinks.copyLink')}
                         >
                           <FaCopy size={10} />
                         </button>
                       </div>
                       
                       <div className="text-xs text-gray-400 mt-1">
-                        Created: {new Date(existingLink.createdAt).toLocaleDateString()}
+                        {translations.sharing('shareableLinks.created')} {new Date(existingLink.createdAt).toLocaleDateString()}
                       </div>
                     </div>
                   ) : (
@@ -287,7 +289,7 @@ const ShareableLinkManager: React.FC<ShareableLinkManagerProps> = ({
                       <div className="flex items-center justify-center gap-2">
                         {getRoleIcon(role)}
                         <span className="text-sm font-medium capitalize">
-                          Create {role} link
+                          {translations.sharing(`shareableLinks.create${role.charAt(0).toUpperCase() + role.slice(1)}Link`)}
                         </span>
                       </div>
                     </button>

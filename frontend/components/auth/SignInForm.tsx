@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useTranslations } from 'next-intl';
 import AuthInput from "./AuthInput";
 import AuthGoogleButton from "./AuthGoogleButton";
 import AuthDivider from "./AuthDivider";
@@ -22,18 +23,19 @@ export default function SignInForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const verificationStatus = searchParams.get("verification");
+  const t = useTranslations();
 
   useEffect(() => {
     if (verificationStatus === "required") {
-      setVerificationMessage("Please verify your email before signing in.");
+      setVerificationMessage(t('auth.verificationRequired'));
     } else if (verificationStatus === "success") {
-      setVerificationMessage("Email verified successfully! You can now sign in.");
+      setVerificationMessage(t('auth.verificationSuccess'));
     } else if (verificationStatus === "conflictgoogle") {
-      setVerificationMessage("You have already signed up that email with Google.");
+      setVerificationMessage(t('auth.conflictGoogle'));
     } else if (verificationStatus === "conflictemail") {
-      setVerificationMessage("You have already signed up that email using email and password.");
+      setVerificationMessage(t('auth.conflictEmail'));
     }
-  }, [verificationStatus]);
+  }, [verificationStatus, t]);
 
   const handleSignIn = async () => {
     setInvalidEmail(false);
@@ -95,40 +97,40 @@ export default function SignInForm() {
   return (
     <>
       <div className="flex items-center gap-2">
-        <h1 className="text-2xl font-bold text-[45px]">Sign In </h1>
+        <h1 className="text-2xl font-bold text-[45px]">{t('auth.signin')} </h1>
         <img src="/images/dsvlogo.png" alt="Logo" className="h-10 w-10" />
       </div>
       <AuthGoogleButton />
       <AuthDivider />
       <AuthInput
-        label="Email"
+        label={t('auth.email')}
         type="email"
         name="email"
         value={email}
         onChange={e => setEmail(e.target.value)}
-        error={emptyEmail ? "Mandatory field" : invalidEmail ? "Invalid email address" : undefined}
+        error={emptyEmail ? t('auth.mandatoryField') : invalidEmail ? t('auth.invalidEmailAddress') : undefined}
       />
       <AuthInput
-        label="Password"
+        label={t('auth.password')}
         type="password"
         name="password"
         value={password}
         onChange={e => setPassword(e.target.value)}
-        error={emptyPassword ? "Mandatory field" : invalidPassword ? "Password must be at least 8 characters" : undefined}
+        error={emptyPassword ? t('auth.mandatoryField') : invalidPassword ? t('auth.passwordMinLength') : undefined}
         showPassword={showPassword}
         setShowPassword={setShowPassword}
       />
-      <AuthErrorMessage message={incorrectEmailOrPassword ? "Incorrect email or password" : verificationMessage} />
+      <AuthErrorMessage message={incorrectEmailOrPassword ? t('auth.incorrectEmailOrPassword') : verificationMessage} />
       <button
         className="bg-blue-500 w-full text-white p-2 rounded-xl hover:bg-blue-600 cursor-pointer active:scale-95 transition-all duration-300 mt-2"
         onClick={handleSignIn}
       >
-        Sign In
+        {t('auth.signin')}
       </button>
       <div className="flex items-center w-full justify-center h-10 relative top-5">
         <p className="text-gray-400">
-          Do not have an account?{' '}
-          <Link href="/auth/signup" className="text-black hover:text-blue-600 cursor-pointer">Sign Up</Link>
+          {t('auth.dontHaveAccount')}{' '}
+          <Link href="/auth/signup" className="text-black hover:text-blue-600 cursor-pointer">{t('auth.signup')}</Link>
         </p>
       </div>
     </>

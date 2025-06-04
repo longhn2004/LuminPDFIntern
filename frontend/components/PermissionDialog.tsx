@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import Avatar from "./Avatar";
 import ShareableLinkManager from "./ShareableLinkManager";
+import { useAppTranslations } from '@/hooks/useTranslations';
 
 interface PermissionDialogProps {
   isOpen: boolean;
@@ -21,6 +22,7 @@ export default function PermissionDialog({
   listUsers,
   fetchListUsers
 }: PermissionDialogProps) {
+  const translations = useAppTranslations();
   const [isAddingUser, setIsAddingUser] = useState(false);
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("viewer");
@@ -85,7 +87,7 @@ export default function PermissionDialog({
     if (existingUser) {
       setEmailStatus({ 
         valid: true, 
-        message: `${existingUser.name} already has ${existingUser.role} access to this file`,
+        message: translations.t('sharing.alreadyHasAccess', { name: existingUser.name, role: existingUser.role }),
         user: { name: existingUser.name, email: existingUser.email },
         isExistingUser: true
       });
@@ -101,7 +103,7 @@ export default function PermissionDialog({
       if (data.name) {
         setEmailStatus({ valid: true, user: { name: data.name, email: data.email } });
       } else {
-        setEmailStatus({ valid: true, message: "[Unregistered User]" });
+        setEmailStatus({ valid: true, message: translations.sharing('unregisteredUser') });
       }
     } catch (error) {
       setEmailStatus({ valid: false, message: "Error checking email" });
@@ -114,18 +116,18 @@ export default function PermissionDialog({
     e.preventDefault();
     const isValidEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!isValidEmail.test(email)) {
-      toast.error("Invalid email address");
+      toast.error(translations.sharing('invalidEmailAddress'));
       return;
     }
     if (email.trim() === "") {
       return;
     }
     if (invitedUsers.includes(email)) {
-      toast.warning("User already added to invitation list");
+      toast.warning(translations.sharing('userAlreadyAdded'));
       return;
     }
     if (listUsers.some(user => user.email.toLowerCase() === email.toLowerCase())) {
-      toast.warning("User already has access to this file");
+      toast.warning(translations.sharing('userAlreadyHasAccess'));
       return;
     }
 
@@ -164,14 +166,14 @@ export default function PermissionDialog({
       });
       
       if (response.ok) {
-        toast.success("Users invited successfully!");
+        toast.success(translations.sharing('usersInvitedSuccessfully'));
         await fetchListUsers();
         resetForm();
       } else {
         throw new Error('Failed to send invitations');
       }
     } catch (error) {
-      toast.error("Failed to invite users. Please try again.");
+      toast.error(translations.sharing('failedToInviteUsers'));
     } finally {
       setIsSendingInvitations(false);
     }
@@ -208,12 +210,12 @@ export default function PermissionDialog({
       }
 
       await response.json();
-      toast.success("Changes saved successfully!");
+      toast.success(translations.sharing('changesSavedSuccessfully'));
       await fetchListUsers();
       resetForm(); // This will clear pendingRoleChanges
       onClose();
     } catch (error: any) {
-      toast.error(error.message || "Failed to save changes. Please try again.");
+      toast.error(error.message || translations.sharing('failedToSaveChanges'));
     } finally {
       setIsSavingChanges(false);
     }
@@ -243,7 +245,7 @@ export default function PermissionDialog({
             <div className="flex items-center gap-3">
               {/* <FaShare className="text-xl" /> */}
               <div>
-                <h2 className="text-xl font-semibold">Share "{fileName}"</h2>
+                <h2 className="text-xl font-semibold">{translations.t('sharing.shareFile', { fileName })}</h2>
               </div>
             </div>
             {/* <button
@@ -279,7 +281,7 @@ export default function PermissionDialog({
             <div className="relative">
               <input
                 type="email"
-                placeholder="Add people by email"
+                placeholder={translations.sharing('addPeopleByEmail')}
                 className="w-full border-2 border-gray-200 rounded-xl px-4 py-3 pr-10 focus:border-gray-500 focus:ring-2 focus:ring-gray-200 outline-none transition-all duration-200 placeholder-gray-400"
                 value={email}
                 onChange={(e) => {
@@ -318,7 +320,7 @@ export default function PermissionDialog({
                   {isCheckingEmail ? (
                     <div className="flex items-center gap-2 text-gray-700">
                       <FaSpinner className="animate-spin" size={14} />
-                      <span className="text-sm">Checking email...</span>
+                      <span className="text-sm">{translations.sharing('checkingEmail')}</span>
                     </div>
                   ) : emailStatus.user ? (
                     <div className="flex items-center gap-2">
@@ -386,14 +388,14 @@ export default function PermissionDialog({
                             value={pendingRoleChanges.find(c => c.email === user.email)?.role || user.role}
                             onChange={(e) => handleUserRoleChange(user.email, e.target.value)}
                           >
-                            <option value="viewer">Viewer</option>
-                            <option value="editor">Editor</option>
-                            <option value="none">Remove</option>
+                            <option value="viewer">{translations.sharing('roles.viewer')}</option>
+                            <option value="editor">{translations.sharing('roles.editor')}</option>
+                            <option value="none">{translations.sharing('roles.remove')}</option>
                           </select>
                         </div>
                       ) : (
                         <span className="text-gray-500 italic px-3 py-2 rounded-lg text-sm font-medium">
-                          Owner
+                          {translations.sharing('roles.owner')}
                         </span>
                       )}
                     </div>
@@ -410,14 +412,14 @@ export default function PermissionDialog({
             <div className="flex items-center justify-between">
               {/* Permission Level Selection */}
               <div className="flex items-center gap-3">
-                <span className="font-medium text-gray-700">People Invited</span>
+                <span className="font-medium text-gray-700">{translations.sharing('peopleInvited')}</span>
                 <select
                   className="rounded-lg px-3 py-2 font-medium focus:border-gray-400 focus:ring-gray-400 focus:ring-2 transition-all"
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
                 >
-                  <option value="viewer">Can view</option>
-                  <option value="editor">Can edit</option>
+                  <option value="viewer">{translations.sharing('canView')}</option>
+                  <option value="editor">{translations.sharing('canEdit')}</option>
                 </select>
               </div>
               
@@ -431,7 +433,7 @@ export default function PermissionDialog({
                   disabled={isSendingInvitations}
                   className="px-6 py-2.5 text-gray-700 bg-gray-200 border-2 border-gray-300 rounded-xl font-medium hover:bg-gray-300 hover:border-gray-400 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  Cancel
+                  {translations.common('cancel')}
                 </button>
                 <button
                   onClick={handleSubmitShare}
@@ -441,10 +443,10 @@ export default function PermissionDialog({
                   {isSendingInvitations ? (
                     <>
                       <FaSpinner className="animate-spin" size={14} />
-                      Sending...
+                      {translations.sharing('sending')}
                     </>
                   ) : (
-                    'Send Invitations'
+                    translations.sharing('sendInvitations')
                   )}
                 </button>
               </div>
@@ -459,7 +461,7 @@ export default function PermissionDialog({
                 disabled={isSavingChanges}
                 className="px-6 py-2.5 text-gray-700 bg-gray-200 border-2 border-gray-300 rounded-xl font-medium hover:bg-gray-300 hover:border-gray-400 transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Cancel
+                {translations.common('cancel')}
               </button>
               <button
                 onClick={handleSaveRoleChanges}
@@ -469,10 +471,10 @@ export default function PermissionDialog({
                 {isSavingChanges ? (
                   <>
                     <FaSpinner className="animate-spin" size={14} />
-                    Saving...
+                    {translations.sharing('saving')}
                   </>
                 ) : (
-                  'Save Changes'
+                  translations.sharing('saveChanges')
                 )}
               </button>
             </div>

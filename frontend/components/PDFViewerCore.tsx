@@ -4,15 +4,17 @@ import PDFNavigationBar from './PageControlBar';
 import AnnotationPanel from './AnnotationPanel';
 import { zoomIn, zoomOut, setZoom } from './ZoomControls';
 import { MIN_ZOOM, MAX_ZOOM } from './ZoomConstants';
+import { useAppTranslations } from '@/hooks/useTranslations';
 
 interface PDFViewerCoreProps {
   pdfId: string;
 }
 
 export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
+  const translations = useAppTranslations();
   const [isLoaded, setIsLoaded] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
-  const [loadingStatus, setLoadingStatus] = useState<string>("Initializing viewer...");
+  const [loadingStatus, setLoadingStatus] = useState<string>(translations.viewer("initializingViewer"));
   
   const [userRole, setUserRole] = useState<string | null>(null);
   const [userRoleError, setUserRoleError] = useState<string | null>(null);
@@ -117,7 +119,7 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
     try {
       console.log("PDFViewerCore: Loading document from:", `/api/file/${pdfId}/download`);
       setLoadingError(null);
-      setLoadingStatus("Loading PDF document...");
+      setLoadingStatus(translations.viewer("loadingPDFDocument"));
       
       await documentViewerRef.current.loadDocument(
         `/api/file/${pdfId}/download`, 
@@ -129,9 +131,9 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
       );
     } catch (err) {
       console.error("PDFViewerCore: Error loading document:", err);
-      setLoadingError("Error loading PDF document. Please try again.");
+      setLoadingError(translations.viewer("errorLoadingPDFDocument"));
       setIsLoaded(false);
-      setLoadingStatus("Failed to load document");
+      setLoadingStatus(translations.viewer("failedToLoadDocument"));
     }
   };
   
@@ -147,7 +149,7 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
       return true;
     }
     
-    setLoadingStatus("Loading PDF viewer scripts...");
+    setLoadingStatus(translations.viewer("loadingPDFViewerScripts"));
     
     try {
       
@@ -181,8 +183,8 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
       return true;
     } catch (error: any) {
       console.error("PDFViewerCore: Failed to load scripts:", error);
-      setLoadingError(`Failed to load viewer scripts: ${error.message}`);
-      setLoadingStatus("Script loading failed");
+      setLoadingError(`${translations.viewer("failedToLoadViewerScripts")}: ${error.message}`);
+      setLoadingStatus(translations.viewer("scriptLoadingFailed"));
       return false;
     }
   };
@@ -296,7 +298,7 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
         console.log("PDFViewerCore: Loading scripts manually");
         const scriptsLoaded = await loadScriptsManually();
         if (!scriptsLoaded) {
-          throw new Error("Failed to load required scripts");
+          throw new Error(translations.viewer("failedToLoadRequiredScripts"));
         }
       }
       
@@ -311,11 +313,11 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
       
       if (!scrollElement || !viewerElement) {
         console.error("PDFViewerCore: Container elements missing");
-        setLoadingError("PDF viewer container not found. Please refresh.");
+        setLoadingError(translations.viewer("pdfViewerContainerNotFound"));
         return;
       }
       
-      setLoadingStatus("Setting up PDF viewer...");
+      setLoadingStatus(translations.viewer("settingUpPDFViewer"));
       console.log("PDFViewerCore: Setting worker path");
       
       await window.Core.setWorkerPath('/webviewer/core');
@@ -345,7 +347,7 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
         console.log("PDFViewerCore: Document loaded");
         setIsLoaded(true);
         setLoadingError(null);
-        setLoadingStatus("Document loaded");
+        setLoadingStatus(translations.viewer("documentLoaded"));
         
         try {
           documentViewer.zoomTo(1.0);
@@ -359,9 +361,9 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
       
       documentViewer.addEventListener('loaderror', (err: any) => {
         console.error("PDFViewerCore: Load error:", err);
-        setLoadingError("Failed to load PDF document. File may be corrupted.");
+        setLoadingError(translations.viewer("errorLoadingPDFDocument"));
         setIsLoaded(false);
-        setLoadingStatus("Failed");
+        setLoadingStatus(translations.viewer("failed"));
       });
       
       console.log("PDFViewerCore: Setting viewer elements");
@@ -376,7 +378,7 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
       setLoadingError(err instanceof Error ? err.message : "Unknown error");
       setIsLoaded(false);
       hasInitializedRef.current = false;
-      setLoadingStatus("Initialization failed");
+      setLoadingStatus(translations.viewer("initializationFailed"));
     }
   }
 
@@ -388,8 +390,8 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
           if (pdfId) fetchUserRole(pdfId);
         }).catch(err => {
           console.error("PDFViewerCore: Init failed:", err);
-          setLoadingError("Failed to initialize PDF viewer. Please refresh.");
-          setLoadingStatus("Initialization failed");
+          setLoadingError(translations.viewer("failedToInitializePDFViewer"));
+          setLoadingStatus(translations.viewer("initializationFailed"));
         });
       }, 300);
       
@@ -402,7 +404,7 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
     hasInitializedRef.current = false;
     initAttemptedRef.current = false;
     setLoadingError(null);
-    setLoadingStatus("Retrying...");
+    setLoadingStatus(translations.viewer("retrying"));
     
     if (documentViewerRef.current) {
       try {
@@ -452,18 +454,18 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
         {!isLoaded && (
           <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 z-10">
             <div className="text-center max-w-md p-6 bg-gray-50 rounded-lg shadow-lg">
-              <h1 className="text-xl font-semibold mb-2">Loading PDF</h1>
+              <h1 className="text-xl font-semibold mb-2">{translations.viewer("loadingPDF")}</h1>
               <p className="text-gray-600 mb-4">{loadingStatus}</p>
               <div className="w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
               {loadingError && (
                 <div className="text-red-500 mt-4">
-                  <p className="font-semibold">Error:</p>
+                  <p className="font-semibold">{translations.viewer("errorLabel")}</p>
                   <p>{loadingError}</p>
                   <button
                     onClick={handleRetry}
                     className="mt-3 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
                   >
-                    Retry
+                    {translations.common("retry")}
                   </button>
                 </div>
               )}

@@ -9,6 +9,7 @@ import PDFToolbar from './PDFToolbar';
 import PDFViewerCore from './PDFViewerCore';
 import NotFoundPage from './NotFoundPage';
 import UnauthorizedPage from './UnauthorizedPage';
+import { useAppTranslations } from "@/hooks/useTranslations";
 
 interface PDFViewerProps {
   pdfId: string;
@@ -156,85 +157,53 @@ const useFilePermissions = (pdfId: string) => {
 };
 
 /**
- * Hook for download functionality
+ * Custom hook for download functionality
  */
 const useDownloadHandlers = (pdfId: string, fileName: string, userRole: string) => {
+  const translations = useAppTranslations();
+
   const downloadFile = useCallback(async () => {
     try {
-      toast.info("Preparing download...");
-      const downloadUrl = `/api/file/${pdfId}/download`;
-      const response = await fetch(downloadUrl);
-      
+      const response = await fetch(`/api/file/${pdfId}/download`);
       if (!response.ok) {
-        throw new Error(`Failed to download: ${response.status}`);
+        throw new Error(`Download failed: ${response.status}`);
       }
       
       const blob = await response.blob();
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      link.href = url;
-      link.download = fileName || "document.pdf";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
-      toast.success("Download started");
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = fileName || 'document.pdf';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("PDFViewer: Error downloading file:", error);
-      toast.error("Failed to download document");
+      toast.error(translations.errors("fileNotFound"));
     }
-  }, [pdfId, fileName]);
+  }, [pdfId, fileName, translations]);
 
   const downloadFileWithAnnotations = useCallback(async () => {
-    try {
-      toast.info("Preparing download with annotations...");
-      
       if (userRole !== 'owner' && userRole !== 'editor') {
-        toast.error("You don't have permission to download with annotations");
+      toast.error(translations.errors("accessDenied"));
         return;
       }
       
-      const response = await fetch(`/api/file/${pdfId}/download-with-annotations`);
-      if (!response.ok) {
-        if (response.status === 403) {
-          toast.error("You don't have permission to download with annotations");
-          return;
-        }
-        throw new Error(`Failed to get download info: ${response.status}`);
+    try {
+      const documentViewer = window.documentViewer;
+      if (!documentViewer) {
+        throw new Error('Document viewer not available');
       }
       
-      const downloadInfo = await response.json();
-      
-      if (!downloadInfo.hasAnnotations) {
-        toast.info("No annotations found, downloading original file...");
-        await downloadFile();
-        return;
-      }
-
-      if (!window.Core || !window.documentViewer) {
-        toast.error("PDF viewer not ready. Please wait for the document to load completely.");
-        return;
+      const doc = documentViewer.getDocument();
+      if (!doc) {
+        throw new Error('Document not loaded');
       }
 
       try {
-        const doc = (window.documentViewer as any).getDocument();
-        if (!doc) {
-          toast.error("Document not loaded. Please wait for the document to load completely.");
-          return;
-        }
-
-        const annotationManager = (window.documentViewer as any).getAnnotationManager();
-        
-        const annotations = annotationManager.getAnnotationsList();
-        if (annotations.length === 0) {
-          toast.info("No visible annotations found, downloading original file...");
-          await downloadFile();
-          return;
-        }
-
-        toast.info("Flattening annotations into PDF...");
-
-        const xfdfString = await annotationManager.exportAnnotations();
+        const annotManager = documentViewer.getAnnotationManager();
+        const xfdfString = await annotManager.exportAnnotations();
         
         const data = await doc.getFileData({
           xfdfString,
@@ -255,17 +224,17 @@ const useDownloadHandlers = (pdfId: string, fileName: string, userRole: string) 
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
         
-        toast.success("Download with annotations completed!");
+        toast.success(translations.viewer("downloadWithAnnotationsCompleted"));
       } catch (pdfError) {
         console.error("PDFViewer: Error creating flattened PDF:", pdfError);
-        toast.error("Failed to create PDF with annotations. Downloading original file instead...");
+        toast.error(translations.viewer("failedToCreatePDFWithAnnotations"));
         await downloadFile();
       }
     } catch (error) {
       console.error("PDFViewer: Error downloading file with annotations:", error);
-      toast.error("Failed to download document with annotations");
+      toast.error(translations.viewer("failedToDownloadWithAnnotations"));
     }
-  }, [pdfId, userRole, downloadFile, fileName]);
+  }, [pdfId, userRole, downloadFile, fileName, translations]);
 
   return {
     downloadFile,
@@ -278,6 +247,7 @@ const useDownloadHandlers = (pdfId: string, fileName: string, userRole: string) 
  * with permission management, annotations, and download functionality
  */
 export default function PDFViewer({ pdfId, className = "" }: PDFViewerProps) {
+  const translations = useAppTranslations();
   const router = useRouter();
   const [showPermissionDialog, setShowPermissionDialog] = useState(false);
 
@@ -304,12 +274,12 @@ export default function PDFViewer({ pdfId, className = "" }: PDFViewerProps) {
   }, [isFileLoading, notFoundError, unauthorizedError]);
 
   const deleteFile = useCallback(async () => {
-    if (!confirm("Are you sure you want to delete this document? This action cannot be undone.")) {
+    if (!confirm(translations.viewer("deleteConfirmation"))) {
       return;
     }
     
     try {
-      toast.info("Deleting document...");
+      toast.info(translations.viewer("deletingDocument"));
       const response = await fetch(`/api/file/${pdfId}`, {
         method: 'DELETE',
       });
@@ -319,13 +289,13 @@ export default function PDFViewer({ pdfId, className = "" }: PDFViewerProps) {
       }
       
       await response.json();
-      toast.success("Document deleted successfully");
+      toast.success(translations.viewer("documentDeletedSuccessfully"));
       router.push('/dashboard/document-list');
     } catch (error) {
       console.error("PDFViewer: Error deleting file:", error);
-      toast.error("Failed to delete document");
+      toast.error(translations.viewer("failedToDeleteDocument"));
     }
-  }, [pdfId, router]);
+  }, [pdfId, router, translations]);
 
   const handleNavigateBack = useCallback(() => {
     router.push('/dashboard/document-list');
@@ -388,7 +358,7 @@ export default function PDFViewer({ pdfId, className = "" }: PDFViewerProps) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50">
         <div className="text-center p-10">
-          <h1 className="text-2xl font-semibold mb-4 text-gray-700">Loading document...</h1>
+          <h1 className="text-2xl font-semibold mb-4 text-gray-700">{translations.viewer("loadingDocument")}</h1>
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
         </div>
       </div>
@@ -397,11 +367,21 @@ export default function PDFViewer({ pdfId, className = "" }: PDFViewerProps) {
 
   // Error states
   if (notFoundError) {
-    return <NotFoundPage />;
+    return <NotFoundPage 
+      title={translations.viewer("documentNotFound")}
+      message={translations.viewer("documentNotFoundMessage")}
+      showHeader={false}
+      showTokenChecker={false}
+    />;
   }
 
   if (unauthorizedError) {
-    return <UnauthorizedPage />;
+    return <UnauthorizedPage 
+      title={translations.viewer("unauthorizedAccess")}
+      message={translations.viewer("unauthorizedMessage")}
+      showHeader={false}
+      showTokenChecker={false}
+    />;
   }
   
   return (

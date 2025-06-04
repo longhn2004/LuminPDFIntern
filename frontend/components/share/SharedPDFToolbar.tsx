@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { FaArrowLeft, FaDownload, FaChevronDown } from "react-icons/fa";
+import { useAppTranslations } from "@/hooks/useTranslations";
 
 interface SharedPDFToolbarProps {
   fileName: string;
@@ -91,6 +92,7 @@ const SharedPDFToolbar: React.FC<SharedPDFToolbarProps> = ({
   onDownloadWithAnnotations,
   className = ""
 }) => {
+  const translations = useAppTranslations();
   const { isOpen: isDropdownOpen, openDropdown, closeDropdown, cancelClose } = useDropdown();
   
   const canDownloadWithAnnotations = canUserDownloadWithAnnotations(userRole);
@@ -122,24 +124,24 @@ const SharedPDFToolbar: React.FC<SharedPDFToolbarProps> = ({
         <button 
           onClick={onNavigateBack} 
           className="text-gray-600 hover:text-gray-800 transition-colors p-1 rounded focus:outline-none focus:ring-2 focus:ring-gray-500 flex-shrink-0"
-          title="Back to login"
-          aria-label="Back to login"
+          title={translations.viewer("backToLogin")}
+          aria-label={translations.viewer("backToLogin")}
         >
           <FaArrowLeft size={16} />
         </button>
         
         <h1 
           className="font-medium text-gray-900 truncate"
-          title={displayFileName || 'Shared Document'}
+          title={displayFileName || translations.viewer("sharedDocument")}
         >
-          {displayFileName || 'Shared Document'}
+          {displayFileName || translations.viewer("sharedDocument")}
         </h1>
 
         {/* Shared access indicator - updated to black-grey-white theme */}
         <div className="flex items-center gap-1 px-2 py-1 bg-gray-200 rounded-full border border-gray-300">
           <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
           <span className="text-xs font-medium text-gray-700">
-            Shared • {userRole || 'Viewer'}
+            {translations.viewer("sharedAccess")} {userRole === 'viewer' ? translations.share("ViewerRole") : translations.share("EditorRole")}
           </span>
         </div>
       </div>
@@ -159,12 +161,12 @@ const SharedPDFToolbar: React.FC<SharedPDFToolbarProps> = ({
             className={`${BUTTON_STYLES.base} ${BUTTON_STYLES.default} ${BUTTON_STYLES.download} ${
               hasAnnotationDownload ? 'cursor-default' : 'cursor-pointer'
             }`}
-            title={hasAnnotationDownload ? "Download options" : "Download document"}
-            aria-label={hasAnnotationDownload ? "Download options" : "Download document"}
+            title={hasAnnotationDownload ? translations.viewer("downloadOptions") : translations.viewer("downloadDocument")}
+            aria-label={hasAnnotationDownload ? translations.viewer("downloadOptions") : translations.viewer("downloadDocument")}
             aria-haspopup={hasAnnotationDownload ? "true" : undefined}
             aria-expanded={hasAnnotationDownload ? isDropdownOpen : undefined}
           >
-            <span className="hidden sm:inline">Download</span>
+            <span className="hidden sm:inline">{translations.common("download")}</span>
             <FaDownload size={16} />
             {hasAnnotationDownload && (
               <FaChevronDown 
@@ -191,7 +193,7 @@ const SharedPDFToolbar: React.FC<SharedPDFToolbarProps> = ({
                 role="menuitem"
               >
                 <FaDownload size={14} />
-                <span>Download Original PDF</span>
+                <span>{translations.viewer("downloadOriginalPDF")}</span>
               </button>
               
               <button
@@ -200,7 +202,7 @@ const SharedPDFToolbar: React.FC<SharedPDFToolbarProps> = ({
                 role="menuitem"
               >
                 <FaDownload size={14} />
-                <span>Download with Annotations</span>
+                <span>{translations.viewer("downloadWithAnnotations")}</span>
               </button>
             </div>
           )}

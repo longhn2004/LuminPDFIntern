@@ -2,6 +2,8 @@
 
 import React from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from 'next-intl';
+import LanguageSwitch from '../LanguageSwitch';
 
 interface AuthLayoutProps {
   children: React.ReactNode;
@@ -15,6 +17,7 @@ export default function AuthLayout({
   leftContent,
 }: AuthLayoutProps) {
   const router = useRouter();
+  const t = useTranslations();
 
   return (
     <div className="flex h-screen w-full bg-[url('@/public/images/backgroundauth.png')] fixed bg-cover bg-center">
@@ -27,15 +30,20 @@ export default function AuthLayout({
                 <img src="/images/dsvlogo.png" alt="Logo" className="h-10 w-10" />
                 <span className="text-xl font-bold text-black">DI-DSV</span>
               </div>
-              <p className="text-white">A world where document collaboration is </p>
-              <p className="text-white">fast, fun and easy</p>
+              <p className="text-white">{t('auth.companySlogan')}</p>
             </>
           )}
         </div>
       </div>
-      {/* right div */}
+      
+      {/* right div - form area */}
       <div className={`bg-white ${rightWidthClass} text-black absolute right-0 top-1/2 transform -translate-y-1/2 p-10 justify-center items-center flex flex-col h-full`}>
         {children}
+      </div>
+      
+      {/* Language Switch aligned with DI-DSV section */}
+      <div className="fixed bottom-6 left-20 z-10 bg-white rounded-lg px-3 py-2 border border-white/20">
+        <LanguageSwitch variant="light" />
       </div>
     </div>
   );

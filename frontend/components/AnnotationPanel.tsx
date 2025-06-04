@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAppTranslations } from '@/hooks/useTranslations';
 
 interface AnnotationPanelProps {
   pdfId: string;
@@ -13,6 +14,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
   documentViewer,
   userRole,
 }) => {
+  const translations = useAppTranslations();
   const [selectedAnnotation, setSelectedAnnotation] = useState<any>(null);
   const [showStylePanel, setShowStylePanel] = useState(false);
   const [selectedShape, setSelectedShape] = useState<string>('rectangle');
@@ -171,23 +173,23 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
 
   // Shape options with clean icons
   const shapeOptions = [
-    { value: 'rectangle', label: 'Rectangle', icon: '▭' },
-    { value: 'circle', label: 'Circle', icon: '○' },
-    { value: 'triangle', label: 'Triangle', icon: '△' },
-    { value: 'line', label: 'Line', icon: '/' },
-    { value: 'arrow', label: 'Arrow', icon: '↗' },
+    { value: 'rectangle', label: translations.annotations('rectangle'), icon: '▭' },
+    { value: 'circle', label: translations.annotations('circle'), icon: '○' },
+    { value: 'triangle', label: translations.annotations('triangle'), icon: '△' },
+    { value: 'line', label: translations.annotations('line'), icon: '/' },
+    { value: 'arrow', label: translations.annotations('arrow'), icon: '↗' },
   ];
 
   // Predefined color palette
   const colorPalette = [
-    { color: 'transparent', label: 'No Fill', isTransparent: true },
-    { color: '#000000', label: 'Black' },
-    { color: '#E53E3E', label: 'Red' },
-    { color: '#3182CE', label: 'Blue' },
-    { color: '#38A169', label: 'Green' },
-    { color: '#D69E2E', label: 'Yellow' },
-    { color: '#B794F6', label: 'Purple' },
-    { color: '#FFFFFF', label: 'White' },
+    { color: 'transparent', label: translations.annotations('colors.noFill'), isTransparent: true },
+    { color: '#000000', label: translations.annotations('colors.black') },
+    { color: '#E53E3E', label: translations.annotations('colors.red') },
+    { color: '#3182CE', label: translations.annotations('colors.blue') },
+    { color: '#38A169', label: translations.annotations('colors.green') },
+    { color: '#D69E2E', label: translations.annotations('colors.yellow') },
+    { color: '#B794F6', label: translations.annotations('colors.purple') },
+    { color: '#FFFFFF', label: translations.annotations('colors.white') },
   ];
 
   // Font families list
@@ -582,7 +584,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
 
           {/* Style Section */}
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Style</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-3">{translations.annotations('style')}</h3>
             
             {/* Fill/Stroke Toggle */}
             <div className="flex bg-gray-100 rounded-full p-1 mb-4 w-full">
@@ -594,7 +596,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Fill
+                {translations.annotations('fill')}
       </button>
       <button 
                 onClick={() => setStyleMode('stroke')}
@@ -604,7 +606,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Stroke
+                {translations.annotations('stroke')}
       </button>
             </div>
 
@@ -689,7 +691,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
 
             {/* Opacity Slider */}
             <div className="mb-4">
-              <h4 className="text-sm font-medium text-gray-900 mb-2">Opacity</h4>
+              <h4 className="text-sm font-medium text-gray-900 mb-2">{translations.annotations('opacity')}</h4>
               <div className="flex items-center gap-3">
                 <div className="flex-1 relative">
                 <input
@@ -723,7 +725,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
                   onClick={deleteAnnotation}
                   className="flex-1 px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors text-sm"
                 >
-                  Delete
+                  {translations.common('delete')}
                 </button>
               </div>
             )}
@@ -745,7 +747,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
               className="flex items-center gap-2 bg-gray-100 rounded-lg px-2 py-1 hover:bg-gray-200 transition-colors"
             >
               <span className="text-lg">▭</span>
-              <span className="text-sm font-medium text-gray-700">Shape</span>
+              <span className="text-sm font-medium text-gray-700">{translations.annotations('shape')}</span>
               <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -777,7 +779,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
               className="flex items-center gap-2 bg-gray-100 rounded-lg px-2 py-1 hover:bg-gray-200 transition-colors"
             >
               <span className="text-lg font-bold">T</span>
-              <span className="text-sm font-medium text-gray-700">Type</span>
+              <span className="text-sm font-medium text-gray-700">{translations.annotations('type')}</span>
               <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -790,7 +792,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
                 >
                   <span className="text-lg font-bold">T</span>
-                  Free Text
+                  {translations.annotations('freeText')}
                 </button>
               </div>
             )}
@@ -817,7 +819,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
             className="bg-white p-4 border border-gray-300 rounded-lg shadow-lg w-80 transition-all ease-out"
             style={getTextStylePanelPosition() as React.CSSProperties}
           >
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Text Style</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">{translations.annotations('textStyle')}</h3>
           
           {/* Font and Size Dropdowns */}
           <div className="grid grid-cols-2 gap-3 mb-4">
@@ -896,7 +898,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
 
           {/* Frame Style Section */}
           <div className="mb-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Frame Style</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-3">{translations.annotations('frameStyle')}</h3>
             
             {/* Fill/Border Toggle */}
             <div className="flex bg-gray-100 rounded-full p-1 mb-4 w-full">
@@ -908,7 +910,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Fill
+                {translations.annotations('fill')}
               </button>
               <button
                 onClick={() => setStyleMode('stroke')}
@@ -918,7 +920,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Border line
+                {translations.annotations('borderLine')}
               </button>
             </div>
 
@@ -1012,7 +1014,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
 
           {/* Opacity Slider */}
           <div className="mb-4">
-            <h4 className="text-lg font-medium text-gray-900 mb-3">Opacity</h4>
+            <h4 className="text-lg font-medium text-gray-900 mb-3">{translations.annotations('opacity')}</h4>
             <div className="flex items-center gap-3">
               <div className="flex-1 relative">
                 <input 
@@ -1043,7 +1045,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
               onClick={deleteAnnotation}
               className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
             >
-              Delete
+              {translations.common('delete')}
             </button>
           </div>
         </div>

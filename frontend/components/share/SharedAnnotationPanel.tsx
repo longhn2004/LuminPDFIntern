@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useAppTranslations } from '@/hooks/useTranslations';
 
 interface SharedAnnotationPanelProps {
   pdfId: string;
@@ -19,6 +20,7 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
   isSharedView,
   shareToken,
 }) => {
+  const translations = useAppTranslations();
   const [selectedAnnotation, setSelectedAnnotation] = useState<any>(null);
   const [showStylePanel, setShowStylePanel] = useState(false);
   const [selectedShape, setSelectedShape] = useState<string>('rectangle');
@@ -214,7 +216,7 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
   // Save annotations (only for editors)
   const saveAnnotations = async () => {
     if (!canEdit) {
-      console.log("SharedAnnotationPanel: Cannot save annotations, insufficient permissions");
+      console.log(translations.share("cannotSaveAnnotationsInsufficientPermissions"));
       return;
     }
     
@@ -234,14 +236,14 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
       
       if (!response.ok) {
         if (response.status === 409) {
-          alert("Conflict detected: Another user modified the annotations. Please refresh.");
+          alert(translations.share("conflictDetected"));
           return;
         }
         throw new Error(`Failed to save annotations: ${response.statusText}`);
       }
       
       const { version, responsexfdf } = await response.json();
-      console.log("SharedAnnotationPanel: Annotations saved, version:", version);
+      console.log(translations.share("annotationsSaved"), version);
       
       await documentViewer.getAnnotationManager().importAnnotations(responsexfdf);
       documentViewer.getAnnotationManager().drawAnnotationsFromList(
@@ -272,23 +274,23 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
   // Rest of the component is same as AnnotationPanel but only shows for editors
   // Shape options
   const shapeOptions = [
-    { value: 'rectangle', label: 'Rectangle', icon: '▭' },
-    { value: 'circle', label: 'Circle', icon: '○' },
-    { value: 'triangle', label: 'Triangle', icon: '△' },
-    { value: 'line', label: 'Line', icon: '/' },
-    { value: 'arrow', label: 'Arrow', icon: '↗' },
+    { value: 'rectangle', label: translations.annotations('rectangle'), icon: '▭' },
+    { value: 'circle', label: translations.annotations('circle'), icon: '○' },
+    { value: 'triangle', label: translations.annotations('triangle'), icon: '△' },
+    { value: 'line', label: translations.annotations('line'), icon: '/' },
+    { value: 'arrow', label: translations.annotations('arrow'), icon: '↗' },
   ];
 
-  // Color palette - updated for black-grey-white theme
+  // Color palette - updated to match AnnotationPanel
   const colorPalette = [
-    { color: 'transparent', label: 'No Fill', isTransparent: true },
-    { color: '#000000', label: 'Black' },
-    { color: '#374151', label: 'Dark Grey' },
-    { color: '#6B7280', label: 'Medium Grey' },
-    { color: '#9CA3AF', label: 'Light Grey' },
-    { color: '#D1D5DB', label: 'Very Light Grey' },
-    { color: '#F3F4F6', label: 'Off White' },
-    { color: '#FFFFFF', label: 'White' },
+    { color: 'transparent', label: translations.annotations('colors.noFill'), isTransparent: true },
+    { color: '#000000', label: translations.annotations('colors.black') },
+    { color: '#E53E3E', label: translations.annotations('colors.red') },
+    { color: '#3182CE', label: translations.annotations('colors.blue') },
+    { color: '#38A169', label: translations.annotations('colors.green') },
+    { color: '#D69E2E', label: translations.annotations('colors.yellow') },
+    { color: '#B794F6', label: translations.annotations('colors.purple') },
+    { color: '#FFFFFF', label: translations.annotations('colors.white') },
   ];
 
   // Font families
@@ -479,7 +481,7 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
     }
   };
 
-  // Position calculations (same as original)
+  // Position calculations with annotation avoidance
   const getStylePanelPosition = () => {
     const viewerElement = document.getElementById('scroll-view');
     const panelWidth = 320;
@@ -487,34 +489,89 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
     
     if (selectedAnnotation && annotationPosition && viewerElement) {
       const viewerRect = viewerElement.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+      const windowWidth = window.innerWidth;
+      
+      // Calculate annotation bounds with some padding
+      const annotationPadding = 40;
+      const annotationLeft = annotationPosition.x - annotationPadding;
+      const annotationRight = annotationPosition.x + annotationPadding;
+      const annotationTop = annotationPosition.y - annotationPadding;
+      const annotationBottom = annotationPosition.y + annotationPadding;
+      
       let left = annotationPosition.x + 20;
       let top = annotationPosition.y - 20;
       
-      if (left + panelWidth > viewerRect.right) {
+      // Try positioning to the right first
+      if (left + panelWidth > windowWidth - 10) {
+        // Try positioning to the left
         left = annotationPosition.x - panelWidth - 20;
+        if (left < 10) {
+          // If left doesn't work, position at safe distance from annotation
+          left = annotationRight + 20;
+          if (left + panelWidth > windowWidth - 10) {
+            left = annotationLeft - panelWidth - 20;
+            if (left < 10) {
+              left = 10; // Last resort: left edge
       }
-      if (left < viewerRect.left) {
-        left = viewerRect.left + 10;
+          }
+        }
       }
       
-      if (top + panelHeight > viewerRect.bottom) {
-        top = annotationPosition.y - panelHeight - 20;
+      // Vertical positioning with annotation avoidance
+      if (top + panelHeight > windowHeight - 10) {
+        // Try positioning above annotation
+        top = annotationTop - panelHeight - 20;
+        if (top < 10) {
+          // Position below annotation if above doesn't work
+          top = annotationBottom + 20;
+          if (top + panelHeight > windowHeight - 10) {
+            // If it still doesn't fit, position at top with scrolling
+            top = 10;
       }
-      if (top < viewerRect.top) {
-        top = annotationPosition.y + 50;
+        }
       }
-      if (top + panelHeight > viewerRect.bottom) {
-        top = viewerRect.bottom - panelHeight - 10;
+      
+      // Check if panel would cover annotation and adjust if needed
+      const panelLeft = left;
+      const panelRight = left + panelWidth;
+      const panelTop = top;
+      const panelBottom = top + panelHeight;
+      
+      // If panel overlaps with annotation area, try alternative positions
+      if (panelLeft < annotationRight && panelRight > annotationLeft && 
+          panelTop < annotationBottom && panelBottom > annotationTop) {
+        
+        // Try positioning further away
+        const spaceRight = windowWidth - annotationRight;
+        const spaceLeft = annotationLeft;
+        const spaceTop = annotationTop;
+        const spaceBottom = windowHeight - annotationBottom;
+        
+        if (spaceRight >= panelWidth + 30) {
+          left = annotationRight + 30;
+        } else if (spaceLeft >= panelWidth + 30) {
+          left = annotationLeft - panelWidth - 30;
+        } else if (spaceBottom >= panelHeight + 30) {
+          top = annotationBottom + 30;
+          left = Math.max(10, Math.min(annotationPosition.x - panelWidth/2, windowWidth - panelWidth - 10));
+        } else if (spaceTop >= panelHeight + 30) {
+          top = annotationTop - panelHeight - 30;
+          left = Math.max(10, Math.min(annotationPosition.x - panelWidth/2, windowWidth - panelWidth - 10));
       }
-      if (top < viewerRect.top) {
-        top = viewerRect.top + 10;
       }
+      
+      // Final bounds check
+      left = Math.max(10, Math.min(left, windowWidth - panelWidth - 10));
+      top = Math.max(10, Math.min(top, windowHeight - panelHeight - 10));
       
       return {
         position: 'fixed',
-        left: `${Math.max(viewerRect.left + 10, Math.min(left, viewerRect.right - panelWidth - 10))}px`,
+        left: `${left}px`,
         top: `${top}px`,
         zIndex: 1001,
+        maxHeight: `${windowHeight - 20}px`,
+        overflowY: 'auto',
       };
     } else {
       return {
@@ -526,6 +583,131 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
     }
   };
 
+  // Calculate text style panel position with enhanced annotation avoidance
+  const getTextStylePanelPosition = () => {
+    const viewerElement = document.getElementById('scroll-view');
+    const panelWidth = 320;
+    const panelHeight = 600; // Larger height for text style panel with Frame Style section
+    
+    if (annotationPosition && viewerElement) {
+      const viewerRect = viewerElement.getBoundingClientRect();
+      const windowHeight = window.innerHeight;
+      const windowWidth = window.innerWidth;
+      
+      // Calculate annotation bounds with larger padding for text annotations
+      const annotationPadding = 60;
+      const annotationLeft = annotationPosition.x - annotationPadding;
+      const annotationRight = annotationPosition.x + annotationPadding;
+      const annotationTop = annotationPosition.y - annotationPadding;
+      const annotationBottom = annotationPosition.y + annotationPadding;
+      
+      let left = annotationPosition.x + 20;
+      let top = annotationPosition.y - 20;
+      
+      // Try positioning to the right first
+      if (left + panelWidth > windowWidth - 10) {
+        // Try positioning to the left
+        left = annotationPosition.x - panelWidth - 20;
+        if (left < 10) {
+          // Position at safe distance from annotation
+          left = annotationRight + 30;
+          if (left + panelWidth > windowWidth - 10) {
+            left = annotationLeft - panelWidth - 30;
+            if (left < 10) {
+              left = 10;
+            }
+          }
+        }
+      }
+      
+      // Vertical positioning with annotation avoidance
+      if (top + panelHeight > windowHeight - 10) {
+        // Try positioning above annotation
+        top = annotationTop - panelHeight - 30;
+        if (top < 10) {
+          // Position below annotation if above doesn't work
+          top = annotationBottom + 30;
+          if (top + panelHeight > windowHeight - 10) {
+            // If it still doesn't fit, position at top with scrolling
+            top = 10;
+          }
+        }
+      }
+      
+      // Check if panel would cover annotation and adjust if needed
+      const panelLeft = left;
+      const panelRight = left + panelWidth;
+      const panelTop = top;
+      const panelBottom = top + panelHeight;
+      
+      // If panel overlaps with annotation area, find better position
+      if (panelLeft < annotationRight && panelRight > annotationLeft && 
+          panelTop < annotationBottom && panelBottom > annotationTop) {
+        
+        // Calculate available space in each direction
+        const spaceRight = windowWidth - annotationRight;
+        const spaceLeft = annotationLeft;
+        const spaceTop = annotationTop;
+        const spaceBottom = windowHeight - annotationBottom;
+        
+        // Choose best position based on available space
+        if (spaceRight >= panelWidth + 40) {
+          // Position to the right of annotation
+          left = annotationRight + 40;
+          top = Math.max(10, Math.min(annotationPosition.y - panelHeight/2, windowHeight - panelHeight - 10));
+        } else if (spaceLeft >= panelWidth + 40) {
+          // Position to the left of annotation
+          left = annotationLeft - panelWidth - 40;
+          top = Math.max(10, Math.min(annotationPosition.y - panelHeight/2, windowHeight - panelHeight - 10));
+        } else if (spaceBottom >= panelHeight + 40) {
+          // Position below annotation
+          top = annotationBottom + 40;
+          left = Math.max(10, Math.min(annotationPosition.x - panelWidth/2, windowWidth - panelWidth - 10));
+        } else if (spaceTop >= panelHeight + 40) {
+          // Position above annotation
+          top = annotationTop - panelHeight - 40;
+          left = Math.max(10, Math.min(annotationPosition.x - panelWidth/2, windowWidth - panelWidth - 10));
+        } else {
+          // Last resort: position in corner that doesn't overlap
+          if (spaceRight > spaceLeft) {
+            left = Math.max(annotationRight + 10, windowWidth - panelWidth - 10);
+          } else {
+            left = Math.min(annotationLeft - panelWidth - 10, 10);
+          }
+          if (spaceBottom > spaceTop) {
+            top = Math.max(annotationBottom + 10, windowHeight - panelHeight - 10);
+          } else {
+            top = Math.min(annotationTop - panelHeight - 10, 10);
+          }
+        }
+      }
+      
+      // Final bounds check
+      left = Math.max(10, Math.min(left, windowWidth - panelWidth - 10));
+      top = Math.max(10, Math.min(top, windowHeight - panelHeight - 10));
+      
+      return {
+        position: 'fixed',
+        left: `${left}px`,
+        top: `${top}px`,
+        zIndex: 1002,
+        maxHeight: `${windowHeight - 20}px`,
+        overflowY: 'auto',
+      };
+    } else {
+      // Fallback position when no annotation position is available
+      return {
+        position: 'fixed',
+        right: '20px',
+        top: '50%',
+        transform: 'translateY(-50%)',
+        zIndex: 1002,
+        maxHeight: `${window.innerHeight - 40}px`,
+        overflowY: 'auto',
+      };
+    }
+  };
+
   return (
     <>
       {/* Style Panel - updated with black-grey-white theme */}
@@ -533,7 +715,7 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
         <>
           {annotationPosition && (
             <div
-              className="absolute w-2 h-2 bg-gray-600 rounded-full opacity-75 transition-all ease-out"
+              className="absolute w-2 h-2 bg-blue-500 rounded-full opacity-75 transition-all ease-out"
               style={{
                 position: 'fixed',
                 left: `${annotationPosition.x - 4}px`,
@@ -543,18 +725,18 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
             />
           )}
           <div 
-            className="bg-white rounded-lg shadow-xl border border-gray-300 p-4 w-80 transition-all ease-out"
+            className="bg-white rounded-lg shadow-lg border border-gray-200 p-4 w-80 transition-all ease-out"
             style={getStylePanelPosition() as React.CSSProperties}
           >
             {/* Shared access indicator */}
             <div className="mb-3 p-2 bg-gray-100 border border-gray-300 rounded-md">
               <div className="flex items-center gap-2 text-sm text-gray-700">
                 <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
-                <span>Editing via shared link</span>
+                <span>{translations.share("editingViaSharedLink")}</span>
               </div>
             </div>
 
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Style</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-3">{translations.annotations("style")}</h3>
             
             {/* Fill/Stroke Toggle */}
             <div className="flex bg-gray-200 rounded-full p-1 mb-4 w-full">
@@ -566,7 +748,7 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Fill
+                {translations.annotations("fill")}
               </button>
               <button 
                 onClick={() => setStyleMode('stroke')}
@@ -576,7 +758,7 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Stroke
+                {translations.annotations("stroke")}
               </button>
             </div>
 
@@ -586,19 +768,19 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
                 <button 
                   key={index}
                   onClick={() => handleColorSelection(colorOption.color, colorOption.isTransparent)}
-                  className={`w-7 h-7 rounded-full border-2 border-gray-400 flex items-center justify-center transition-all hover:scale-110 ${
+                  className={`w-7 h-7 rounded-full border-2 border-gray-300 flex items-center justify-center transition-all hover:scale-110 ${
                     colorOption.isTransparent ? 'bg-white' : ''
                   }`}
                   style={{
                     backgroundColor: colorOption.isTransparent ? 'transparent' : colorOption.color,
-                    borderColor: colorOption.color === '#FFFFFF' ? '#9CA3AF' : colorOption.color === '#000000' ? '#374151' : '#6B7280'
+                    borderColor: colorOption.color === '#FFFFFF' ? '#d1d5db' : 'transparent'
                   }}
                   title={colorOption.label}
                 >
                   {colorOption.isTransparent && (
                     <div className="w-7 h-7 flex items-center justify-center">
-                      <div className="w-7 h-0.5 bg-gray-500 rotate-45 absolute"></div>
-                      <div className="w-7 h-7 border border-gray-500 rounded-full"></div>
+                      <div className="w-7 h-0.5 bg-red-500 rotate-45 absolute"></div>
+                      <div className="w-7 h-7 border border-gray-400 rounded-full"></div>
                     </div>
                   )}
                 </button>
@@ -630,7 +812,7 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
                       }}
                       className="w-full h-2 rounded-lg appearance-none cursor-pointer opacity-slider"
                       style={{
-                        background: `linear-gradient(to right, #E5E7EB 0%, #374151 ${(borderWeight / 10) * 100}%, #E5E7EB ${(borderWeight / 10) * 100}%)`
+                        background: `linear-gradient(to right, #e5e7eb 0%, #3b82f6 ${(borderWeight / 10) * 100}%, #e5e7eb ${(borderWeight / 10) * 100}%)`
                       }}
                     />
                   </div>
@@ -658,7 +840,7 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
 
             {/* Opacity Slider */}
             <div className="mb-4">
-              <h4 className="text-sm font-medium text-gray-900 mb-2">Opacity</h4>
+              <h4 className="text-sm font-medium text-gray-900 mb-2">{translations.annotations("opacity")}</h4>
               <div className="flex items-center gap-3">
                 <div className="flex-1 relative">
                   <input
@@ -675,7 +857,7 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
                     }}
                     className="w-full h-2 rounded-lg appearance-none cursor-pointer opacity-slider"
                     style={{
-                      background: `linear-gradient(to right, #F3F4F6 0%, #9CA3AF 50%, #374151 100%)`
+                      background: `linear-gradient(to right, #f3f4f6 0%, #9ca3af 50%, #374151 100%)`
                     }}
                   />
                 </div>
@@ -690,9 +872,9 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
               <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200">
                 <button 
                   onClick={deleteAnnotation}
-                  className="flex-1 px-3 py-2 bg-gray-800 text-white rounded hover:bg-black transition-colors text-sm"
+                  className="flex-1 px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors text-sm"
                 >
-                  Delete
+                  {translations.common("delete")}
                 </button>
               </div>
             )}
@@ -700,8 +882,8 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
         </>
       )}
 
-      {/* Shape/Type Panel with black-grey-white theme */}
-      <div className="fixed bottom-15 right-15 bg-white rounded-lg shadow-lg border-2 border-gray-300 p-2 z-1000">
+      {/* Shape/Type Panel - Fixed at bottom right */}
+      <div className="fixed bottom-15 right-15 bg-white rounded-lg shadow-sm border border-gray-200 p-2 z-1000">
         <div className="flex gap-3">
           {/* Shape Dropdown */}
           <div className="relative">
@@ -710,11 +892,11 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
                 setShowShapeDropdown(!showShapeDropdown);
                 setShowTypeDropdown(false);
               }}
-              className="flex items-center gap-2 bg-gray-100 border border-gray-300 rounded-lg px-2 py-1 hover:bg-gray-200 transition-colors"
+              className="flex items-center gap-2 bg-gray-100 rounded-lg px-2 py-1 hover:bg-gray-200 transition-colors"
             >
               <span className="text-lg">▭</span>
-              <span className="text-sm font-medium text-gray-800">Shape</span>
-              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span className="text-sm font-medium text-gray-700">{translations.annotations("shape")}</span>
+              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
@@ -742,11 +924,11 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
                 setShowTypeDropdown(!showTypeDropdown);
                 setShowShapeDropdown(false);
               }}
-              className="flex items-center gap-2 bg-gray-100 border border-gray-300 rounded-lg px-2 py-1 hover:bg-gray-200 transition-colors"
+              className="flex items-center gap-2 bg-gray-100 rounded-lg px-2 py-1 hover:bg-gray-200 transition-colors"
             >
-              <span className="text-lg font-bold text-gray-800">T</span>
-              <span className="text-sm font-medium text-gray-800">Type</span>
-              <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <span className="text-lg font-bold">T</span>
+              <span className="text-sm font-medium text-gray-700">{translations.annotations("type")}</span>
+              <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
             </button>
@@ -758,7 +940,7 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
                 >
                   <span className="text-lg font-bold">T</span>
-                  Free Text
+                  {translations.annotations("freeText")}
                 </button>
               </div>
             )}
@@ -771,7 +953,7 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
         <>
           {annotationPosition && (
             <div
-              className="absolute w-2 h-2 bg-gray-600 rounded-full opacity-75 transition-all ease-out"
+              className="absolute w-2 h-2 bg-blue-500 rounded-full opacity-75 transition-all ease-out"
               style={{
                 position: 'fixed',
                 left: `${annotationPosition.x - 4}px`,
@@ -782,17 +964,17 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
           )}
           <div 
             className="bg-white p-4 border-2 border-gray-300 rounded-lg shadow-xl w-80 transition-all ease-out"
-            style={getStylePanelPosition() as React.CSSProperties}
+            style={getTextStylePanelPosition() as React.CSSProperties}
           >
             {/* Shared access indicator */}
             <div className="mb-3 p-2 bg-gray-100 border border-gray-300 rounded-md">
               <div className="flex items-center gap-2 text-sm text-gray-700">
                 <div className="w-2 h-2 bg-gray-600 rounded-full"></div>
-                <span>Editing via shared link</span>
+                <span>{translations.share("editingViaSharedLink")}</span>
               </div>
             </div>
 
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Text Style</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-4">{translations.annotations("textStyle")}</h3>
             
             {/* Font and Size Dropdowns */}
             <div className="grid grid-cols-2 gap-3 mb-4">
@@ -827,23 +1009,172 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
                 <button
                   key={index}
                   onClick={() => updateStyles({ textColor: new Annotations.Color(colorOption.color) })}
-                  className="w-8 h-8 rounded-full border-2 transition-all hover:scale-110"
+                  className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${
+                    colorOption.color === '#000000' ? 'border-gray-800' : 'border-gray-300'
+                  }`}
                   style={{
                     backgroundColor: colorOption.color,
-                    borderColor: colorOption.color === '#FFFFFF' ? '#9CA3AF' : colorOption.color === '#000000' ? '#374151' : '#6B7280'
+                    borderColor: colorOption.color === '#FFFFFF' ? '#d1d5db' : colorOption.color === '#000000' ? '#1f2937' : 'transparent'
                   }}
                   title={colorOption.label}
-                />
+                >
+                  {colorOption.color === '#000000' && (
+                    <div className="w-full h-full rounded-full border-2 border-white"></div>
+                  )}
+                </button>
               ))}
+            </div>
+
+            {/* Frame Style Section */}
+            <div className="mb-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-3">{translations.annotations("frameStyle")}</h3>
+              
+              {/* Fill/Border Toggle */}
+              <div className="flex bg-gray-100 rounded-full p-1 mb-4 w-full">
+                <button
+                  onClick={() => setStyleMode('fill')}
+                  className={`px-6 py-2 rounded-full w-1/2 text-sm font-medium transition-all ${
+                    styleMode === 'fill'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  {translations.annotations("fill")}
+                </button>
+                <button
+                  onClick={() => setStyleMode('stroke')}
+                  className={`px-6 py-2 rounded-full w-1/2 text-sm font-medium transition-all ${
+                    styleMode === 'stroke'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  {translations.annotations("borderLine")}
+                </button>
+              </div>
+
+              {/* Frame Color Palette */}
+              <div className="flex gap-2 mb-4">
+                {colorPalette.map((colorOption, index) => (
+                  <button
+                    key={index}
+                    onClick={() => {
+                      if (styleMode === 'fill') {
+                        const colorValue = colorOption.isTransparent ? 
+                          new Annotations.Color(0, 0, 0, 0) : 
+                          new Annotations.Color(colorOption.color);
+                        updateStyles({ fillColor: colorValue });
+                      } else {
+                        const colorValue = colorOption.isTransparent ? 
+                          new Annotations.Color(0, 0, 0, 0) : 
+                          new Annotations.Color(colorOption.color);
+                        updateStyles({ strokeColor: colorValue });
+                      }
+                    }}
+                    className={`w-7 h-7 rounded-full border-2 border-gray-300 flex items-center justify-center transition-all hover:scale-110 ${
+                      colorOption.isTransparent ? 'bg-white' : ''
+                    }`}
+                    style={{
+                      backgroundColor: colorOption.isTransparent ? 'transparent' : colorOption.color,
+                      borderColor: colorOption.color === '#FFFFFF' ? '#d1d5db' : 'transparent'
+                    }}
+                    title={colorOption.label}
+                  >
+                    {colorOption.isTransparent && (
+                      <div className="w-7 h-7 flex items-center justify-center">
+                        <div className="w-7 h-0.5 bg-red-500 rotate-45 absolute"></div>
+                        <div className="w-7 h-7 border border-gray-400 rounded-full"></div>
+                      </div>
+                    )}
+                  </button>
+                ))}
+              </div>
+
+              {/* Border Weight - only show when Border line mode is selected */}
+              {styleMode === 'stroke' && (
+                <div className="mb-4">
+                  <div className="flex items-center gap-3">
+                    {/* Border weight icon */}
+                    <div className="flex flex-col gap-1">
+                      <div className="w-4 h-0.5 bg-gray-600"></div>
+                      <div className="w-4 h-0.5 bg-gray-600"></div>
+                      <div className="w-4 h-0.5 bg-gray-600"></div>
+                    </div>
+                    
+                    {/* Slider */}
+                    <div className="flex-1">
+                      <input
+                        type="range"
+                        min="0"
+                        max="10"
+                        value={borderWeight}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value);
+                          setBorderWeight(value);
+                          updateStyles({ strokeWeight: value });
+                        }}
+                        className="w-full h-2 rounded-lg appearance-none cursor-pointer opacity-slider"
+                        style={{
+                          background: `linear-gradient(to right, #e5e7eb 0%, #3b82f6 ${(borderWeight / 10) * 100}%, #e5e7eb ${(borderWeight / 10) * 100}%)`
+                        }}
+                      />
+                    </div>
+                    
+                    {/* Input field */}
+                    <div className="bg-gray-100 px-3 py-2 rounded-md border border-gray-300">
+                      <input
+                        type="number"
+                        min="0"
+                        max="10"
+                        value={borderWeight}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 0;
+                          setBorderWeight(value);
+                          updateStyles({ strokeWeight: value });
+                        }}
+                        className="w-8 text-sm font-medium text-gray-700 bg-transparent border-none outline-none text-center"
+                      />
+                      <span className="text-sm font-medium text-gray-700 ml-1">pt</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Opacity Slider */}
+            <div className="mb-4">
+              <h4 className="text-lg font-medium text-gray-900 mb-3">{translations.annotations("opacity")}</h4>
+              <div className="flex items-center gap-3">
+                <div className="flex-1 relative">
+                  <input 
+                    type="range"
+                    min="0"
+                    max="100"
+                    value={opacity}
+                    onChange={(e) => {
+                      const value = parseInt(e.target.value);
+                      setOpacity(value);
+                      updateStyles({ opacity: value / 100 });
+                    }}
+                    className="w-full h-2 rounded-lg appearance-none cursor-pointer opacity-slider"
+                    style={{
+                      background: `linear-gradient(to right, #f3f4f6 0%, #9ca3af 50%, #374151 100%)`
+                    }}
+                  />
+                </div>
+                <div className="bg-gray-100 px-3 py-2 rounded-md text-sm font-medium text-gray-700 min-w-[4rem] text-center border border-gray-300">
+                  {opacity} %
+                </div>
+              </div>
             </div>
 
             {/* Delete button */}
             <div className="flex gap-2 mt-4 pt-4 border-t border-gray-200">
               <button 
                 onClick={deleteAnnotation}
-                className="flex-1 px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-black transition-colors text-sm font-medium"
+                className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
               >
-                Delete
+                {translations.common("delete")}
               </button>
             </div>
           </div>
@@ -861,7 +1192,7 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
         />
       )}
 
-      {/* Custom CSS - updated for black-grey-white theme */}
+      {/* Custom CSS - updated to match AnnotationPanel */}
       <style jsx>{`
         .opacity-slider::-webkit-slider-thumb {
           appearance: none;
@@ -869,9 +1200,9 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
           width: 16px;
           border-radius: 50%;
           background: white;
-          border: 2px solid #6B7280;
+          border: 2px solid #9ca3af;
           cursor: pointer;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
         
         .opacity-slider::-moz-range-thumb {
@@ -879,9 +1210,9 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
           width: 16px;
           border-radius: 50%;
           background: white;
-          border: 2px solid #6B7280;
+          border: 2px solid #9ca3af;
           cursor: pointer;
-          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
       `}</style>
     </>

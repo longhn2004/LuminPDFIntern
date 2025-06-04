@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useTranslations } from 'next-intl';
 import { VerifyLayout, StatusCard, LoadingSpinner, ErrorIcon, MailIcon } from "@/components/auth";
 
 export default function VerifyEmail() {
@@ -9,6 +10,7 @@ export default function VerifyEmail() {
   const searchParams = useSearchParams();
   const email = searchParams.get("email");
   const token = searchParams.get("token");
+  const t = useTranslations();
   
   const [resendCooldown, setResendCooldown] = useState(60);
   const [resendDisabled, setResendDisabled] = useState(true);
@@ -45,7 +47,7 @@ export default function VerifyEmail() {
       router.push('/auth/verify-success');
     } catch (error: any) {
       console.error("Verification error:", error);
-      setVerificationError(error.message || 'Verification failed. Please try again.');
+      setVerificationError(error.message || t('auth.verificationFailedMessage'));
     } finally {
       setVerifying(false);
     }
@@ -83,8 +85,8 @@ export default function VerifyEmail() {
       <VerifyLayout>
         <StatusCard
           icon={<LoadingSpinner />}
-          title="Verifying your email"
-          message="Please wait while we verify your email address..."
+          title={t('auth.verifyingEmail')}
+          message={t('auth.verifyingEmailMessage')}
         />
       </VerifyLayout>
     );
@@ -96,14 +98,14 @@ export default function VerifyEmail() {
       <VerifyLayout>
         <StatusCard
           icon={<ErrorIcon />}
-          title="Verification Failed"
+          title={t('auth.verificationFailed')}
           message={verificationError}
           buttons={
             <button 
               onClick={() => router.push("/auth/signin")}
               className="bg-blue-500 hover:bg-blue-600 text-white py-2 px-4 rounded-lg transition-all duration-300"
             >
-              Back to Sign In
+              {t('auth.backToSignIn')}
             </button>
           }
         />
@@ -114,13 +116,13 @@ export default function VerifyEmail() {
   // Default state - waiting for email verification
   const resendButton = (
     <div className="flex justify-center">
-      <p className="text-gray-600">Didn't receive an email?&nbsp;</p>
+      <p className="text-gray-600">{t('auth.didntReceiveEmail')}&nbsp;</p>
       <button 
         onClick={handleResendEmail}
         disabled={resendDisabled}
         className="text-blue-600 hover:underline focus:outline-none"
       >
-        Resend Verification Link
+        {t('auth.resendVerificationLink')}
       </button>
       {resendDisabled && resendCooldown > 0 && (
         <span className="ml-2 text-gray-500">({resendCooldown}s)</span>
@@ -132,10 +134,10 @@ export default function VerifyEmail() {
     <VerifyLayout>
       <StatusCard
         icon={<MailIcon />}
-        title="Verify your email address"
+        title={t('auth.verifyEmailTitle')}
         message={
           <>
-            We've just sent a verification email to <span className="font-bold">{email}</span>. Please check your inbox.
+            {t('auth.verifyEmailMessage', { email: email || '' })}
           </>
         }
         buttons={resendButton}

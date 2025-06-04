@@ -6,28 +6,18 @@ import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { setUser } from "@/redux/features/userSlice";
 import LogoutButton from "./LogoutButton";
 import Avatar from "./Avatar";
-
-const TIME_BASED_GREETINGS = {
-  morning: "Good morning",
-  afternoon: "Good afternoon", 
-  evening: "Good evening"
-} as const;
-
-interface DashboardHeaderProps {
-  className?: string;
-  onLogoClick?: () => void;
-  showGreeting?: boolean;
-}
+import LanguageSwitch from "./LanguageSwitch";
+import { useAppTranslations } from "@/hooks/useTranslations";
 
 /**
- * Get time-based greeting based on current hour
+ * Get time-based greeting key based on current hour
  */
-const getTimeBasedGreeting = (): string => {
+const getTimeBasedGreetingKey = (): string => {
   const hour = new Date().getHours();
   
-  if (hour < 12) return TIME_BASED_GREETINGS.morning;
-  if (hour < 17) return TIME_BASED_GREETINGS.afternoon;
-  return TIME_BASED_GREETINGS.evening;
+  if (hour < 12) return "dashboard.goodMorning";
+  if (hour < 17) return "dashboard.goodAfternoon";
+  return "dashboard.goodEvening";
 };
 
 /**
@@ -50,6 +40,12 @@ const useOutsideClick = (callback: () => void) => {
   return ref;
 };
 
+interface DashboardHeaderProps {
+  className?: string;
+  onLogoClick?: () => void;
+  showGreeting?: boolean;
+}
+
 /**
  * DashboardHeader component provides navigation and user information
  * at the top of dashboard pages
@@ -59,6 +55,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   onLogoClick,
   showGreeting = true
 }) => {
+  const translations = useAppTranslations();
   const dispatch = useAppDispatch();
   const user = useAppSelector(state => state.user);
   const router = useRouter();
@@ -66,7 +63,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   const [showLogoutMenu, setShowLogoutMenu] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   
-  const greeting = useMemo(() => getTimeBasedGreeting(), []);
+  const greetingKey = useMemo(() => getTimeBasedGreetingKey(), []);
   
   const closeDropdown = useCallback(() => {
     setShowLogoutMenu(false);
@@ -144,18 +141,18 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   }, []);
 
   const userName = user.name || 'User';
-  const greetingText = `${greeting}, ${userName}`;
+  const greetingText = `${translations.t(greetingKey)}, ${userName}`;
 
   return (
     <header className={`w-full bg-white border-b border-gray-200 shadow-md z-10 ${className}`}>
       <div className="flex justify-between items-center p-4">
         
         {/* Logo Section */}
-        <div className="flex items-center">
+        <div className="flex items-center gap-4">
           <button 
             onClick={handleLogoClick} 
             className="cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
-            aria-label="Go to dashboard"
+            aria-label={translations.dashboard("goToDashboard")}
           >
             <img 
               src="/images/dsvlogo.png" 
@@ -163,6 +160,11 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
               className="h-10 w-10" 
             />
           </button>
+          
+          {/* Language Switch */}
+          <div className="bg-white rounded-lg px-3 py-2">
+            <LanguageSwitch variant="light" />
+          </div>
         </div>
 
         {/* User Section */}
@@ -184,7 +186,7 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
                 onClick={toggleLogoutMenu}
                 onKeyDown={handleKeyDown}
                 className="cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded-full"
-                aria-label="User menu"
+                aria-label={translations.dashboard("userMenu")}
                 aria-expanded={showLogoutMenu}
                 aria-haspopup="true"
                 id="user-menu-button"
