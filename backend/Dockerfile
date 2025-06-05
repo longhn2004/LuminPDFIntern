@@ -54,5 +54,5 @@ EXPOSE $PORT
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD curl -f http://localhost:${PORT:-5000}/health || exit 1
 
-# Start the application (flexible path resolution)
-CMD ["sh", "-c", "if [ -f dist/main.js ]; then node dist/main.js; elif [ -f dist/src/main.js ]; then node dist/src/main.js; else echo 'main.js not found in dist/ or dist/src/'; exit 1; fi"] 
+# Start the application (flexible path resolution) with crypto support
+CMD ["sh", "-c", "if [ -f dist/main.js ]; then node --experimental-global-webcrypto dist/main.js; elif [ -f dist/src/main.js ]; then node --experimental-global-webcrypto dist/src/main.js; else echo 'main.js not found in dist/ or dist/src/'; exit 1; fi"] 
