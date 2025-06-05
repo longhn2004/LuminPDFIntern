@@ -15,7 +15,18 @@ async function bootstrap() {
   const redisUrl = configService.get<string>('REDIS_URL');
   const redisHost = configService.get<string>('REDIS_HOST');
   const redisPort = configService.get<number>('REDIS_PORT');
+
+  const mongoCloudUri = configService.get<string>('MONGO_CLOUD_URI');
+  const mongoLocalUri = configService.get<string>('MONGO_URI');
   
+  if (mongoCloudUri) {
+    console.log(`💾 MongoDB: Using Cloud URI ${mongoCloudUri}`);
+  } else if (mongoLocalUri) {
+    console.log(`💾 MongoDB: Using Local URI ${mongoLocalUri}`);
+  } else {
+    console.log(`💾 MongoDB: Using default localhost:27017`);
+  }
+
   if (redisUrl) {
     console.log(`📡 Redis Cache: Using URL ${redisUrl}`);
   } else if (redisHost && redisPort) {

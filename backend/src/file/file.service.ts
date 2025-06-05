@@ -4,8 +4,6 @@ import { ConfigService } from '@nestjs/config';
 import { Model, Types } from 'mongoose';
 import { Response } from 'express';
 import { google } from 'googleapis';
-import { createWriteStream, existsSync, unlinkSync } from 'fs';
-import { join } from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
 // Schemas
@@ -26,6 +24,7 @@ import { ToggleShareableLinkDto } from './dto/toggle-shareable-link.dto';
 // Services
 import { EmailService } from '../email/email.service';
 import { CacheService } from '../cache/cache.service';
+import { S3Service } from './s3.service';
 
 @Injectable()
 export class FileService {
@@ -41,8 +40,9 @@ export class FileService {
     private configService: ConfigService,
     private emailService: EmailService,
     private cacheService: CacheService,
+    private s3Service: S3Service,
   ) {
-    console.log('🚀 FileService initialized with Redis caching support');
+    console.log('🚀 FileService initialized with S3 storage and Redis caching support');
   }
 
   // =============================================
@@ -50,29 +50,39 @@ export class FileService {
   // =============================================
 
   async uploadFile(file: Express.Multer.File, user: User) {    
-    console.log(`📤 Uploading file: ${file.originalname} for user: ${user.email}`);
+    console.log(`📤 Uploading file to S3: ${file.originalname} for user: ${user.email}`);
     if (!file) {      
       throw new BadRequestException('No file uploaded');    
     }    
-    const newFile = new this.fileModel({      
-      name: file.originalname,      
-      path: file.path,      
-      owner: user._id,      
-      ownerEmail: user.email,      
-      viewers: [],      
-      editors: [],    
-    });    
-    await newFile.save();
-    console.log(`✅ File uploaded successfully: ${newFile._id}`);
-    
-    // Invalidate user cache since file list changed
-    await this.cacheService.invalidateUserCache((user._id as Types.ObjectId).toString());
-    
-    return newFile;  
+
+    try {
+      // Upload file to S3
+      const s3Key = await this.s3Service.uploadFile(file);
+      
+      const newFile = new this.fileModel({      
+        name: file.originalname,      
+        path: s3Key, // Store S3 key instead of local path     
+        owner: user._id,      
+        ownerEmail: user.email,      
+        viewers: [],      
+        editors: [],    
+      });    
+      
+      await newFile.save();
+      console.log(`✅ File uploaded successfully to S3: ${newFile._id} with key: ${s3Key}`);
+      
+      // Invalidate user cache since file list changed
+      await this.cacheService.invalidateUserCache((user._id as Types.ObjectId).toString());
+      
+      return newFile;  
+    } catch (error) {
+      console.error(`❌ Error uploading file to S3:`, error);
+      throw new BadRequestException(`Failed to upload file: ${error.message}`);
+    }
   }
 
   async uploadFromDrive(fileId: string, user: User) {
-    console.log(`📤 Uploading from Google Drive: ${fileId} for user: ${user.email}`);
+    console.log(`📤 Uploading from Google Drive to S3: ${fileId} for user: ${user.email}`);
     
     // Validate Google Drive file ID format
     if (!fileId || typeof fileId !== 'string' || !/^[a-zA-Z0-9_-]{10,}$/.test(fileId)) {
@@ -80,7 +90,7 @@ export class FileService {
     }
     
     const serviceAccountKeyPath = this.configService.get<string>('GOOGLE_SERVICE_ACCOUNT_KEY_PATH') || 
-                                  join(__dirname, '..', '..', 'config', 'service-account-key.json');
+                                  require('path').join(__dirname, '..', '..', 'config', 'service-account-key.json');
     
     const auth = new google.auth.GoogleAuth({
       keyFile: serviceAccountKeyPath,
@@ -109,7 +119,7 @@ export class FileService {
         throw new BadRequestException(`File size exceeds ${FileService.MAX_FILE_SIZE / (1024 * 1024)}MB limit`);
       }
 
-      // Download file
+      // Download file stream from Google Drive
       const res = await drive.files.get({ 
         fileId, 
         alt: 'media' 
@@ -117,48 +127,28 @@ export class FileService {
         responseType: 'stream' 
       });
       
-      const uploadPath = this.configService.get<string>('FILE_UPLOAD_PATH') || './uploads';
-      const filePath = join(uploadPath, `${uuidv4()}.pdf`);
-      const writeStream = createWriteStream(filePath);
+      // Upload stream directly to S3
+      const fileName = fileMetadata.data.name || `drive-file-${fileId}.pdf`;
+      const s3Key = await this.s3Service.uploadStream(res.data, fileName, 'application/pdf');
       
-      res.data.pipe(writeStream);
-
-      return new Promise((resolve, reject) => {
-        writeStream.on('finish', async () => {
-          try {
-            const newFile = new this.fileModel({            
-              name: fileMetadata.data.name || `drive-file-${fileId}.pdf`,            
-              path: filePath,            
-              owner: user._id,            
-              ownerEmail: user.email,            
-              viewers: [],            
-              editors: [],          
-            });
-            
-            await newFile.save();
-            console.log(`✅ File from Google Drive uploaded successfully: ${newFile._id}`);
-            
-            // Invalidate user cache since file list changed
-            await this.cacheService.invalidateUserCache((user._id as Types.ObjectId).toString());
-            
-            resolve(newFile);
-          } catch (saveError) {
-            console.error(`❌ Error saving file to database:`, saveError);
-            // Clean up the downloaded file if database save fails
-            if (existsSync(filePath)) {
-              unlinkSync(filePath);
-            }
-            reject(new BadRequestException('Failed to save file to database'));
-          }
-        });
-        
-        writeStream.on('error', (err) => {
-          console.error(`❌ Error writing file:`, err);
-          reject(new BadRequestException('Failed to save file to disk'));
-        });
+      const newFile = new this.fileModel({            
+        name: fileName,            
+        path: s3Key, // Store S3 key instead of local path           
+        owner: user._id,            
+        ownerEmail: user.email,            
+        viewers: [],            
+        editors: [],          
       });
+      
+      await newFile.save();
+      console.log(`✅ File from Google Drive uploaded successfully to S3: ${newFile._id} with key: ${s3Key}`);
+      
+      // Invalidate user cache since file list changed
+      await this.cacheService.invalidateUserCache((user._id as Types.ObjectId).toString());
+      
+      return newFile;
     } catch (error) {
-      console.error(`❌ Error uploading from Google Drive:`, error);
+      console.error(`❌ Error uploading from Google Drive to S3:`, error);
       
       if (error.response?.status === 404) {
         throw new BadRequestException('File not found in Google Drive or access denied');
@@ -260,8 +250,18 @@ export class FileService {
       throw new ForbiddenException('You do not have permission to access this file');
     }
 
-    console.log(`✅ File download authorized for: ${id}`);
-    res.download(file.path);
+    try {
+      console.log(`✅ File download authorized for: ${id}, generating signed URL from S3`);
+      
+      // Generate a signed URL for the file download
+      const signedUrl = await this.s3Service.getSignedDownloadUrl(file.path, 3600); // 1 hour expiry
+      
+      // Redirect to the signed URL
+      res.redirect(signedUrl);
+    } catch (error) {
+      console.error(`❌ Error generating download URL for file ${id}:`, error);
+      throw new NotFoundException('File not found in storage');
+    }
   }
 
   async downloadFileWithAnnotations(id: string, user: User, token?: string) {
@@ -305,20 +305,28 @@ export class FileService {
       throw new ForbiddenException('You do not have permission to download with annotations');
     }
     
-    const result = {
-      fileId: id,
-      fileName: file.name,
-      filePath: file.path,
-      downloadUrl: `/api/file/${id}/download`,
-      annotations: file.xfdf,
-      hasAnnotations: !!file.xfdf && file.xfdf !== FileService.DEFAULT_XFDF
-    };
-    
-    // Cache the annotations
-    await this.cacheService.setFileAnnotations(id, result);
-    console.log(`💾 Cached annotations for file: ${id}`);
-    
-    return result;
+    try {
+      // Generate signed URL for S3 file
+      const signedUrl = await this.s3Service.getSignedDownloadUrl(file.path, 3600);
+      
+      const result = {
+        fileId: id,
+        fileName: file.name,
+        filePath: file.path, // S3 key
+        downloadUrl: signedUrl, // Signed S3 URL
+        annotations: file.xfdf,
+        hasAnnotations: !!file.xfdf && file.xfdf !== FileService.DEFAULT_XFDF
+      };
+      
+      // Cache the annotations
+      await this.cacheService.setFileAnnotations(id, result);
+      console.log(`💾 Cached annotations for file: ${id}`);
+      
+      return result;
+    } catch (error) {
+      console.error(`❌ Error generating download URL for file ${id}:`, error);
+      throw new NotFoundException('File not found in storage');
+    }
   }
 
   // =============================================
@@ -386,32 +394,34 @@ export class FileService {
       throw new NotFoundException('File not found');
     }
 
-        if (file.ownerEmail !== user.email) {      
-          throw new ForbiddenException('Only the owner can delete the file');    
-        }
+    if (file.ownerEmail !== user.email) {      
+      throw new ForbiddenException('Only the owner can delete the file');    
+    }
 
-    await this.fileModel.findByIdAndDelete(id).exec();
-
-    //Delete from storage
-    const filePath = join(this.configService.get<string>('FILE_UPLOAD_PATH') || './uploads', file.path.slice(8));
-    console.log('🗂️ Deleting file from storage:', filePath);
-    if (existsSync(filePath)) {
-      console.log('✅ File exists, deleting from storage:', filePath);
-      unlinkSync(filePath);
-
-      //Delete invitations
+    try {
+      // Delete from S3
+      await this.s3Service.deleteFile(file.path);
+      console.log(`✅ File deleted from S3: ${file.path}`);
+      
+      // Delete from database
+      await this.fileModel.findByIdAndDelete(id).exec();
+      
+      // Delete related invitations
       await this.invitationModel.deleteMany({ file: id }).exec();
       console.log('✅ Deleted related invitations for file:', id);
+      
+      // Invalidate all caches related to this file
+      await this.cacheService.invalidateFileCache(id);
+      
+      // Invalidate user cache since file list changed
+      await this.cacheService.invalidateUserCache((user._id as Types.ObjectId).toString());
+      
+      console.log(`✅ File deleted successfully: ${id}`);
+      return { message: 'File deleted successfully' };
+    } catch (error) {
+      console.error(`❌ Error deleting file ${id}:`, error);
+      throw new BadRequestException(`Failed to delete file: ${error.message}`);
     }
-    
-    // Invalidate all caches related to this file
-    await this.cacheService.invalidateFileCache(id);
-    
-    // Invalidate user cache since file list changed
-    await this.cacheService.invalidateUserCache((user._id as Types.ObjectId).toString());
-    
-    console.log(`✅ File deleted successfully: ${id}`);
-    return { message: 'File deleted successfully' };
   }
 
   // =============================================
