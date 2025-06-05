@@ -39,8 +39,8 @@ const GoogleDriveButton: React.FC<GoogleDriveButtonProps> = ({
     try {
       await onUpload(driveUrl.trim());
       handleCloseModal();
-    } catch (error) {
-      // Error is handled by the hook
+    } catch {
+      // Error is handled by the parent component
     } finally {
       setUploading(false);
     }

@@ -1,6 +1,4 @@
 "use client"
-import Script from "next/script";
-import { useEffect, useRef, useState } from 'react'
 import PDFViewer from '@/components/PDFViewer';
 import { useParams } from 'next/navigation';
 import DashboardHeader from '@/components/DashboardHeader';

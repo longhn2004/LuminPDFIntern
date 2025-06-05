@@ -23,13 +23,6 @@ interface UserInfo {
   name: string;
 }
 
-interface FileInfo {
-  name: string;
-  size?: number;
-  uploadedAt?: string;
-  owner?: UserInfo;
-}
-
 /**
  * Hook for managing user permissions and file data
  */
@@ -131,7 +124,7 @@ const useFilePermissions = (pdfId: string) => {
       const data = await response.json();
       setFileName(data.name || "Untitled Document");
       return true;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("PDFViewer: Error fetching file info:", error);
       toast.error("Failed to load document information. Please check your connection or try again later.");
       setFileName("Untitled Document");
@@ -182,7 +175,7 @@ const useDownloadHandlers = (pdfId: string, fileName: string, userRole: string) 
       console.error("PDFViewer: Error downloading file:", error);
       toast.error(translations.errors("fileNotFound"));
     }
-  }, [pdfId, fileName, translations]);
+  }, [fileName, translations]);
 
   const downloadFileWithAnnotations = useCallback(async () => {
       if (userRole !== 'owner' && userRole !== 'editor') {

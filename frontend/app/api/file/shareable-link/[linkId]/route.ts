@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import api from '@/libs/api/axios';
+import { AxiosError } from 'axios';
+import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 
 export async function DELETE(
   request: NextRequest,
@@ -16,7 +18,7 @@ export async function DELETE(
     if (!accessToken) {
       return NextResponse.json(
         { error: 'Authentication required' },
-        { status: 401 }
+        { status: HTTP_STATUS.UNAUTHORIZED }
       );
     }
 
@@ -25,7 +27,7 @@ export async function DELETE(
     if (!linkId) {
       return NextResponse.json(
         { error: 'Link ID is required' },
-        { status: 400 }
+        { status: HTTP_STATUS.BAD_REQUEST }
       );
     }
 
@@ -37,16 +39,26 @@ export async function DELETE(
     });
 
     return NextResponse.json(response.data);
-  } catch (error: any) {
-    console.error('Error deleting shareable link:', error);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error deleting shareable link:', error.message);
+    } else {
+      console.error('Error deleting shareable link:', String(error));
+    }
     
     // Handle axios error response
-    const status = error.response?.status || 500;
-    const message = error.response?.data?.message || 'Failed to delete shareable link';
+    if (error instanceof AxiosError && error.response) {
+      const status = error.response.status || HTTP_STATUS.INTERNAL_SERVER_ERROR;
+      const message = error.response.data?.message || 'Failed to delete shareable link';
+      return NextResponse.json(
+        { error: message },
+        { status }
+      );
+    }
     
     return NextResponse.json(
-      { error: message },
-      { status }
+      { error: 'Internal server error' },
+      { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
     );
   }
 } 

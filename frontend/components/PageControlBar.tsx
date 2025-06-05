@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { FaCheck, FaPlus, FaMinus, FaChevronDown } from 'react-icons/fa';
-import { MdOutlineTextFields } from 'react-icons/md';
 import { 
   zoomIn, 
   zoomOut, 
@@ -31,10 +30,9 @@ interface ZoomControlProps {
   onCustomZoomKeyPress: (e: React.KeyboardEvent) => void;
   onApplyCustomZoom: () => void;
   onPresetZoom: (zoom: number) => void;
-  onOpenCustomZoom: () => void;
   dropdownRef: React.RefObject<HTMLDivElement | null>;
   customInputRef: React.RefObject<HTMLInputElement | null>;
-  translations: any;
+  translations: ReturnType<typeof useAppTranslations>;
 }
 
 interface PageNavigationProps {
@@ -51,7 +49,7 @@ interface PageNavigationProps {
   onCustomPageKeyPress: (e: React.KeyboardEvent) => void;
   onApplyCustomPage: () => void;
   customPageInputRef: React.RefObject<HTMLInputElement | null>;
-  translations: any;
+  translations: ReturnType<typeof useAppTranslations>;
 }
 
 /**
@@ -80,7 +78,6 @@ const ZoomControl: React.FC<ZoomControlProps> = ({
   onCustomZoomKeyPress,
   onApplyCustomZoom,
   onPresetZoom,
-  onOpenCustomZoom,
   dropdownRef,
   customInputRef,
   translations
@@ -94,7 +91,7 @@ const ZoomControl: React.FC<ZoomControlProps> = ({
           ? 'text-gray-300 cursor-not-allowed' 
           : 'hover:bg-gray-100 text-gray-600'}`}
         disabled={isMinZoom}
-        title={isMinZoom ? translations.viewer('minimumZoomReached') : translations.viewer('zoomOut')}
+        title={translations.viewer('minimumZoomReached')}
         aria-label={translations.viewer('zoomOut')}
       >
         <div className="w-4 h-4 rounded-full flex items-center justify-center border border-black">
@@ -170,7 +167,7 @@ const ZoomControl: React.FC<ZoomControlProps> = ({
           ? 'text-gray-300 cursor-not-allowed' 
           : 'hover:bg-gray-100 text-gray-600'}`}
         disabled={isMaxZoom}
-        title={isMaxZoom ? translations.viewer('maximumZoomReached') : translations.viewer('zoomIn')}
+        title={translations.viewer('maximumZoomReached')}
         aria-label={translations.viewer('zoomIn')}
       >
         <div className="w-4 h-4 rounded-full flex items-center justify-center border border-black">
@@ -514,7 +511,7 @@ export default function PageControlBar({ className = '' }: PageControlBarProps) 
     updateInfo();
     const intervalId = setInterval(updateInfo, 500);
     return () => clearInterval(intervalId);
-  }, []);
+  }, [zoomControl.updateZoomState, pageNavigation.updatePageState]);
   
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -526,7 +523,7 @@ export default function PageControlBar({ className = '' }: PageControlBarProps) 
     
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  }, [zoomControl.setIsDropdownOpen]);
   
   // Focus inputs when custom mode is enabled
   useEffect(() => {
@@ -569,11 +566,6 @@ export default function PageControlBar({ className = '' }: PageControlBarProps) 
             onCustomZoomKeyPress={zoomControl.handleCustomZoomKeyPress}
             onApplyCustomZoom={zoomControl.applyCustomZoom}
             onPresetZoom={zoomControl.handlePresetZoom}
-            onOpenCustomZoom={() => {
-              zoomControl.setIsDropdownOpen(false);
-              zoomControl.setIsCustomZoom(true);
-              zoomControl.setCustomZoom(Math.round(zoomControl.currentZoom * 100).toString());
-            }}
             dropdownRef={dropdownRef}
             customInputRef={customInputRef}
             translations={translations}

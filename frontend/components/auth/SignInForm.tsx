@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useTranslations } from 'next-intl';
 import AuthInput from "./AuthInput";
 import AuthGoogleButton from "./AuthGoogleButton";
@@ -79,12 +80,13 @@ export default function SignInForm() {
       }
 
       router.push("/dashboard/document-list");
-    } catch (error: any) {
-      if (error.response) {
+    } catch (error: unknown) {
+      const errorObj = error as { response?: { status: number; data: { message: string } } };
+      if (errorObj.response) {
         // If you want to use HTTP_STATUS, import it above
         if (
-          error.response.status === HTTP_STATUS.UNAUTHORIZED &&
-          error.response.data.message === "Email not verified"
+          errorObj.response.status === HTTP_STATUS.UNAUTHORIZED &&
+          errorObj.response.data.message === "Email not verified"
         ) {
           router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
           return;
@@ -98,7 +100,7 @@ export default function SignInForm() {
     <>
       <div className="flex items-center gap-2">
         <h1 className="text-2xl font-bold text-[45px]">{t('auth.signin')} </h1>
-        <img src="/images/dsvlogo.png" alt="Logo" className="h-10 w-10" />
+        <Image src="/images/dsvlogo.png" alt="Logo" width={40} height={40} className="h-10 w-10" />
       </div>
       <AuthGoogleButton />
       <AuthDivider />

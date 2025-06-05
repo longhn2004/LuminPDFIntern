@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useCallback, useMemo } from "react";
+import Image from "next/image";
 import { useAppDispatch, useAppSelector } from "@/redux/hooks";
 import { setUser } from "@/redux/features/userSlice";
 import LogoutButton from "./LogoutButton";
@@ -154,9 +155,11 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
             className="cursor-pointer hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 rounded"
             aria-label={translations.dashboard("goToDashboard")}
           >
-            <img 
+            <Image 
               src="/images/dsvlogo.png" 
               alt="DI-DSV Logo" 
+              width={40}
+              height={40}
               className="h-10 w-10" 
             />
           </button>

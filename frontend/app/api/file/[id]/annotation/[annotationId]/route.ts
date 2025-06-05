@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 import api from '@/libs/api/axios';
-
+import { AxiosError } from 'axios';
 /**
  * PUT endpoint to update an annotation
  * @param request - The incoming request containing updated annotation data
@@ -45,10 +45,14 @@ export async function PUT(
     });
     
     return NextResponse.json(response.data);
-  } catch (error: any) {
-    console.error('Error updating annotation:', error.response?.data || error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error updating annotation:', error.message);
+    } else {
+      console.error('Error updating annotation:', String(error));
+    }
     
-    if (error.response) {
+    if (error instanceof AxiosError && error.response) {
       return NextResponse.json(
         { message: error.response.data.message || 'Failed to update annotation' },
         { status: error.response.status }
@@ -103,10 +107,14 @@ export async function DELETE(
     });
     
     return NextResponse.json(response.data);
-  } catch (error: any) {
-    console.error('Error deleting annotation:', error.response?.data || error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error deleting annotation:', error.message);
+    } else {
+      console.error('Error deleting annotation:', String(error));
+    }
     
-    if (error.response) {
+    if (error instanceof AxiosError && error.response) {
       return NextResponse.json(
         { message: error.response.data.message || 'Failed to delete annotation' },
         { status: error.response.status }

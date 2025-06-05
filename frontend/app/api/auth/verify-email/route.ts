@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import api from '@/libs/api/axios';
 import { HTTP_STATUS } from '@/libs/constants/httpStatus';
-import { cookies } from 'next/headers';
+import { AxiosError } from 'axios';
+
 
 export async function GET(request: NextRequest) {
   try {
@@ -41,14 +42,22 @@ export async function GET(request: NextRequest) {
     }
     
     return nextResponse;
-  } catch (error: any) {
-    console.error('Email verification error:', error.response?.data || error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Email verification error:', error.message);
+    } else {
+      console.error('Email verification error:', String(error));
+    }
     
-    const status = error.response?.status || HTTP_STATUS.INTERNAL_SERVER_ERROR;
-    const message = error.response?.data?.message || 'Email verification failed';
+    if (error instanceof AxiosError && error.response) {
+      const message = error.response.data?.message || 'Email verification failed';
+      return NextResponse.redirect(
+        new URL(`/auth/verify-error?message=${encodeURIComponent(message)}`, request.url)
+      );
+    }
     
     return NextResponse.redirect(
-      new URL(`/auth/verify-error?message=${encodeURIComponent(message)}`, request.url)
+      new URL(`/auth/verify-error?message=${encodeURIComponent('Email verification failed')}`, request.url)
     );
   }
 } 

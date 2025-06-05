@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import api from '@/libs/api/axios';
-
+import { HTTP_STATUS } from '@/libs/constants/httpStatus';
+import { AxiosError } from 'axios';
 export async function POST(request: NextRequest) {
   try {
     // Extract access token from cookies
@@ -11,7 +12,7 @@ export async function POST(request: NextRequest) {
     if (!accessToken) {
       return NextResponse.json(
         { error: 'Authentication required' },
-        { status: 401 }
+        { status: HTTP_STATUS.UNAUTHORIZED }
       );
     }
 
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
     if (!fileId) {
       return NextResponse.json(
         { error: 'Google Drive file ID is required' },
-        { status: 400 }
+        { status: HTTP_STATUS.BAD_REQUEST }
       );
     }
 
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
     if (!/^[a-zA-Z0-9_-]{10,}$/.test(fileId)) {
       return NextResponse.json(
         { error: 'Invalid Google Drive file ID format' },
-        { status: 400 }
+        { status: HTTP_STATUS.BAD_REQUEST }
       );
     }
 
@@ -43,16 +44,26 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(response.data);
-  } catch (error: any) {
-    console.error('Error uploading from Google Drive:', error);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error uploading from Google Drive:', error.message);
+    } else {
+      console.error('Error uploading from Google Drive:', String(error));
+    }
     
     // Handle axios error response
-    const status = error.response?.status || 500;
-    const message = error.response?.data?.message || 'Failed to upload from Google Drive';
+    if (error instanceof AxiosError && error.response) {
+      const status = error.response.status || HTTP_STATUS.INTERNAL_SERVER_ERROR;
+      const message = error.response.data?.message || 'Failed to upload from Google Drive';
+      return NextResponse.json(
+        { error: message },
+        { status }
+      );
+    }
     
     return NextResponse.json(
-      { error: message },
-      { status }
+      { error: 'Internal server error' },
+      { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
     );
   }
 } 

@@ -260,12 +260,6 @@ export class FileService {
       throw new ForbiddenException('You do not have permission to access this file');
     }
 
-    if (role === 'owner' || role === 'editor') {
-      // Send file with annotations (xfdf is now part of the file)
-      res.setHeader('X-Annotations', JSON.stringify([file.xfdf]));
-      console.log(`📝 Including annotations in download for file: ${id}`);
-    }
-
     console.log(`✅ File download authorized for: ${id}`);
     res.download(file.path);
   }

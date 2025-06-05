@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 import api from '@/libs/api/axios';
-
+import { AxiosError } from 'axios';
 /**
  * GET endpoint to retrieve file details
  * @param request - The incoming request
@@ -43,10 +43,14 @@ export async function GET(
     });
     
     return NextResponse.json(response.data);
-  } catch (error: any) {
-    console.error('Error fetching file details:', error.response?.data || error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error fetching file details:', error.message);
+    } else {
+      console.error('Error fetching file details:', String(error));
+    }
     
-    if (error.response) {
+    if (error instanceof AxiosError && error.response) {
       return NextResponse.json(
         { message: error.response.data.message || 'Failed to fetch file details' },
         { status: error.response.status }
@@ -101,10 +105,14 @@ export async function DELETE(
     });
     
     return NextResponse.json(response.data);
-  } catch (error: any) {
-    console.error('Error deleting file:', error.response?.data || error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error deleting file:', error.message);
+    } else {
+      console.error('Error deleting file:', String(error));
+    }
     
-    if (error.response) {
+    if (error instanceof AxiosError && error.response) {
       return NextResponse.json(
         { message: error.response.data.message || 'Failed to delete file' },
         { status: error.response.status }

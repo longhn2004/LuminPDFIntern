@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import LanguageSwitch from '../LanguageSwitch';
 
 interface VerifyLayoutProps {
@@ -17,7 +18,7 @@ export default function VerifyLayout({ children }: VerifyLayoutProps) {
         <div className="container mx-auto">
           <div className="flex items-center justify-between">
             <button onClick={() => router.push("/auth/signin")} className="cursor-pointer">
-              <img src="/images/dsvlogo.png" alt="Logo" className="h-10 w-10" />
+              <Image src="/images/dsvlogo.png" alt="Logo" width={40} height={40} className="h-10 w-10" />
             </button>
             
             {/* Language Switch on the right */}

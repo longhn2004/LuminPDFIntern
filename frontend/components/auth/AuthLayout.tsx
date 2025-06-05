@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useTranslations } from 'next-intl';
 import LanguageSwitch from '../LanguageSwitch';
 
@@ -16,18 +16,17 @@ export default function AuthLayout({
   rightWidthClass = "w-1/3",
   leftContent,
 }: AuthLayoutProps) {
-  const router = useRouter();
   const t = useTranslations();
 
   return (
-    <div className="flex h-screen w-full bg-[url('@/public/images/backgroundauth.png')] fixed bg-cover bg-center">
+    <div className="flex h-screen w-full bg-[url('/images/backgroundauth.png')] fixed bg-cover bg-center">
       {/* left div */}
       <div className="opacity-100 text-black absolute left-20 top-1/2 transform -translate-y-1/2 w-[300px] rounded-xl">
         <div className="w-full h-full rounded-xl">
           {leftContent || (
             <>
               <div className="flex items-center bg-white w-[130px] rounded-xl p-2">
-                <img src="/images/dsvlogo.png" alt="Logo" className="h-10 w-10" />
+                <Image src="/images/dsvlogo.png" alt="Logo" width={40} height={40} className="h-10 w-10" />
                 <span className="text-xl font-bold text-black">DI-DSV</span>
               </div>
               <p className="text-white">{t('auth.companySlogan')}</p>

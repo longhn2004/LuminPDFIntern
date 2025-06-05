@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import api from '@/libs/api/axios';
+import { AxiosError } from 'axios';
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,16 +49,26 @@ export async function POST(request: NextRequest) {
 
     console.log('Frontend API: Access via link successful:', response.data);
     return NextResponse.json(response.data);
-  } catch (error: any) {
-    console.error('Frontend API: Error accessing file via shareable link:', error);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Frontend API: Error accessing file via shareable link:', error.message);
+    } else {
+      console.error('Frontend API: Error accessing file via shareable link:', String(error));
+    }
     
     // Handle axios error response
-    const status = error.response?.status || 500;
-    const message = error.response?.data?.message || 'Failed to access file via shareable link';
+    if (error instanceof AxiosError && error.response) {
+      const status = error.response.status || 500;
+      const message = error.response.data?.message || 'Failed to access file via shareable link';
+      return NextResponse.json(
+        { error: message },
+        { status }
+      );
+    }
     
     return NextResponse.json(
-      { error: message },
-      { status }
+      { error: 'Internal server error' },
+      { status: 500 }
     );
   }
 }
@@ -100,15 +111,25 @@ export async function GET(request: NextRequest) {
       { error: 'Invalid action' },
       { status: 400 }
     );
-  } catch (error: any) {
-    console.error('Frontend API: Error in GET access-via-link:', error);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Frontend API: Error in GET access-via-link:', error.message);
+    } else {
+      console.error('Frontend API: Error in GET access-via-link:', String(error));
+    }
     
-    const status = error.response?.status || 500;
-    const message = error.response?.data?.message || 'Failed to process request';
+    if (error instanceof AxiosError && error.response) {
+      const status = error.response.status || 500;
+      const message = error.response.data?.message || 'Failed to process request';
+      return NextResponse.json(
+        { error: message },
+        { status }
+      );
+    }
     
     return NextResponse.json(
-      { error: message },
-      { status }
+      { error: 'Internal server error' },
+      { status: 500 }
     );
   }
 } 

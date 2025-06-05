@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 import { useTranslations } from 'next-intl';
 import AuthInput from "./AuthInput";
 import AuthGoogleButton from "./AuthGoogleButton";
 import AuthDivider from "./AuthDivider";
 import AuthCheckbox from "./AuthCheckbox";
-import AuthErrorMessage from "./AuthErrorMessage";
 
 export default function SignUpForm() {
   const [fullName, setFullName] = useState("");
@@ -109,12 +109,13 @@ export default function SignUpForm() {
         console.log("Signup successful:", data);
 
         router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
-      } catch (error: any) {
-        if (error) {
-          if (error.message.includes("already registered with email/password")) {
+      } catch (error: unknown) {
+        const errorObj = error as { message?: string };
+        if (errorObj) {
+          if (errorObj.message?.includes("already registered with email/password")) {
             setExistingEmail(true);
           }
-          if (error.message.includes("already registered with Google")) {
+          if (errorObj.message?.includes("already registered with Google")) {
             setExistingGoogle(true);
           }
           return;
@@ -129,7 +130,7 @@ export default function SignUpForm() {
     <>
       <div className="flex items-center gap-2">
         <h1 className="text-2xl font-bold text-[45px]">{t('auth.signup')} </h1>
-        <img src="/images/dsvlogo.png" alt="Logo" className="h-10 w-10" />
+        <Image src="/images/dsvlogo.png" alt="Logo" width={40} height={40} className="h-10 w-10" />
       </div>
       <AuthGoogleButton />
       <AuthDivider />

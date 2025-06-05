@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from 'next-intl';
 import { VerifyLayout, StatusCard, LoadingSpinner, ErrorIcon, MailIcon } from "@/components/auth";
@@ -17,11 +17,31 @@ export default function VerifyEmail() {
   const [verifying, setVerifying] = useState(false);
   const [verificationError, setVerificationError] = useState("");
 
+  const verifyToken = useCallback(async (token: string) => {
+    setVerifying(true);
+    try {
+      const response = await fetch(`/api/auth/verify-email?token=${token}`);
+      
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Verification failed');
+      }
+      
+      router.push('/auth/verify-success');
+    } catch (error: unknown) {
+      console.error("Verification error:", error);
+      const errorMessage = error instanceof Error ? error.message : t('auth.verificationFailedMessage');
+      setVerificationError(errorMessage);
+    } finally {
+      setVerifying(false);
+    }
+  }, [router, t]);
+
   useEffect(() => {
     if (token) {
       verifyToken(token);
     }
-  }, [token]);
+  }, [token, verifyToken]);
 
   useEffect(() => {
     if (resendCooldown > 0) {
@@ -33,25 +53,6 @@ export default function VerifyEmail() {
       setResendDisabled(false);
     }
   }, [resendCooldown]);
-
-  const verifyToken = async (token: string) => {
-    setVerifying(true);
-    try {
-      const response = await fetch(`/api/auth/verify-email?token=${token}`);
-      
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Verification failed');
-      }
-      
-      router.push('/auth/verify-success');
-    } catch (error: any) {
-      console.error("Verification error:", error);
-      setVerificationError(error.message || t('auth.verificationFailedMessage'));
-    } finally {
-      setVerifying(false);
-    }
-  };
 
   const handleResendEmail = async () => {
     if (resendDisabled || !email) return;

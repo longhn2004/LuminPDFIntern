@@ -1,12 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
 import { HTTP_STATUS } from '@/libs/constants/httpStatus';
+import { AxiosError } from 'axios';
+import { NextRequest, NextResponse } from 'next/server';
 import api from '@/libs/api/axios';
 
-/**
- * POST endpoint to invite a user to access a file
- * @param request - The incoming request containing invitation data (fileId, email, role)
- * @returns Success message or error
- */
 export async function POST(request: NextRequest) {
   try {
     const data = await request.json();
@@ -37,10 +33,14 @@ export async function POST(request: NextRequest) {
       }
     });
     return NextResponse.json(response.data);
-  } catch (error: any) {
-    console.error('Error inviting user:', error.response?.data || error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error inviting user:', error.message);
+    } else {
+      console.error('Error inviting user:', String(error));
+    }
     
-    if (error.response) {
+    if (error instanceof AxiosError && error.response) {
       return NextResponse.json(
         { message: error.response.data.message || 'Failed to invite user' },
         { status: error.response.status }
