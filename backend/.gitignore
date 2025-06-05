@@ -56,5 +56,18 @@ pids
 # Diagnostic reports (https://nodejs.org/api/report.html)
 report.[0-9]*.[0-9]*.[0-9]*.[0-9]*.json
 
-# Service account key
+# Service account key and sensitive files
 /config/service-account-key.json
+/config/*.key
+/config/*.pem
+temp-service-account.json
+railway-env-vars.txt
+
+# Backup files
+/backups/*
+*-backup-*
+*.backup
+
+# Migration error reports
+*-migration-errors-*.json
+*-rollback-errors-*.json

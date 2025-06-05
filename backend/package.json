@@ -35,7 +35,8 @@
     "rollback:mongodb": "ts-node -r tsconfig-paths/register scripts/rollback-from-mongodb-cloud.ts",
     "rollback:mongodb:dry-run": "ts-node -r tsconfig-paths/register scripts/rollback-from-mongodb-cloud.ts --dry-run",
     "rollback:mongodb:backup": "ts-node -r tsconfig-paths/register scripts/rollback-from-mongodb-cloud.ts --backup",
-    "rollback:mongodb:help": "ts-node -r tsconfig-paths/register scripts/rollback-from-mongodb-cloud.ts --help"
+    "rollback:mongodb:help": "ts-node -r tsconfig-paths/register scripts/rollback-from-mongodb-cloud.ts --help",
+    "prepare:railway": "node scripts/prepare-railway-deployment.js"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.824.0",
