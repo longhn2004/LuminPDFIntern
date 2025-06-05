@@ -5,6 +5,7 @@ import { FaSortUp, FaSortDown } from 'react-icons/fa';
 import DocumentTableRow from './DocumentTableRow';
 import LoadingSkeletonRow from './LoadingSkeletonRow';
 import { FileItem, SortOrder } from '@/types/document';
+import { useAppTranslations } from '@/hooks/useTranslations';
 
 interface DocumentTableProps {
   files: FileItem[];
@@ -29,6 +30,7 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
   onLoadMore,
   formatDate
 }) => {
+  const translations = useAppTranslations();
   const loaderRef = useRef<HTMLDivElement | null>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
 
@@ -74,14 +76,14 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
           <thead>
             <tr>
               <th className="text-left py-3 px-4 font-medium text-gray-700">
-                File Name
+                {translations.document("fileName")}
               </th>
               <th className="text-left py-3 px-4 font-medium text-gray-700 w-48">
-                Document Owner
+                {translations.dashboard("owner")}
               </th>
               <th className="text-left py-3 px-4 font-medium text-gray-700 w-44">
                 <div className="flex items-center">
-                  <span>Last Updated</span>
+                  <span>{translations.dashboard("lastModified")}</span>
                   <button 
                     onClick={onSortToggle}
                     className="ml-2 focus:outline-none hover:text-gray-900"
@@ -96,7 +98,7 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
       </div>
 
       {/* Scrollable Table body */}
-      <div className="overflow-y-auto flex-1">
+      <div className="flex-1 overflow-y-auto">
         <table className="w-full border-collapse">
           <tbody>
             {loading && files.length === 0 ? (
@@ -121,15 +123,15 @@ const DocumentTable: React.FC<DocumentTableProps> = ({
         {/* Loader for infinite scroll */}
         {hasMore && files.length > 0 && (
           <div ref={loaderRef} className="text-center py-4">
-            {loading && <p className="text-gray-500">Loading more files...</p>}
-            {!loading && <p className="text-gray-400">Scroll to load more...</p>}
+            {loading && <p className="text-gray-500">{translations.common("loading")}</p>}
+            {!loading && <p className="text-gray-400">{translations.dashboard("loadMore")}</p>}
           </div>
         )}
         
         {/* End of list indicator */}
         {!hasMore && files.length > 0 && (
           <div className="text-center py-4">
-            <p className="text-gray-400">No more files to load</p>
+            <p className="text-gray-400">{translations.dashboard("noMoreFiles")}</p>
           </div>
         )}
       </div>

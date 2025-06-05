@@ -2,6 +2,7 @@
 
 import React, { useRef } from 'react';
 import { FaUpload } from 'react-icons/fa';
+import { useAppTranslations } from '@/hooks/useTranslations';
 
 interface UploadButtonProps {
   onUpload: (file: File) => void;
@@ -14,6 +15,7 @@ const UploadButton: React.FC<UploadButtonProps> = ({
   disabled = false, 
   className = "" 
 }) => {
+  const translations = useAppTranslations();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,7 +43,7 @@ const UploadButton: React.FC<UploadButtonProps> = ({
         className={`bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-400 disabled:cursor-not-allowed px-4 py-2 rounded-md flex items-center transition-colors duration-300 ${className}`}
       >
         <FaUpload className="mr-2" />
-        Upload Document
+        {translations.dashboard("uploadFromComputer")}
       </button>
       
       <input 

@@ -1,6 +1,7 @@
+import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 import { NextRequest, NextResponse } from 'next/server';
 import api from '@/libs/api/axios';
-
+import { AxiosError } from 'axios';
 export async function GET(request: NextRequest) {
   try {
     // Get query parameters
@@ -16,7 +17,7 @@ export async function GET(request: NextRequest) {
     if (!accessToken) {
       return NextResponse.json(
         { error: 'Authentication required' },
-        { status: 401 }
+        { status: HTTP_STATUS.UNAUTHORIZED }
       );
     }
 
@@ -33,16 +34,26 @@ export async function GET(request: NextRequest) {
     
     // Return the files wrapped in the structure expected by the frontend
     return NextResponse.json({ files: filesArray });
-  } catch (error: any) {
-    console.error('Error fetching files:', error);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error fetching files:', error.message);
+    } else {
+      console.error('Error fetching files:', String(error));
+    }
     
     // Handle axios error response
-    const status = error.response?.status || 500;
-    const message = error.response?.data?.message || 'Failed to fetch files list';
+    if (error instanceof AxiosError && error.response) {
+      const status = error.response.status || 500;
+      const message = error.response.data?.message || 'Failed to fetch files list';
+      return NextResponse.json(
+        { error: message }, 
+        { status }
+      );
+    }
     
     return NextResponse.json(
-      { error: message }, 
-      { status }
+      { error: 'Internal server error' }, 
+      { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
     );
   }
 } 

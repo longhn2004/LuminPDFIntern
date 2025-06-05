@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 import api from '@/libs/api/axios';
-
+import { AxiosError } from 'axios';
 /**
  * POST endpoint to save an annotation
  * @param request - The incoming request containing annotation data
@@ -57,10 +57,14 @@ export async function POST(
     });
     
     return NextResponse.json(response.data);
-  } catch (error: any) {
-    console.error('Error saving annotation:', error.response?.data || error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error saving annotation:', error.message);
+    } else {
+      console.error('Error saving annotation:', String(error));
+    }
     
-    if (error.response) {
+    if (error instanceof AxiosError && error.response) {
       return NextResponse.json(
         { message: error.response.data.message || 'Failed to save annotation' },
         { status: error.response.status }

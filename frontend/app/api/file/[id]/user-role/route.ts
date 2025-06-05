@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 import api from '@/libs/api/axios';
-
+import { AxiosError } from 'axios';
 export async function GET(
   request: NextRequest,
   context: { params: { id: string } }
@@ -37,10 +37,14 @@ export async function GET(
     
     return NextResponse.json(response.data);
     
-  } catch (error: any) {
-    console.error('Error getting user role:', error.response?.data || error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error getting user role:', error.message);
+    } else {
+      console.error('Error getting user role:', String(error));
+    }
     
-    if (error.response) {
+    if (error instanceof AxiosError && error.response) {
       return NextResponse.json(
         { message: error.response.data.message || 'Failed to get user role' },
         { status: error.response.status }

@@ -1,9 +1,73 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useAppTranslations } from '@/hooks/useTranslations';
+
+// PDF Viewer API interface types
+interface PDFAnnotation {
+  elementName?: string;
+  getRect?: () => { x1: number; y1: number; x2: number; y2: number };
+  Opacity?: number;
+  StrokeThickness?: number;
+  setContents?: (content: string) => void;
+  setCustomData?: (key: string, value: string) => void;
+  getCustomData?: (key: string) => string;
+  Font?: string;
+  FontSize?: string;
+  constructor: { name: string };
+}
+
+interface PDFAnnotationManager {
+  getSelectedAnnotations: () => PDFAnnotation[];
+  addEventListener: (event: string, handler: (...args: unknown[]) => void, options?: { once?: boolean }) => void;
+  removeEventListener: (event: string, handler: (...args: unknown[]) => void) => void;
+  deleteAnnotation: (annotation: PDFAnnotation) => void;
+  setAnnotationStyles: (annotation: PDFAnnotation, styles: Record<string, unknown>) => void;
+  updateAnnotation: (annotation: PDFAnnotation) => void;
+  redrawAnnotation: (annotation: PDFAnnotation) => void;
+}
+
+interface PDFDocumentViewer {
+  getZoomLevel: () => number;
+  setToolMode: (tool: unknown) => void;
+  getTool: (toolName: string) => PDFTool;
+  addEventListener: (event: string, handler: (...args: unknown[]) => void) => void;
+  removeEventListener: (event: string, handler: (...args: unknown[]) => void) => void;
+}
+
+interface PDFTool {
+  name?: string;
+  setStyles?: (styles: Record<string, unknown>) => void;
+}
+
+type PDFColor = {
+  new (r: number, g: number, b: number, a?: number): PDFColor;
+  new (hex: string): PDFColor;
+}
+
+interface PDFAnnotations {
+  Color: PDFColor;
+}
+
+interface PDFTools {
+  ToolNames: {
+    TEXT_SELECT: string;
+    RECTANGLE: string;
+    ELLIPSE: string;
+    POLYGON: string;
+    LINE: string;
+    ARROW: string;
+    FREETEXT: string;
+  };
+}
+
+interface PDFCore {
+  Annotations: PDFAnnotations;
+  Tools: PDFTools;
+}
 
 interface AnnotationPanelProps {
   pdfId: string;
-  annotationManager: any;
-  documentViewer: any;
+  annotationManager: unknown;
+  documentViewer: unknown;
   userRole: string;
 }
 
@@ -13,42 +77,30 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
   documentViewer,
   userRole,
 }) => {
-  const [selectedAnnotation, setSelectedAnnotation] = useState<any>(null);
+  const translations = useAppTranslations();
+  const [selectedAnnotation, setSelectedAnnotation] = useState<PDFAnnotation | null>(null);
   const [showStylePanel, setShowStylePanel] = useState(false);
-  const [selectedShape, setSelectedShape] = useState<string>('rectangle');
   const [styleMode, setStyleMode] = useState<'fill' | 'stroke'>('fill');
   const [opacity, setOpacity] = useState<number>(50);
   const [borderWeight, setBorderWeight] = useState<number>(1);
   const [annotationPosition, setAnnotationPosition] = useState<{ x: number; y: number } | null>(null);
   const [showShapeDropdown, setShowShapeDropdown] = useState(false);
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
-  const [currentTool, setCurrentTool] = useState<string>('pan');
   const [trackingPosition, setTrackingPosition] = useState(false);
 
-  useEffect(() => {
-    console.log('AnnotationPanel: Mounted with props:', { pdfId, userRole, hasAnnotationManager: !!annotationManager, hasDocumentViewer: !!documentViewer });
-  }, []);
-
-  const Annotations = window.Core?.Annotations;
-  const Tools = window.Core?.Tools;
-
-  if (!Annotations || !Tools) {
-    console.error('AnnotationPanel: window.Core.Annotations or window.Core.Tools is not available');
-    return null;
-  }
-
   // Function to update annotation position
-  const updateAnnotationPosition = (annotation: any) => {
+  const updateAnnotationPosition = useCallback((annotation: PDFAnnotation | null) => {
     if (!annotation) {
       setAnnotationPosition(null);
       return;
     }
 
     try {
-      const rect = annotation.getRect();
+      const rect = annotation.getRect?.();
       if (rect && documentViewer) {
         // Get the current zoom level and scroll position
-        const zoom = documentViewer.getZoomLevel();
+        const docViewer = documentViewer as PDFDocumentViewer;
+        const zoom = docViewer.getZoomLevel();
         const scrollElement = document.getElementById('scroll-view');
         
         if (scrollElement) {
@@ -68,11 +120,20 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
       console.error('AnnotationPanel: Error getting annotation position:', error);
       setAnnotationPosition(null);
     }
-  };
+  }, [documentViewer]);
 
+  // Initial mount effect
   useEffect(() => {
+    console.log('AnnotationPanel: Mounted with props:', { pdfId, userRole, hasAnnotationManager: !!annotationManager, hasDocumentViewer: !!documentViewer });
+  }, [pdfId, userRole, annotationManager, documentViewer]);
+
+  // Handle annotation selection
+  useEffect(() => {
+    if (!annotationManager) return;
+
     const handleSelection = () => {
-      const selected = annotationManager.getSelectedAnnotations();
+      const manager = annotationManager as PDFAnnotationManager;
+      const selected = manager.getSelectedAnnotations();
       const annotation = selected.length === 1 ? selected[0] : null;
       setSelectedAnnotation(annotation);
       setShowStylePanel(selected.length === 1);
@@ -98,15 +159,16 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
       console.log('AnnotationPanel: Annotation selected:', selected.length > 0 ? selected[0] : 'None');
     };
     
-    annotationManager.addEventListener('annotationSelected', handleSelection);
+    const manager = annotationManager as PDFAnnotationManager;
+    manager.addEventListener('annotationSelected', handleSelection);
     return () => {
-      annotationManager.removeEventListener('annotationSelected', handleSelection);
+      manager.removeEventListener('annotationSelected', handleSelection);
     };
-  }, [annotationManager, documentViewer]);
+  }, [annotationManager, updateAnnotationPosition]);
 
   // Track position changes when annotation is selected
   useEffect(() => {
-    if (!trackingPosition || !selectedAnnotation || !documentViewer) return;
+    if (!trackingPosition || !selectedAnnotation || !documentViewer || !annotationManager) return;
 
     const updatePosition = () => {
       updateAnnotationPosition(selectedAnnotation);
@@ -124,15 +186,18 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
     }
 
     // Listen for zoom changes
-    documentViewer.addEventListener('zoomUpdated', handleZoomUpdated);
+    const docViewer = documentViewer as PDFDocumentViewer;
+    docViewer.addEventListener('zoomUpdated', handleZoomUpdated);
 
     // Listen for annotation changes (in case annotation is moved/resized)
-    const handleAnnotationChanged = (annotations: any[], action: string) => {
+    const handleAnnotationChanged = (...args: unknown[]) => {
+      const [annotations, action] = args as [unknown[], string];
       if (action === 'modify' && annotations.includes(selectedAnnotation)) {
         updatePosition();
       }
     };
-    annotationManager.addEventListener('annotationChanged', handleAnnotationChanged);
+    const manager = annotationManager as PDFAnnotationManager;
+    manager.addEventListener('annotationChanged', handleAnnotationChanged);
 
     // Update position more frequently for smoother tracking
     const positionUpdateInterval = setInterval(updatePosition, 16); // ~60fps for smooth tracking
@@ -141,53 +206,70 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
       if (scrollElement) {
         scrollElement.removeEventListener('scroll', updatePosition);
       }
-      documentViewer.removeEventListener('zoomUpdated', handleZoomUpdated);
-      annotationManager.removeEventListener('annotationChanged', handleAnnotationChanged);
+      docViewer.removeEventListener('zoomUpdated', handleZoomUpdated);
+      manager.removeEventListener('annotationChanged', handleAnnotationChanged);
       clearInterval(positionUpdateInterval);
     };
-  }, [trackingPosition, selectedAnnotation, documentViewer, annotationManager]);
+  }, [trackingPosition, selectedAnnotation, documentViewer, annotationManager, updateAnnotationPosition]);
 
   // Enable text selection mode by default and track tool changes
   useEffect(() => {
+    if (!documentViewer) return;
+
+    const Tools = (window as unknown as { Core?: PDFCore }).Core?.Tools;
     if (documentViewer && Tools) {
       // Set to text select mode by default to allow text selection
-      documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.TEXT_SELECT));
-      setCurrentTool('TextSelect');
+      const docViewer = documentViewer as PDFDocumentViewer;
+      docViewer.setToolMode(docViewer.getTool(Tools.ToolNames.TEXT_SELECT));
       
       // Listen for tool mode changes
-      const handleToolModeChange = (newTool: any, oldTool: any) => {
-        const toolName = newTool.name || 'unknown';
-        setCurrentTool(toolName);
+      const handleToolModeChange = (newTool: unknown) => {
+        const tool = newTool as PDFTool;
+        const toolName = tool.name || 'unknown';
         console.log('AnnotationPanel: Tool changed to:', toolName);
       };
       
-      documentViewer.addEventListener('toolModeUpdated', handleToolModeChange);
+      docViewer.addEventListener('toolModeUpdated', handleToolModeChange);
       
       return () => {
-        documentViewer.removeEventListener('toolModeUpdated', handleToolModeChange);
+        docViewer.removeEventListener('toolModeUpdated', handleToolModeChange);
       };
     }
-  }, [documentViewer, Tools]);
+  }, [documentViewer]);
+
+  // Early return for non-editor users - after all hooks
+  if (userRole === 'viewer') {
+    console.log('AnnotationPanel: Not rendering because userRole is not editor:', userRole);
+    return null;
+  }
+
+  const Annotations = (window as unknown as { Core?: PDFCore }).Core?.Annotations;
+  const Tools = (window as unknown as { Core?: PDFCore }).Core?.Tools;
+
+  if (!Annotations || !Tools) {
+    console.error('AnnotationPanel: window.Core.Annotations or window.Core.Tools is not available');
+    return null;
+  }
 
   // Shape options with clean icons
   const shapeOptions = [
-    { value: 'rectangle', label: 'Rectangle', icon: '▭' },
-    { value: 'circle', label: 'Circle', icon: '○' },
-    { value: 'triangle', label: 'Triangle', icon: '△' },
-    { value: 'line', label: 'Line', icon: '/' },
-    { value: 'arrow', label: 'Arrow', icon: '↗' },
+    { value: 'rectangle', label: translations.annotations('rectangle'), icon: '▭' },
+    { value: 'circle', label: translations.annotations('circle'), icon: '○' },
+    { value: 'triangle', label: translations.annotations('triangle'), icon: '△' },
+    { value: 'line', label: translations.annotations('line'), icon: '/' },
+    { value: 'arrow', label: translations.annotations('arrow'), icon: '↗' },
   ];
 
   // Predefined color palette
   const colorPalette = [
-    { color: 'transparent', label: 'No Fill', isTransparent: true },
-    { color: '#000000', label: 'Black' },
-    { color: '#E53E3E', label: 'Red' },
-    { color: '#3182CE', label: 'Blue' },
-    { color: '#38A169', label: 'Green' },
-    { color: '#D69E2E', label: 'Yellow' },
-    { color: '#B794F6', label: 'Purple' },
-    { color: '#FFFFFF', label: 'White' },
+    { color: 'transparent', label: translations.annotations('colors.noFill'), isTransparent: true },
+    { color: '#000000', label: translations.annotations('colors.black') },
+    { color: '#E53E3E', label: translations.annotations('colors.red') },
+    { color: '#3182CE', label: translations.annotations('colors.blue') },
+    { color: '#38A169', label: translations.annotations('colors.green') },
+    { color: '#D69E2E', label: translations.annotations('colors.yellow') },
+    { color: '#B794F6', label: translations.annotations('colors.purple') },
+    { color: '#FFFFFF', label: translations.annotations('colors.white') },
   ];
 
   // Font families list
@@ -226,13 +308,16 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
 
   // Shape functions
   const addRectangle = () => {
-    documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.RECTANGLE));
+    const docViewer = documentViewer as PDFDocumentViewer;
+    const manager = annotationManager as PDFAnnotationManager;
+    docViewer.setToolMode(docViewer.getTool(Tools.ToolNames.RECTANGLE));
     setShowShapeDropdown(false);
     setBorderWeight(1); // Set border weight to 1 for shapes
     // Add event listener to return to text selection mode after annotation is added
-    annotationManager.addEventListener('annotationChanged', (annotations: any[], action: any) => {
+    manager.addEventListener('annotationChanged', (...args: unknown[]) => {
+      const [annotations, action] = args as [PDFAnnotation[], string];
       if (action === 'add' && annotations[0] && annotations[0].elementName === 'square') {
-        documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.TEXT_SELECT));
+        docViewer.setToolMode(docViewer.getTool(Tools.ToolNames.TEXT_SELECT));
         console.log('AnnotationPanel: Rectangle annotation added, returning to text selection mode');
       }
     }, { once: true });
@@ -240,13 +325,16 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
   };
 
   const addCircle = () => {
-    documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.ELLIPSE));
+    const docViewer = documentViewer as PDFDocumentViewer;
+    const manager = annotationManager as PDFAnnotationManager;
+    docViewer.setToolMode(docViewer.getTool(Tools.ToolNames.ELLIPSE));
     setShowShapeDropdown(false);
     setBorderWeight(1); // Set border weight to 1 for shapes
     // Add event listener to return to text selection mode after annotation is added
-    annotationManager.addEventListener('annotationChanged', (annotations: any[], action: any) => {
+    manager.addEventListener('annotationChanged', (...args: unknown[]) => {
+      const [annotations, action] = args as [PDFAnnotation[], string];
       if (action === 'add' && annotations[0] && annotations[0].elementName === 'circle') {
-        documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.TEXT_SELECT));
+        docViewer.setToolMode(docViewer.getTool(Tools.ToolNames.TEXT_SELECT));
         console.log('AnnotationPanel: Circle annotation added, returning to text selection mode');
       }
     }, { once: true });
@@ -254,13 +342,16 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
   };
 
   const addTriangle = () => {
-    documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.POLYGON));
+    const docViewer = documentViewer as PDFDocumentViewer;
+    const manager = annotationManager as PDFAnnotationManager;
+    docViewer.setToolMode(docViewer.getTool(Tools.ToolNames.POLYGON));
     setShowShapeDropdown(false);
     setBorderWeight(1); // Set border weight to 1 for shapes
     // Add event listener to return to text selection mode after annotation is added
-    annotationManager.addEventListener('annotationChanged', (annotations: any[], action: any) => {
+    manager.addEventListener('annotationChanged', (...args: unknown[]) => {
+      const [annotations, action] = args as [PDFAnnotation[], string];
       if (action === 'add' && annotations[0] && annotations[0].elementName === 'polygon') {
-        documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.TEXT_SELECT));
+        docViewer.setToolMode(docViewer.getTool(Tools.ToolNames.TEXT_SELECT));
         console.log('AnnotationPanel: Triangle annotation added, returning to text selection mode');
       }
     }, { once: true });
@@ -268,13 +359,16 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
   };
 
   const addLine = () => {
-    documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.LINE));
+    const docViewer = documentViewer as PDFDocumentViewer;
+    const manager = annotationManager as PDFAnnotationManager;
+    docViewer.setToolMode(docViewer.getTool(Tools.ToolNames.LINE));
     setShowShapeDropdown(false);
     setBorderWeight(1); // Set border weight to 1 for shapes
     // Add event listener to return to text selection mode after annotation is added
-    annotationManager.addEventListener('annotationChanged', (annotations: any[], action: any) => {
+    manager.addEventListener('annotationChanged', (...args: unknown[]) => {
+      const [annotations, action] = args as [PDFAnnotation[], string];
       if (action === 'add' && annotations[0] && annotations[0].elementName === 'line') {
-        documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.TEXT_SELECT));
+        docViewer.setToolMode(docViewer.getTool(Tools.ToolNames.TEXT_SELECT));
         console.log('AnnotationPanel: Line annotation added, returning to text selection mode');
       }
     }, { once: true });
@@ -282,13 +376,16 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
   };
 
   const addArrow = () => {
-    documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.ARROW));
+    const docViewer = documentViewer as PDFDocumentViewer;
+    const manager = annotationManager as PDFAnnotationManager;
+    docViewer.setToolMode(docViewer.getTool(Tools.ToolNames.ARROW));
     setShowShapeDropdown(false);
     setBorderWeight(1); // Set border weight to 1 for shapes
     // Add event listener to return to text selection mode after annotation is added
-    annotationManager.addEventListener('annotationChanged', (annotations: any[], action: any) => {
+    manager.addEventListener('annotationChanged', (...args: unknown[]) => {
+      const [annotations, action] = args as [PDFAnnotation[], string];
       if (action === 'add' && annotations[0] && annotations[0].elementName === 'line') { // Arrow is a line element
-        documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.TEXT_SELECT));
+        docViewer.setToolMode(docViewer.getTool(Tools.ToolNames.TEXT_SELECT));
         console.log('AnnotationPanel: Arrow annotation added, returning to text selection mode');
       }
     }, { once: true });
@@ -296,24 +393,27 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
   };
 
   const addFreeText = () => {
-    documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.FREETEXT));
+    const docViewer = documentViewer as PDFDocumentViewer;
+    const manager = annotationManager as PDFAnnotationManager;
+    docViewer.setToolMode(docViewer.getTool(Tools.ToolNames.FREETEXT));
     setShowTypeDropdown(false);
     setBorderWeight(0); // Set border weight to 0 for FreeText
-    const tool = documentViewer.getTool(Tools.ToolNames.FREETEXT);
-    tool.setStyles({
+    const tool = docViewer.getTool(Tools.ToolNames.FREETEXT);
+    tool.setStyles?.({
       StrokeThickness: 0,
       FillColor: new Annotations.Color(0, 0, 0, 0),
       TextColor: new Annotations.Color(0, 0, 0),
       FontSize: '12pt',
       Font: 'Arial',
     });
-    annotationManager.addEventListener('annotationChanged', (annotations: any[], action: any) => {
+    manager.addEventListener('annotationChanged', (...args: unknown[]) => {
+      const [annotations, action] = args as [PDFAnnotation[], string];
       if (action === 'add' && annotations[0] && annotations[0].elementName === 'freetext') {
-        annotations[0].setContents('[Insert text here]');
-        annotations[0].setCustomData('Font', 'Arial');
-        annotationManager.updateAnnotation(annotations[0]);
+        annotations[0].setContents?.('[Insert text here]');
+        annotations[0].setCustomData?.('Font', 'Arial');
+        manager.updateAnnotation(annotations[0]);
         // Return to text selection mode after adding annotation
-        documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.TEXT_SELECT));
+        docViewer.setToolMode(docViewer.getTool(Tools.ToolNames.TEXT_SELECT));
         console.log('AnnotationPanel: FreeText annotation added with placeholder');
       }
     }, { once: true });
@@ -322,7 +422,8 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
 
   const deleteAnnotation = () => {
     if (selectedAnnotation) {
-      annotationManager.deleteAnnotation(selectedAnnotation);
+      const manager = annotationManager as PDFAnnotationManager;
+      manager.deleteAnnotation(selectedAnnotation);
       setSelectedAnnotation(null);
       setShowStylePanel(false);
       console.log('AnnotationPanel: Annotation deleted');
@@ -330,7 +431,6 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
   };
 
   const handleShapeSelection = (shapeType: string) => {
-    setSelectedShape(shapeType);
     switch (shapeType) {
       case 'rectangle':
         addRectangle();
@@ -370,23 +470,25 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
     }
   };
 
-  const updateStyles = (styles: any) => {
+  const updateStyles = (styles: Record<string, unknown>) => {
     if (!selectedAnnotation) return;
     
     try {
-      console.log('AnnotationPanel: Updating styles for annotation type:', selectedAnnotation.constructor.name);
+      const annotation = selectedAnnotation;
+      const manager = annotationManager as PDFAnnotationManager;
+      console.log('AnnotationPanel: Updating styles for annotation type:', annotation.constructor.name);
       console.log('AnnotationPanel: Styles to apply:', styles);
       
       // Check annotation types using elementName property for better compatibility
-      const isShapeAnnotation = selectedAnnotation.elementName && [
+      const isShapeAnnotation = annotation.elementName && [
         'square', 'circle', 'line', 'polygon', 'polyline', 'freehand', 'arc', 'note'
-      ].includes(selectedAnnotation.elementName);
+      ].includes(annotation.elementName);
       
-      const isFreeTextAnnotation = selectedAnnotation.elementName === 'freetext';
+      const isFreeTextAnnotation = annotation.elementName === 'freetext';
       
       // Handle shape annotations
       if (isShapeAnnotation) {
-        const stylesToUpdate: any = {};
+        const stylesToUpdate: Record<string, unknown> = {};
         
         if (styles.fillColor !== undefined) {
           stylesToUpdate.FillColor = styles.fillColor;
@@ -401,15 +503,15 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
           stylesToUpdate.Opacity = styles.opacity;
         }
         
-        annotationManager.setAnnotationStyles(selectedAnnotation, stylesToUpdate);
+        manager.setAnnotationStyles(annotation, stylesToUpdate);
       } else if (isFreeTextAnnotation) {
         // Update FreeText annotation styles properly
-        const stylesToUpdate: any = {};
+        const stylesToUpdate: Record<string, unknown> = {};
         
         // Handle text properties
         if (styles.fontFamily) {
           stylesToUpdate.Font = styles.fontFamily;
-          selectedAnnotation.setCustomData('Font', styles.fontFamily);
+          annotation.setCustomData?.('Font', styles.fontFamily as string);
         }
         if (styles.fontSize) {
           stylesToUpdate.FontSize = styles.fontSize;
@@ -432,12 +534,12 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
           stylesToUpdate.Opacity = styles.opacity;
         }
 
-        annotationManager.setAnnotationStyles(selectedAnnotation, stylesToUpdate);
+        manager.setAnnotationStyles(annotation, stylesToUpdate);
       }
       
       // Update and redraw the annotation
-      annotationManager.updateAnnotation(selectedAnnotation);
-      annotationManager.redrawAnnotation(selectedAnnotation);
+      manager.updateAnnotation(annotation);
+      manager.redrawAnnotation(annotation);
       
       console.log('AnnotationPanel: Styles successfully updated');
       
@@ -445,11 +547,6 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
       console.error('AnnotationPanel: Error updating styles:', error);
     }
   };
-
-  if (userRole === 'viewer') {
-    console.log('AnnotationPanel: Not rendering because userRole is not editor:', userRole);
-    return null;
-  }
 
   // Calculate style panel position with bounds checking
   const getStylePanelPosition = () => {
@@ -559,10 +656,10 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
   };
 
   return (
-    <>
+    <div>
       {/* Style Panel for Shape Annotations - positioned based on context */}
-      {showStylePanel && !(selectedAnnotation && selectedAnnotation.elementName === 'freetext') && (
-        <>
+      {showStylePanel && !!selectedAnnotation && selectedAnnotation.elementName !== 'freetext' && (
+        <div>
           {/* Connection indicator */}
           {annotationPosition && (
             <div
@@ -582,7 +679,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
 
           {/* Style Section */}
           <div>
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Style</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-3">{translations.annotations('style')}</h3>
             
             {/* Fill/Stroke Toggle */}
             <div className="flex bg-gray-100 rounded-full p-1 mb-4 w-full">
@@ -594,7 +691,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Fill
+                {translations.annotations('fill')}
       </button>
       <button 
                 onClick={() => setStyleMode('stroke')}
@@ -604,7 +701,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Stroke
+                {translations.annotations('stroke')}
       </button>
             </div>
 
@@ -689,7 +786,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
 
             {/* Opacity Slider */}
             <div className="mb-4">
-              <h4 className="text-sm font-medium text-gray-900 mb-2">Opacity</h4>
+              <h4 className="text-sm font-medium text-gray-900 mb-2">{translations.annotations('opacity')}</h4>
               <div className="flex items-center gap-3">
                 <div className="flex-1 relative">
                 <input
@@ -717,19 +814,19 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
             </div>
 
             {/* Delete button for selected annotations */}
-            {selectedAnnotation && (
+            {!!selectedAnnotation && (
               <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200">
                 <button 
                   onClick={deleteAnnotation}
                   className="flex-1 px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors text-sm"
                 >
-                  Delete
+                  {translations.common('delete')}
                 </button>
               </div>
             )}
           </div>
         </div>
-        </>
+        </div>
       )}
 
       {/* Shape/Type Panel - Fixed at bottom right */}
@@ -745,7 +842,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
               className="flex items-center gap-2 bg-gray-100 rounded-lg px-2 py-1 hover:bg-gray-200 transition-colors"
             >
               <span className="text-lg">▭</span>
-              <span className="text-sm font-medium text-gray-700">Shape</span>
+              <span className="text-sm font-medium text-gray-700">{translations.annotations('shape')}</span>
               <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -777,7 +874,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
               className="flex items-center gap-2 bg-gray-100 rounded-lg px-2 py-1 hover:bg-gray-200 transition-colors"
             >
               <span className="text-lg font-bold">T</span>
-              <span className="text-sm font-medium text-gray-700">Type</span>
+              <span className="text-sm font-medium text-gray-700">{translations.annotations('type')}</span>
               <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
               </svg>
@@ -790,7 +887,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
                   className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
                 >
                   <span className="text-lg font-bold">T</span>
-                  Free Text
+                  {translations.annotations('freeText')}
                 </button>
               </div>
             )}
@@ -799,8 +896,8 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
       </div>
 
       {/* Redesigned Text Style Panel for FreeText annotations */}
-      {selectedAnnotation && selectedAnnotation.elementName === 'freetext' && (
-        <>
+      {!!selectedAnnotation && selectedAnnotation.elementName === 'freetext' && (
+        <div>
           {/* Connection indicator for text annotations */}
           {annotationPosition && (
             <div
@@ -817,13 +914,13 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
             className="bg-white p-4 border border-gray-300 rounded-lg shadow-lg w-80 transition-all ease-out"
             style={getTextStylePanelPosition() as React.CSSProperties}
           >
-          <h3 className="text-lg font-medium text-gray-900 mb-4">Text Style</h3>
+          <h3 className="text-lg font-medium text-gray-900 mb-4">{translations.annotations('textStyle')}</h3>
           
           {/* Font and Size Dropdowns */}
           <div className="grid grid-cols-2 gap-3 mb-4">
             <div>
               <select
-                defaultValue={selectedAnnotation.Font || selectedAnnotation.getCustomData('Font') || 'Inter'}
+                defaultValue={selectedAnnotation.Font || selectedAnnotation.getCustomData?.('Font') || 'Inter'}
                 onChange={(e) => updateStyles({ fontFamily: e.target.value })}
                 className="w-full p-3 border border-gray-300 rounded-lg text-sm bg-white appearance-none"
                 style={{
@@ -844,7 +941,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
             </div>
             <div>
               <select
-                defaultValue={`${parseInt(selectedAnnotation.FontSize) || 12}pt`}
+                defaultValue={`${parseInt(selectedAnnotation.FontSize || '12') || 12}pt`}
                 onChange={(e) => updateStyles({ fontSize: e.target.value })}
                 className="w-full p-3 border border-gray-300 rounded-lg text-sm bg-white appearance-none"
                 style={{
@@ -896,7 +993,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
 
           {/* Frame Style Section */}
           <div className="mb-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Frame Style</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-3">{translations.annotations('frameStyle')}</h3>
             
             {/* Fill/Border Toggle */}
             <div className="flex bg-gray-100 rounded-full p-1 mb-4 w-full">
@@ -908,7 +1005,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Fill
+                {translations.annotations('fill')}
               </button>
               <button
                 onClick={() => setStyleMode('stroke')}
@@ -918,7 +1015,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
                     : 'text-gray-600 hover:text-gray-900'
                 }`}
               >
-                Border line
+                {translations.annotations('borderLine')}
               </button>
             </div>
 
@@ -1012,7 +1109,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
 
           {/* Opacity Slider */}
           <div className="mb-4">
-            <h4 className="text-lg font-medium text-gray-900 mb-3">Opacity</h4>
+            <h4 className="text-lg font-medium text-gray-900 mb-3">{translations.annotations('opacity')}</h4>
             <div className="flex items-center gap-3">
               <div className="flex-1 relative">
                 <input 
@@ -1038,16 +1135,18 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
           </div>
 
           {/* Delete button */}
-          <div className="flex gap-2 mt-4 pt-4 border-t border-gray-200">
-            <button 
-              onClick={deleteAnnotation}
-              className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
-            >
-              Delete
-            </button>
-          </div>
+          {!!selectedAnnotation && (
+            <div className="flex gap-2 mt-4 pt-4 border-t border-gray-200">
+              <button 
+                onClick={deleteAnnotation}
+                className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
+              >
+                {translations.common('delete')}
+              </button>
+            </div>
+          )}
         </div>
-        </>
+        </div>
       )}
 
       {/* Click outside to close dropdowns */}
@@ -1084,7 +1183,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
         }
       `}</style>
-    </>
+    </div>
   );
 };
 

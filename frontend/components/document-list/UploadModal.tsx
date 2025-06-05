@@ -1,6 +1,7 @@
 "use client";
 
 import React from 'react';
+import { useAppTranslations } from '@/hooks/useTranslations';
 
 interface UploadModalProps {
   isVisible: boolean;
@@ -15,16 +16,19 @@ const UploadModal: React.FC<UploadModalProps> = ({
   progress,
   onCancel
 }) => {
+  const translations = useAppTranslations();
+
   if (!isVisible) return null;
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 text-black">
       <div className="bg-white rounded-lg w-96 p-4">
         <div className="flex justify-between items-center mb-4">
-          <span className="font-medium">Uploading</span>
+          <span className="font-medium">{translations.dashboard("uploading")}</span>
           <button 
             onClick={onCancel}
             className="text-gray-500 hover:text-gray-700"
+            aria-label={translations.dashboard("cancelUpload")}
           >
             ✕
           </button>

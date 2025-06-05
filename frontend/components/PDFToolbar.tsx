@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { FaArrowLeft, FaTrash, FaDownload, FaUsers, FaChevronDown } from "react-icons/fa";
+import { useAppTranslations } from "@/hooks/useTranslations";
 
 interface PDFToolbarProps {
   fileName: string;
@@ -95,6 +96,7 @@ const PDFToolbar: React.FC<PDFToolbarProps> = ({
   onShare,
   className = ""
 }) => {
+  const translations = useAppTranslations();
   const { isOpen: isDropdownOpen, openDropdown, closeDropdown, cancelClose } = useDropdown();
   
   const canDownloadWithAnnotations = canUserDownloadWithAnnotations(userRole);
@@ -126,17 +128,17 @@ const PDFToolbar: React.FC<PDFToolbarProps> = ({
         <button 
           onClick={onNavigateBack} 
           className="text-gray-600 hover:text-gray-800 transition-colors p-1 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 flex-shrink-0"
-          title="Back to document list"
-          aria-label="Back to document list"
+          title={translations.viewer("backToDocumentList")}
+          aria-label={translations.viewer("backToDocumentList")}
         >
           <FaArrowLeft size={16} />
         </button>
         
         <h1 
           className="font-medium text-gray-900 truncate"
-          title={displayFileName || 'Untitled Document'}
+          title={displayFileName || translations.viewer("untitledDocument")}
         >
-          {displayFileName || 'Untitled Document'}
+          {displayFileName || translations.viewer("untitledDocument")}
         </h1>
       </div>
       
@@ -148,10 +150,10 @@ const PDFToolbar: React.FC<PDFToolbarProps> = ({
           <button 
             onClick={onDelete} 
             className={`${BUTTON_STYLES.base} ${BUTTON_STYLES.default} ${BUTTON_STYLES.delete}`}
-            title="Delete document"
-            aria-label="Delete document"
+            title={translations.viewer("deleteDocument")}
+            aria-label={translations.viewer("deleteDocument")}
           >
-            <span className="hidden sm:inline">Delete</span>
+            <span className="hidden sm:inline">{translations.common("delete")}</span>
             <FaTrash size={16} />
           </button>
         )}
@@ -168,12 +170,12 @@ const PDFToolbar: React.FC<PDFToolbarProps> = ({
             className={`${BUTTON_STYLES.base} ${BUTTON_STYLES.default} ${BUTTON_STYLES.download} ${
               hasAnnotationDownload ? 'cursor-default' : 'cursor-pointer'
             }`}
-            title={hasAnnotationDownload ? "Download options" : "Download document"}
-            aria-label={hasAnnotationDownload ? "Download options" : "Download document"}
+            title={hasAnnotationDownload ? translations.viewer("downloadOptions") : translations.viewer("downloadDocument")}
+            aria-label={hasAnnotationDownload ? translations.viewer("downloadOptions") : translations.viewer("downloadDocument")}
             aria-haspopup={hasAnnotationDownload ? "true" : undefined}
             aria-expanded={hasAnnotationDownload ? isDropdownOpen : undefined}
           >
-            <span className="hidden sm:inline">Download</span>
+            <span className="hidden sm:inline">{translations.common("download")}</span>
             <FaDownload size={16} />
             {hasAnnotationDownload && (
               <FaChevronDown 
@@ -200,7 +202,7 @@ const PDFToolbar: React.FC<PDFToolbarProps> = ({
                 role="menuitem"
               >
                 <FaDownload size={14} />
-                <span>Download Original PDF</span>
+                <span>{translations.viewer("downloadOriginalPDF")}</span>
               </button>
               
               <button
@@ -209,7 +211,7 @@ const PDFToolbar: React.FC<PDFToolbarProps> = ({
                 role="menuitem"
               >
                 <FaDownload size={14} />
-                <span>Download with Annotations</span>
+                <span>{translations.viewer("downloadWithAnnotations")}</span>
               </button>
             </div>
           )}
@@ -220,10 +222,10 @@ const PDFToolbar: React.FC<PDFToolbarProps> = ({
           <button 
             onClick={onShare} 
             className={`${BUTTON_STYLES.base} ${BUTTON_STYLES.default} ${BUTTON_STYLES.share}`}
-            title="Share document"
-            aria-label="Share document"
+            title={translations.viewer("shareDocument")}
+            aria-label={translations.viewer("shareDocument")}
           >
-            <span className="hidden sm:inline">Share</span>
+            <span className="hidden sm:inline">{translations.common("share")}</span>
             <FaUsers size={16} />
           </button>
         )}

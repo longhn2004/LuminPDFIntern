@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { FaGoogleDrive } from 'react-icons/fa';
+import { useAppTranslations } from '@/hooks/useTranslations';
 
 interface GoogleDriveButtonProps {
   onUpload: (fileIdOrUrl: string) => Promise<void>;
@@ -14,6 +15,7 @@ const GoogleDriveButton: React.FC<GoogleDriveButtonProps> = ({
   disabled = false, 
   className = "" 
 }) => {
+  const translations = useAppTranslations();
   const [showModal, setShowModal] = useState(false);
   const [driveUrl, setDriveUrl] = useState('');
   const [uploading, setUploading] = useState(false);
@@ -37,8 +39,8 @@ const GoogleDriveButton: React.FC<GoogleDriveButtonProps> = ({
     try {
       await onUpload(driveUrl.trim());
       handleCloseModal();
-    } catch (error) {
-      // Error is handled by the hook
+    } catch {
+      // Error is handled by the parent component
     } finally {
       setUploading(false);
     }
@@ -58,7 +60,7 @@ const GoogleDriveButton: React.FC<GoogleDriveButtonProps> = ({
         className={`bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed px-4 py-2 rounded-md flex items-center transition-colors duration-300 text-white ${className}`}
       >
         <FaGoogleDrive className="mr-2" />
-        Upload from Drive
+        {translations.dashboard('uploadFromGoogleDrive')}
       </button>
 
       {/* Modal */}
@@ -66,7 +68,7 @@ const GoogleDriveButton: React.FC<GoogleDriveButtonProps> = ({
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg w-96 p-6 text-black">
             <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold">Upload from Google Drive</h3>
+              <h3 className="text-lg font-semibold">{translations.dashboard("uploadFromGoogleDrive")}</h3>
               <button 
                 onClick={handleCloseModal}
                 disabled={uploading}
@@ -78,7 +80,7 @@ const GoogleDriveButton: React.FC<GoogleDriveButtonProps> = ({
 
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2 text-left">
-                Google Drive URL or File ID
+                {translations.dashboard("googleDrive.urlOrFileIdLabel")}
               </label>
               <input
                 type="text"
@@ -86,18 +88,17 @@ const GoogleDriveButton: React.FC<GoogleDriveButtonProps> = ({
                 onChange={(e) => setDriveUrl(e.target.value)}
                 onKeyPress={handleKeyPress}
                 disabled={uploading}
-                placeholder="Paste Google Drive URL or file ID..."
+                placeholder={translations.dashboard("googleDrive.urlPlaceholder")}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
               />
             </div>
 
             <div className="mb-4 text-sm text-gray-600">
-              <p className="mb-2 text-left"><strong>How to get the URL:</strong></p>
+              <p className="mb-2 text-left"><strong>{translations.dashboard("googleDrive.howToGetUrl")}</strong></p>
               <ol className="list-decimal list-inside space-y-1 text-left">
-                <li>Right-click on a PDF file in Google Drive</li>
-                <li>Select "Get link" or "Share"</li>
-                <li>Copy the URL and paste it above</li>
-                <li>Make sure the file is shared with our service account</li>
+                <li>{translations.dashboard("googleDrive.step1")}</li>
+                <li>{translations.dashboard("googleDrive.step2")}</li>
+                <li>{translations.dashboard("googleDrive.step3")}</li>
               </ol>
             </div>
 
@@ -107,7 +108,7 @@ const GoogleDriveButton: React.FC<GoogleDriveButtonProps> = ({
                 disabled={uploading}
                 className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50 disabled:cursor-not-allowed"
               >
-                Cancel
+                {translations.common("cancel")}
               </button>
               <button
                 onClick={handleUpload}
@@ -117,10 +118,10 @@ const GoogleDriveButton: React.FC<GoogleDriveButtonProps> = ({
                 {uploading ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Uploading...
+                    {translations.dashboard("uploading")}
                   </>
                 ) : (
-                  'Upload'
+                  translations.common("upload")
                 )}
               </button>
             </div>

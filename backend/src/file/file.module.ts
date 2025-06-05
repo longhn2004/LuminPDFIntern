@@ -6,9 +6,8 @@ import { ShareableLink, ShareableLinkSchema } from './schemas/shareable-link.sch
 import { User, UserSchema } from '../auth/schemas/user.schema';
 import { FileController } from './file.controller';
 import { FileService } from './file.service';
+import { S3Service } from './s3.service';
 import { MulterModule } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
-import { extname } from 'path';
 import { EmailModule } from '../email/email.module';
 import { BadRequestException } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
@@ -23,13 +22,7 @@ import { CacheModule } from '../cache/cache.module';
       { name: User.name, schema: UserSchema },
     ]),
     MulterModule.register({
-      storage: diskStorage({
-        destination: './uploads',
-        filename: (req, file, cb) => {
-          const randomName = Array(32).fill(null).map(() => (Math.round(Math.random() * 16)).toString(16)).join('');
-          return cb(null, `${randomName}${extname(file.originalname)}`);
-        },
-      }),
+      storage: require('multer').memoryStorage(),
       limits: {
         fileSize: 20 * 1024 * 1024, // 20MB
       },
@@ -46,7 +39,7 @@ import { CacheModule } from '../cache/cache.module';
     CacheModule,
   ],
   controllers: [FileController],
-  providers: [FileService],
-  exports: [FileService],
+  providers: [FileService, S3Service],
+  exports: [FileService, S3Service],
 })
 export class FileModule {}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import api from '@/libs/api/axios';
-
+import { HTTP_STATUS } from '@/libs/constants/httpStatus';
+import { AxiosError } from 'axios';
 export async function POST(request: NextRequest) {
   try {
     // Extract access token from cookies
@@ -11,7 +12,7 @@ export async function POST(request: NextRequest) {
     if (!accessToken) {
       return NextResponse.json(
         { error: 'Authentication required' },
-        { status: 401 }
+        { status: HTTP_STATUS.UNAUTHORIZED }
       );
     }
 
@@ -20,7 +21,7 @@ export async function POST(request: NextRequest) {
     if (!fileId || !role) {
       return NextResponse.json(
         { error: 'File ID and role are required' },
-        { status: 400 }
+        { status: HTTP_STATUS.BAD_REQUEST }
       );
     }
 
@@ -32,16 +33,26 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(response.data);
-  } catch (error: any) {
-    console.error('Error creating shareable link:', error);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error creating shareable link:', error.message);
+    } else {
+      console.error('Error creating shareable link:', String(error));
+    }
     
     // Handle axios error response
-    const status = error.response?.status || 500;
-    const message = error.response?.data?.message || 'Failed to create shareable link';
+    if (error instanceof AxiosError && error.response) {
+      const status = error.response.status || HTTP_STATUS.INTERNAL_SERVER_ERROR;
+      const message = error.response.data?.message || 'Failed to create shareable link';
+      return NextResponse.json(
+        { error: message },
+        { status }
+      );
+    }
     
     return NextResponse.json(
-      { error: message },
-      { status }
+      { error: 'Internal server error' },
+      { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
     );
   }
 } 
