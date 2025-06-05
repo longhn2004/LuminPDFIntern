@@ -1,5 +1,4 @@
 import { useEffect, useState, useRef } from 'react';
-import Script from "next/script";
 import PDFNavigationBar from './PageControlBar';
 import AnnotationPanel from './AnnotationPanel';
 import { zoomIn, zoomOut, setZoom } from './ZoomControls';
@@ -17,8 +16,6 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
   const [loadingStatus, setLoadingStatus] = useState<string>(translations.viewer("initializingViewer"));
   
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [userRoleError, setUserRoleError] = useState<string | null>(null);
-  const [isUserRoleLoading, setIsUserRoleLoading] = useState<boolean>(true);
 
   const hasInitializedRef = useRef(false);
   const documentViewerRef = useRef<any>(null);
@@ -31,8 +28,6 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
 
   const fetchUserRole = async (currentPdfId: string) => {
     if (!currentPdfId) return;
-    setIsUserRoleLoading(true);
-    setUserRoleError(null);
     try {
       console.log(`PDFViewerCore: Fetching user role for pdfId=${currentPdfId}`);
       const response = await fetch(`/api/file/${currentPdfId}/user-role`);
@@ -45,10 +40,7 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
       setUserRole(data.role);
     } catch (err: any) {
       console.error("PDFViewerCore: Error fetching user role:", err);
-      setUserRoleError(err.message || "Could not load user permissions.");
       setUserRole(null);
-    } finally {
-      setIsUserRoleLoading(false);
     }
   };
 
@@ -197,8 +189,6 @@ export default function PDFViewerCore({ pdfId }: PDFViewerCoreProps) {
     initAttemptedRef.current = false;
     
     setUserRole(null);
-    setUserRoleError(null);
-    setIsUserRoleLoading(true);
 
     if (pdfId) {
       fetchUserRole(pdfId);

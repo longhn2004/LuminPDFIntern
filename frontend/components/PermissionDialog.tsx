@@ -1,4 +1,4 @@
-import { FaTimes, FaUser, FaUsers, FaShare, FaSpinner } from "react-icons/fa";
+import { FaTimes, FaUser, FaSpinner } from "react-icons/fa";
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import Avatar from "./Avatar";
@@ -105,7 +105,7 @@ export default function PermissionDialog({
       } else {
         setEmailStatus({ valid: true, message: translations.sharing('unregisteredUser') });
       }
-    } catch (error) {
+    } catch {
       setEmailStatus({ valid: false, message: "Error checking email" });
     } finally {
       setIsCheckingEmail(false);
@@ -146,7 +146,7 @@ export default function PermissionDialog({
       const originalUser = listUsers.find(u => u.email === userEmail);
       if (!originalUser) return prevChanges;
 
-      let updatedChanges = prevChanges.filter(c => c.email !== userEmail);
+      const updatedChanges = prevChanges.filter(c => c.email !== userEmail);
 
       if (newRole !== originalUser.role) {
         updatedChanges.push({ email: userEmail, role: newRole });
@@ -172,7 +172,7 @@ export default function PermissionDialog({
       } else {
         throw new Error('Failed to send invitations');
       }
-    } catch (error) {
+    } catch {
       toast.error(translations.sharing('failedToInviteUsers'));
     } finally {
       setIsSendingInvitations(false);
@@ -214,8 +214,9 @@ export default function PermissionDialog({
       await fetchListUsers();
       resetForm(); // This will clear pendingRoleChanges
       onClose();
-    } catch (error: any) {
-      toast.error(error.message || translations.sharing('failedToSaveChanges'));
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : translations.sharing('failedToSaveChanges');
+      toast.error(errorMessage);
     } finally {
       setIsSavingChanges(false);
     }

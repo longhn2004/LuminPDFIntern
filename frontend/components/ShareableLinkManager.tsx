@@ -179,14 +179,6 @@ const ShareableLinkManager: React.FC<ShareableLinkManagerProps> = ({
     return role === 'editor' ? 'text-gray-800' : 'text-gray-700';
   };
 
-  const getRoleBackgroundColor = (role: string) => {
-    return role === 'editor' ? 'bg-gray-200' : 'bg-gray-100';
-  };
-
-  const getRoleHoverColor = (role: string) => {
-    return role === 'editor' ? 'hover:bg-gray-300' : 'hover:bg-gray-200';
-  };
-
   const getExistingLink = (role: 'viewer' | 'editor') => {
     return links.find(link => link.role === role);
   };

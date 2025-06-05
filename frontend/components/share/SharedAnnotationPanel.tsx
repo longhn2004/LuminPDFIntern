@@ -23,14 +23,12 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
   const translations = useAppTranslations();
   const [selectedAnnotation, setSelectedAnnotation] = useState<any>(null);
   const [showStylePanel, setShowStylePanel] = useState(false);
-  const [selectedShape, setSelectedShape] = useState<string>('rectangle');
   const [styleMode, setStyleMode] = useState<'fill' | 'stroke'>('fill');
   const [opacity, setOpacity] = useState<number>(50);
   const [borderWeight, setBorderWeight] = useState<number>(1);
   const [annotationPosition, setAnnotationPosition] = useState<{ x: number; y: number } | null>(null);
   const [showShapeDropdown, setShowShapeDropdown] = useState(false);
   const [showTypeDropdown, setShowTypeDropdown] = useState(false);
-  const [currentTool, setCurrentTool] = useState<string>('pan');
   const [trackingPosition, setTrackingPosition] = useState(false);
 
   useEffect(() => {
@@ -163,11 +161,9 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
   useEffect(() => {
     if (documentViewer && Tools) {
       documentViewer.setToolMode(documentViewer.getTool(Tools.ToolNames.TEXT_SELECT));
-      setCurrentTool('TextSelect');
       
-      const handleToolModeChange = (newTool: any, oldTool: any) => {
+      const handleToolModeChange = (newTool: any) => {
         const toolName = newTool.name || 'unknown';
-        setCurrentTool(toolName);
         console.log('SharedAnnotationPanel: Tool changed to:', toolName);
       };
       
@@ -405,7 +401,6 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
   };
 
   const handleShapeSelection = (shapeType: string) => {
-    setSelectedShape(shapeType);
     switch (shapeType) {
       case 'rectangle': addRectangle(); break;
       case 'circle': addCircle(); break;
@@ -488,7 +483,6 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
     const panelHeight = 400;
     
     if (selectedAnnotation && annotationPosition && viewerElement) {
-      const viewerRect = viewerElement.getBoundingClientRect();
       const windowHeight = window.innerHeight;
       const windowWidth = window.innerWidth;
       
@@ -590,7 +584,6 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
     const panelHeight = 600; // Larger height for text style panel with Frame Style section
     
     if (annotationPosition && viewerElement) {
-      const viewerRect = viewerElement.getBoundingClientRect();
       const windowHeight = window.innerHeight;
       const windowWidth = window.innerWidth;
       
