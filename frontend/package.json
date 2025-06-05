@@ -4,9 +4,13 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
+    "prebuild": "node scripts/copy-webviewer.js",
     "build": "next build",
+    "build:vercel": "npm run copy-webviewer && npm run build",
     "build:no-lint": "ESLINT_NO_DEV_ERRORS=true next build",
     "build:ignore-errors": "next build --no-lint",
+    "postinstall": "node scripts/copy-webviewer.js",
+    "copy-webviewer": "node scripts/copy-webviewer.js",
     "start": "next start",
     "lint": "next lint",
     "lint:fix": "next lint --fix"
