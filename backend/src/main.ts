@@ -38,7 +38,7 @@ async function bootstrap() {
   console.log(`💾 Cache TTL: ${configService.get<number>('REDIS_TTL') || 300}s`);
 
   app.enableCors({
-    origin: configService.get('FRONTEND_URL'),
+    origin: configService.get('APP_URL'),
     credentials: true,
   });
 
