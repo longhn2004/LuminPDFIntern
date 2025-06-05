@@ -10,7 +10,7 @@ import { AxiosError } from 'axios';
  */
 export async function POST(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     // Properly await the params object
@@ -74,7 +74,7 @@ export async function POST(
  */
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     // Properly await the params object

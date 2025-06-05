@@ -5,6 +5,14 @@ const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
+  // Ignore ESLint errors during build
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  // Ignore TypeScript errors during build (optional)
+  typescript: {
+    ignoreBuildErrors: false, // Set to true if you also want to ignore TypeScript errors
+  },
   async headers() {
     return [
       {

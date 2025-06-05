@@ -4,7 +4,7 @@ import { AxiosError } from 'axios';
 import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     // Extract access token from cookies
@@ -19,8 +19,8 @@ export async function GET(
       );
     }
 
-    // Await params before accessing properties (NextJS 15 requirement)
-    const { id: fileId } = await params;
+    // Properly await the params object
+    const { id: fileId } = await context.params;
     
     if (!fileId) {
       return NextResponse.json(
