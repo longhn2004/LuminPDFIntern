@@ -5,7 +5,7 @@ import { AxiosError } from 'axios';
 
 export async function GET(
   request: NextRequest,
-  context: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await context.params;

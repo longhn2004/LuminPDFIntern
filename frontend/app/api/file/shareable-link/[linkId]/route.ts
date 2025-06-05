@@ -5,11 +5,11 @@ import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { linkId: string } }
+  context: { params: Promise<{ linkId: string }> }
 ) {
   try {
-    // Extract access token from cookies
-    const linkId = await params.linkId;
+    // Properly await the params object  
+    const { linkId } = await context.params;
 
     const cookieHeader = request.headers.get('cookie') || '';
     const accessTokenMatch = cookieHeader.match(/access_token=([^;]+)/);
@@ -22,8 +22,6 @@ export async function DELETE(
       );
     }
 
-    
-    
     if (!linkId) {
       return NextResponse.json(
         { error: 'Link ID is required' },

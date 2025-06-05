@@ -5,8 +5,11 @@
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build",
+    "build:no-lint": "ESLINT_NO_DEV_ERRORS=true next build",
+    "build:ignore-errors": "next build --no-lint",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "lint:fix": "next lint --fix"
   },
   "dependencies": {
     "@pdftron/webviewer": "^11.4.0",
