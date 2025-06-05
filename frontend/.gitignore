@@ -19,7 +19,9 @@
 
 # production
 /build
-/public/webviewer
+/public/webviewer/*
+!/public/webviewer/core/pdf/PDFNet.js
+!/public/webviewer/core/webviewer-core.min.js
 /public/lib
 
 # misc
