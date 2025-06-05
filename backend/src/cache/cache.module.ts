@@ -19,11 +19,24 @@ import { CacheService } from './cache.service';
         
         let storeConfig;
         if (redisUrl) {
-          console.log(`📡 Using Redis URL: ${redisUrl}`);
+          console.log(`📡 Using Redis URL: ${redisUrl.replace(/:[^:@]*@/, ':***@')}`); // Hide password in logs
+          
+          // Handle different Redis URL formats (redis:// and rediss://)
           storeConfig = {
             url: redisUrl,
-            // Don't set TTL in the store config - let cache-manager handle it
+            // Additional options for external Redis services
+            lazyConnect: true,
+            retryDelayOnFailover: 100,
+            enableAutoPipelining: true,
+            maxRetriesPerRequest: 3,
           };
+          
+          // If URL contains rediss:// (SSL), add TLS configuration
+          if (redisUrl.startsWith('rediss://')) {
+            storeConfig.tls = {
+              rejectUnauthorized: false, // For some hosted Redis services
+            };
+          }
         } else {
           // Fallback to individual Redis configuration
           const redisHost = configService.get<string>('REDIS_HOST') || 'localhost';
@@ -37,7 +50,12 @@ import { CacheService } from './cache.service';
             socket: {
               host: redisHost,
               port: redisPort,
-            }
+              tls: false, // Set to true if using SSL
+            },
+            lazyConnect: true,
+            retryDelayOnFailover: 100,
+            enableAutoPipelining: true,
+            maxRetriesPerRequest: 3,
           };
           
           if (redisPassword) {
@@ -45,16 +63,28 @@ import { CacheService } from './cache.service';
           }
         }
         
-        // Create the Redis store
-        const store = await redisStore(storeConfig);
-        console.log('✅ Redis store created successfully');
-        
-        return {
-          store: () => store,
-          ttl: redisTtl * 1000, // Convert to milliseconds for cache-manager
-          max: 1000,
-          isGlobal: true,
-        };
+        try {
+          // Create the Redis store
+          const store = await redisStore(storeConfig);
+          console.log('✅ Redis store created successfully');
+          
+          return {
+            store: () => store,
+            ttl: redisTtl * 1000, // Convert to milliseconds for cache-manager
+            max: 1000,
+            isGlobal: true,
+          };
+        } catch (error) {
+          console.error('❌ Failed to create Redis store:', error);
+          console.log('🔄 Falling back to memory cache...');
+          
+          // Fallback to memory cache if Redis fails
+          return {
+            ttl: redisTtl * 1000,
+            max: 100, // Lower limit for memory cache
+            isGlobal: true,
+          };
+        }
       },
       inject: [ConfigService],
     }),
