@@ -26,6 +26,9 @@ import { EmailService } from '../email/email.service';
 import { CacheService } from '../cache/cache.service';
 import { S3Service } from './s3.service';
 
+// Google credentials helper
+import { getGoogleCredentials, getGoogleCredentialsObject } from '../config/google-credentials';
+
 @Injectable()
 export class FileService {
   private static readonly DEFAULT_XFDF = "<?xml version=\"1.0\" encoding=\"UTF-8\" ?><xfdf xmlns=\"http://ns.adobe.com/xfdf/\" xml:space=\"preserve\"><annots></annots></xfdf>";
@@ -89,17 +92,27 @@ export class FileService {
       throw new BadRequestException('Invalid Google Drive file ID format');
     }
     
-    const serviceAccountKeyPath = this.configService.get<string>('GOOGLE_SERVICE_ACCOUNT_KEY_PATH') || 
-                                  require('path').join(__dirname, '..', '..', 'config', 'service-account-key.json');
-    
-    const auth = new google.auth.GoogleAuth({
-      keyFile: serviceAccountKeyPath,
-      scopes: ['https://www.googleapis.com/auth/drive.readonly'],
-    });
-
-    const drive = google.drive({ version: 'v3', auth });
-
     try {
+      // Initialize Google credentials using the helper
+      console.log('🔐 Initializing Google credentials...');
+      
+      let auth: any;
+      
+      // Try to use credentials from environment variable first
+      try {
+        const credentials = getGoogleCredentialsObject();
+        console.log('📋 Using Google credentials (environment variable or file)');
+        auth = new google.auth.GoogleAuth({
+          credentials: credentials,
+          scopes: ['https://www.googleapis.com/auth/drive.readonly'],
+        });
+      } catch (credentialsError) {
+        console.error('❌ Failed to initialize Google credentials:', credentialsError.message);
+        throw new BadRequestException('Google Drive integration is not configured properly');
+      }
+
+      const drive = google.drive({ version: 'v3', auth });
+
       // Get metadata to check format and size
       const fileMetadata = await drive.files.get({ 
         fileId, 
@@ -905,6 +918,38 @@ export class FileService {
   // =============================================
   // UTILITY & HELPER METHODS
   // =============================================
+
+  /**
+   * Test Google credentials initialization (for debugging)
+   */
+  async testGoogleCredentials(): Promise<{ status: string; message: string }> {
+    try {
+      console.log('🧪 Testing Google credentials initialization...');
+      
+      const credentials = getGoogleCredentialsObject();
+      console.log(`✅ Credentials loaded for project: ${credentials.project_id}`);
+      
+      const auth = new google.auth.GoogleAuth({
+        credentials: credentials,
+        scopes: ['https://www.googleapis.com/auth/drive.readonly'],
+      });
+      
+      // Test authentication by getting auth client
+      const authClient = await auth.getClient();
+      console.log('✅ Google Auth client initialized successfully');
+      
+      return {
+        status: 'success',
+        message: `Google credentials working correctly for project: ${credentials.project_id}`
+      };
+    } catch (error) {
+      console.error('❌ Google credentials test failed:', error.message);
+      return {
+        status: 'error',
+        message: `Google credentials test failed: ${error.message}`
+      };
+    }
+  }
 
   private getUserRole(file: File, user: User): string {
     if (file.ownerEmail === user.email) {
