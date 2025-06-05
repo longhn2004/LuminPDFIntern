@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 import api from '@/libs/api/axios';
-
+import { AxiosError } from 'axios';
 /**
  * POST endpoint to create an annotation for a file
  * @param request - The incoming request containing annotation data
@@ -45,10 +45,14 @@ export async function POST(
     });
     
     return NextResponse.json(response.data);
-  } catch (error: any) {
-    console.error('Error creating annotation:', error.response?.data || error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error creating annotation:', error.message);
+    } else {
+      console.error('Error creating annotation:', String(error));
+    }
     
-    if (error.response) {
+    if (error instanceof AxiosError && error.response) {
       return NextResponse.json(
         { message: error.response.data.message || 'Failed to create annotation' },
         { status: error.response.status }
@@ -115,10 +119,14 @@ export async function GET(
     });
     
     return NextResponse.json(response.data);
-  } catch (error: any) {
-    console.error('Error fetching annotations:', error.response?.data || error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error fetching annotations:', error.message);
+    } else {
+      console.error('Error fetching annotations:', String(error));
+    }
     
-    if (error.response) {
+    if (error instanceof AxiosError && error.response) {
       return NextResponse.json(
         { message: error.response.data.message || 'Failed to fetch annotations' },
         { status: error.response.status }

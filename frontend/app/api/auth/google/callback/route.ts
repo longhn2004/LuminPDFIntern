@@ -3,6 +3,7 @@ import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 
 // Configuration for axios to include credentials
 import api from '@/libs/api/axios';
+import { AxiosError } from 'axios';
 
 export async function GET(request: NextRequest) {
   // Extract authorization code from URL
@@ -53,11 +54,15 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.redirect(new URL('/dashboard/document-list', request.url));
     
-  } catch (error: any) {
-    console.error('Google callback error:', error.response?.data || error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Google callback error:', error.message);
+    } else {
+      console.error('Google callback error:', String(error));
+    }
     
     // Handle email/password conflict - User already registered with email/password
-    if (error.response?.status === HTTP_STATUS.CONFLICT && error.response?.data?.message?.includes('email and password')) {
+    if (error instanceof AxiosError && error.response?.status === HTTP_STATUS.CONFLICT && error.response?.data?.message?.includes('email and password')) {
       return NextResponse.redirect(
         new URL('/auth/signin?verification=conflictemail', request.url)
       );

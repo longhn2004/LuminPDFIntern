@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 import api from '@/libs/api/axios';
+import { AxiosError } from 'axios';
 
 /**
  * POST endpoint to change a user's role for a file
@@ -39,10 +40,14 @@ export async function POST(request: NextRequest) {
       }
     });
     return NextResponse.json(response.data);
-  } catch (error: any) {
-    console.error('Error changing user role:', error.response?.data || error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error changing user role:', error.message);
+    } else {
+      console.error('Error changing user role:', String(error));
+    }
     
-    if (error.response) {
+    if (error instanceof AxiosError && error.response) {
       return NextResponse.json(
         { message: error.response.data.message || 'Failed to change user role' },
         { status: error.response.status }

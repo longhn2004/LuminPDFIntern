@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import axios from 'axios';
 import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 import api from '@/libs/api/axios';
-
+import { AxiosError } from 'axios';
 export async function GET(request: NextRequest) {
   try {
     // Extract cookie and authorization header from the request
@@ -28,10 +27,14 @@ export async function GET(request: NextRequest) {
     });
     
     return NextResponse.json(response.data);
-  } catch (error: any) {
-    console.error('Get current user API error:', error.response?.data || error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Get current user API error:', error.message);
+    } else {
+      console.error('Get current user API error:', String(error));
+    }
     
-    if (error.response) {
+    if (error instanceof AxiosError && error.response) {
       return NextResponse.json(
         { message: error.response.data.message || 'Failed to get user data' },
         { status: error.response.status }

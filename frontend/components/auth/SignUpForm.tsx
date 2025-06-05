@@ -3,11 +3,12 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
+import { useTranslations } from 'next-intl';
 import AuthInput from "./AuthInput";
 import AuthGoogleButton from "./AuthGoogleButton";
 import AuthDivider from "./AuthDivider";
 import AuthCheckbox from "./AuthCheckbox";
-import AuthErrorMessage from "./AuthErrorMessage";
 
 export default function SignUpForm() {
   const [fullName, setFullName] = useState("");
@@ -32,6 +33,7 @@ export default function SignUpForm() {
   const [termsError, setTermsError] = useState(false);
 
   const router = useRouter();
+  const t = useTranslations();
 
   const handleSignUp = async () => {
     // Reset all validation states
@@ -107,12 +109,13 @@ export default function SignUpForm() {
         console.log("Signup successful:", data);
 
         router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
-      } catch (error: any) {
-        if (error) {
-          if (error.message.includes("already registered with email/password")) {
+      } catch (error: unknown) {
+        const errorObj = error as { message?: string };
+        if (errorObj) {
+          if (errorObj.message?.includes("already registered with email/password")) {
             setExistingEmail(true);
           }
-          if (error.message.includes("already registered with Google")) {
+          if (errorObj.message?.includes("already registered with Google")) {
             setExistingGoogle(true);
           }
           return;
@@ -126,69 +129,69 @@ export default function SignUpForm() {
   return (
     <>
       <div className="flex items-center gap-2">
-        <h1 className="text-2xl font-bold text-[45px]">Sign Up </h1>
-        <img src="/images/dsvlogo.png" alt="Logo" className="h-10 w-10" />
+        <h1 className="text-2xl font-bold text-[45px]">{t('auth.signup')} </h1>
+        <Image src="/images/dsvlogo.png" alt="Logo" width={40} height={40} className="h-10 w-10" />
       </div>
       <AuthGoogleButton />
       <AuthDivider />
       <AuthInput
-        label="Full Name"
+        label={t('auth.fullName')}
         name="fullName"
-        placeholder="Input full name"
+        placeholder={t('auth.inputFullName')}
         value={fullName}
         onChange={e => setFullName(e.target.value)}
-        error={emptyFullName ? "Mandatory field" : undefined}
+        error={emptyFullName ? t('auth.mandatoryField') : undefined}
       />
       <AuthInput
-        label="Email"
+        label={t('auth.email')}
         type="email"
         name="email"
-        placeholder="Input email address"
+        placeholder={t('auth.inputEmailAddress')}
         value={email}
         onChange={e => setEmail(e.target.value)}
         error={
           emptyEmail
-            ? "Mandatory field"
+            ? t('auth.mandatoryField')
             : invalidEmail
-            ? "Invalid email address"
+            ? t('auth.invalidEmailAddress')
             : existingEmail
-            ? "This email is already registered with email and password"
+            ? t('auth.emailAlreadyRegistered')
             : existingGoogle
-            ? "This email is already registered with Google"
+            ? t('auth.emailAlreadyRegisteredGoogle')
             : undefined
         }
       />
       <AuthInput
-        label="Password"
+        label={t('auth.password')}
         type="password"
         name="password"
-        placeholder="Input password"
+        placeholder={t('auth.inputPassword')}
         value={password}
         onChange={e => setPassword(e.target.value)}
         error={
           emptyPassword
-            ? "Mandatory field"
+            ? t('auth.mandatoryField')
             : invalidPassword
-            ? "Password must be at least 8 characters long"
+            ? t('auth.passwordMinLengthLong')
             : passwordMismatch
-            ? "Password must be the same"
+            ? t('auth.passwordMustBeSame')
             : undefined
         }
         showPassword={showPassword}
         setShowPassword={setShowPassword}
       />
       <AuthInput
-        label="Re-confirm Password"
+        label={t('auth.reconfirmPassword')}
         type="password"
         name="confirmPassword"
-        placeholder="Re-confirm password"
+        placeholder={t('auth.reconfirmPasswordPlaceholder')}
         value={confirmPassword}
         onChange={e => setConfirmPassword(e.target.value)}
         error={
           emptyConfirmPassword
-            ? "Mandatory field"
+            ? t('auth.mandatoryField')
             : passwordMismatch
-            ? "Password must be the same"
+            ? t('auth.passwordMustBeSame')
             : undefined
         }
         showPassword={showConfirmPassword}
@@ -198,12 +201,8 @@ export default function SignUpForm() {
         id="terms"
         checked={acceptedTerms}
         onChange={() => setAcceptedTerms(!acceptedTerms)}
-        label={
-          <>
-            I accept all <a href="/terms" target="_blank" className="font-bold">Terms of Service</a> and <a href="/privacy" target="_blank" className="font-bold">Privacy Policy</a>
-          </>
-        }
-        error={termsError ? "You must accept the Terms of Service and Privacy Policy" : undefined}
+        label={t('auth.acceptTermsAndConditions')}
+        error={termsError ? t('auth.termsAndConditionsRequired') : undefined}
       />
       <button
         className={`bg-blue-500 w-full text-white p-2 rounded-xl hover:bg-blue-600 cursor-pointer active:scale-95 transition-all duration-300 mt-2 flex justify-center items-center ${isLoading ? "opacity-70 cursor-not-allowed" : ""}`}
@@ -213,13 +212,13 @@ export default function SignUpForm() {
         {isLoading ? (
           <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
         ) : (
-          "Sign Up"
+          t('auth.signup')
         )}
       </button>
       <div className="flex items-center w-full justify-center h-10 relative top-5">
         <p className="text-gray-400">
-          Already have an account?{' '}
-          <Link href="/auth/signin" className="text-black hover:text-blue-600 cursor-pointer">Sign In</Link>
+          {t('auth.alreadyHaveAccount')}{' '}
+          <Link href="/auth/signin" className="text-black hover:text-blue-600 cursor-pointer">{t('auth.signin')}</Link>
         </p>
       </div>
     </>

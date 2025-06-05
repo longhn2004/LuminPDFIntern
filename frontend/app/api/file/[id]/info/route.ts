@@ -33,7 +33,12 @@ export async function GET(
             }
         });
         return NextResponse.json(response.data);
-    } catch (error) {
+    } catch (error: unknown) {
+        if (error instanceof Error) {
+            console.error('Error getting file info:', error.message);
+        } else {
+            console.error('Error getting file info:', String(error));
+        }
         return NextResponse.json(
             { message: 'Failed to get file info' },
             { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }

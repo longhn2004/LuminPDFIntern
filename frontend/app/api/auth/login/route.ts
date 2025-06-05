@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import axios from 'axios';
 import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 import api from '@/libs/api/axios';
-
+import { AxiosError } from 'axios';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -29,10 +28,14 @@ export async function POST(request: NextRequest) {
     }
     
     return nextResponse;
-  } catch (error: any) {
-    console.error('Login API error:', error.response?.data || error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Login API error:', error.message);
+    } else {
+      console.error('Login API error:', String(error));
+    }
     
-    if (error.response) {
+    if (error instanceof AxiosError && error.response) {
       return NextResponse.json(
         { message: error.response.data.message || 'Login failed' },
         { status: error.response.status }

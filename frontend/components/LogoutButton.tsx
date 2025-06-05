@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useCallback } from "react";
 import { useAppDispatch } from "@/redux/hooks";
 import { clearUser } from "@/redux/features/userSlice";
+import { useAppTranslations } from "@/hooks/useTranslations";
 
 interface LogoutButtonProps {
   onLogoutStart?: () => void;
@@ -68,6 +69,7 @@ const LogoutButton: React.FC<LogoutButtonProps> = ({
   size = 'md',
   redirectTo = '/auth/signin'
 }) => {
+  const translations = useAppTranslations();
   const router = useRouter();
   const dispatch = useAppDispatch();
   const [isLoading, setIsLoading] = useState(false);
@@ -115,18 +117,18 @@ const LogoutButton: React.FC<LogoutButtonProps> = ({
       onClick={handleLogout}
       disabled={isLoading}
       className={baseClasses}
-      aria-label={isLoading ? "Logging out..." : "Log out"}
-      title="Log out"
+      aria-label={isLoading ? translations.dashboard("logOut") : translations.dashboard("logOut")}
+      title={translations.dashboard("logOut")}
     >
       {isLoading ? (
         <>
           <LoadingSpinner className="mr-2" />
-          {showText && "Logging out..."}
+          {showText && translations.common("loading")}
         </>
       ) : (
         <>
           <LogoutIcon className={showText ? "h-5 w-5 mr-2" : "h-5 w-5"} />
-          {showText && "Log out"}
+          {showText && translations.dashboard("logOut")}
         </>
       )}
     </button>

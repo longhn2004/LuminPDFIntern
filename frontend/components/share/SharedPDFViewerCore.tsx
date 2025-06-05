@@ -3,6 +3,7 @@ import PDFNavigationBar from '../PageControlBar';
 import AnnotationPanel from './SharedAnnotationPanel';
 import { zoomIn, zoomOut, setZoom } from '../ZoomControls';
 import { MIN_ZOOM, MAX_ZOOM } from '../ZoomConstants';
+import { useAppTranslations } from '@/hooks/useTranslations';
 
 interface SharedPDFViewerCoreProps {
   token: string; // Shareable link token
@@ -17,9 +18,10 @@ export default function SharedPDFViewerCore({
   userRole, 
   isSharedView 
 }: SharedPDFViewerCoreProps) {
+  const translations = useAppTranslations();
   const [isLoaded, setIsLoaded] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
-  const [loadingStatus, setLoadingStatus] = useState<string>("Initializing shared viewer...");
+  const [loadingStatusKey, setLoadingStatusKey] = useState<string>("initializingSharedViewer");
 
   const hasInitializedRef = useRef(false);
   const documentViewerRef = useRef<any>(null);
@@ -29,6 +31,37 @@ export default function SharedPDFViewerCore({
   
   const currentVersionRef = useRef<number>(0);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Function to get translated loading status
+  const getLoadingStatus = (statusKey: string) => {
+    const statusMap: { [key: string]: string } = {
+      'initializingSharedViewer': translations.share("initializingSharedViewer"),
+      'loadingSharedPDFDocument': translations.share("loadingSharedPDFDocument"),
+      'loadingPDFViewerScripts': translations.viewer("loadingPDFViewerScripts"),
+      'settingUpSharedPDFViewer': translations.share("settingUpSharedPDFViewer"),
+      'sharedDocumentLoaded': translations.share("sharedDocumentLoaded"),
+      'failed': translations.viewer("failed"),
+      'scriptLoadingFailed': translations.viewer("scriptLoadingFailed"),
+      'initializationFailed': translations.share("initializationFailed"),
+      'retrying': translations.share("retrying"),
+    };
+    return statusMap[statusKey] || statusKey;
+  };
+
+  // Function to get translated error message
+  const getErrorMessage = (errorKey: string | null) => {
+    if (!errorKey) return null;
+    
+    const errorMap: { [key: string]: string } = {
+      'errorLoadingSharedPDFDocument': translations.share("errorLoadingSharedPDFDocument"),
+      'failedToLoadSharedDocument': translations.share("failedToLoadSharedDocument"),
+      'pdfViewerContainerNotFound': translations.viewer("pdfViewerContainerNotFound"),
+      'failedToLoadViewerScripts': translations.viewer("failedToLoadViewerScripts"),
+    };
+    
+    // If it's a key we recognize, translate it; otherwise return as-is (for dynamic errors)
+    return errorMap[errorKey] || errorKey;
+  };
 
   const loadAnnotations = async () => {
     if (!fileId || !annotationManagerRef.current) {
@@ -86,7 +119,7 @@ export default function SharedPDFViewerCore({
       
       if (!response.ok) {
         if (response.status === 409) {
-          alert("Conflict detected: Another user modified the annotations. Please refresh.");
+          alert(translations.share("conflictDetected"));
           return;
         }
         throw new Error(`Failed to save annotations: ${response.statusText}`);
@@ -111,7 +144,7 @@ export default function SharedPDFViewerCore({
     try {
       console.log("SharedPDFViewerCore: Loading shared document from:", `/api/file/${fileId}/download?token=${shareToken}`);
       setLoadingError(null);
-      setLoadingStatus("Loading shared PDF document...");
+      setLoadingStatusKey("loadingSharedPDFDocument");
       
       // Use token-based download URL for shared access
       const downloadUrl = shareToken 
@@ -128,9 +161,9 @@ export default function SharedPDFViewerCore({
       );
     } catch (err) {
       console.error("SharedPDFViewerCore: Error loading shared document:", err);
-      setLoadingError("Error loading shared PDF document. Please try again.");
+      setLoadingError("errorLoadingSharedPDFDocument");
       setIsLoaded(false);
-      setLoadingStatus("Failed to load shared document");
+      setLoadingStatusKey("failed");
     }
   };
   
@@ -146,7 +179,7 @@ export default function SharedPDFViewerCore({
       return true;
     }
     
-    setLoadingStatus("Loading PDF viewer scripts...");
+    setLoadingStatusKey("loadingPDFViewerScripts");
     
     try {
       await new Promise((resolve, reject) => {
@@ -178,8 +211,8 @@ export default function SharedPDFViewerCore({
       return true;
     } catch (error: any) {
       console.error("SharedPDFViewerCore: Failed to load scripts:", error);
-      setLoadingError(`Failed to load viewer scripts: ${error.message}`);
-      setLoadingStatus("Script loading failed");
+      setLoadingError(`${translations.viewer("failedToLoadViewerScripts")}: ${error.message}`);
+      setLoadingStatusKey("scriptLoadingFailed");
       return false;
     }
   };
@@ -299,11 +332,11 @@ export default function SharedPDFViewerCore({
       
       if (!scrollElement || !viewerElement) {
         console.error("SharedPDFViewerCore: Container elements missing");
-        setLoadingError("PDF viewer container not found. Please refresh.");
+        setLoadingError("pdfViewerContainerNotFound");
         return;
       }
       
-      setLoadingStatus("Setting up shared PDF viewer...");
+      setLoadingStatusKey("settingUpSharedPDFViewer");
       console.log("SharedPDFViewerCore: Setting worker path");
       
       await window.Core.setWorkerPath('/webviewer/core');
@@ -336,7 +369,7 @@ export default function SharedPDFViewerCore({
         console.log("SharedPDFViewerCore: Shared document loaded");
         setIsLoaded(true);
         setLoadingError(null);
-        setLoadingStatus("Shared document loaded");
+        setLoadingStatusKey("sharedDocumentLoaded");
         
         try {
           documentViewer.zoomTo(1.0);
@@ -350,9 +383,9 @@ export default function SharedPDFViewerCore({
       
       documentViewer.addEventListener('loaderror', (err: any) => {
         console.error("SharedPDFViewerCore: Load error:", err);
-        setLoadingError("Failed to load shared PDF document. File may be corrupted or access denied.");
+        setLoadingError("failedToLoadSharedDocument");
         setIsLoaded(false);
-        setLoadingStatus("Failed");
+        setLoadingStatusKey("failed");
       });
       
       console.log("SharedPDFViewerCore: Setting viewer elements");
@@ -366,7 +399,7 @@ export default function SharedPDFViewerCore({
       setLoadingError(err instanceof Error ? err.message : "Unknown error");
       setIsLoaded(false);
       hasInitializedRef.current = false;
-      setLoadingStatus("Initialization failed");
+      setLoadingStatusKey("initializationFailed");
     }
   }
 
@@ -376,8 +409,8 @@ export default function SharedPDFViewerCore({
       const initTimeout = setTimeout(() => {
         initCore().catch(err => {
           console.error("SharedPDFViewerCore: Init failed:", err);
-          setLoadingError("Failed to initialize shared PDF viewer. Please refresh.");
-          setLoadingStatus("Initialization failed");
+          setLoadingError(translations.share("failedToInitializeSharedPDFViewer"));
+          setLoadingStatusKey("initializationFailed");
         });
       }, 300);
       
@@ -390,7 +423,7 @@ export default function SharedPDFViewerCore({
     hasInitializedRef.current = false;
     initAttemptedRef.current = false;
     setLoadingError(null);
-    setLoadingStatus("Retrying...");
+    setLoadingStatusKey("retrying");
     
     if (documentViewerRef.current) {
       try {
@@ -441,18 +474,18 @@ export default function SharedPDFViewerCore({
         {!isLoaded && (
           <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-90 z-10">
             <div className="text-center max-w-md p-6 bg-gray-50 rounded-lg shadow-lg">
-              <h1 className="text-xl font-semibold mb-2">Loading Shared PDF</h1>
-              <p className="text-gray-600 mb-4">{loadingStatus}</p>
+              <h1 className="text-xl font-semibold mb-2">{translations.share("loadingSharedPDF")}</h1>
+              <p className="text-gray-600 mb-4">{getLoadingStatus(loadingStatusKey)}</p>
               <div className="w-16 h-16 border-4 border-green-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
               {loadingError && (
                 <div className="text-red-500 mt-4">
-                  <p className="font-semibold">Error:</p>
-                  <p>{loadingError}</p>
+                  <p className="font-semibold">{translations.viewer("errorLabel")}</p>
+                  <p>{getErrorMessage(loadingError)}</p>
                   <button
                     onClick={handleRetry}
                     className="mt-3 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
                   >
-                    Retry
+                    {translations.common("retry")}
                   </button>
                 </div>
               )}

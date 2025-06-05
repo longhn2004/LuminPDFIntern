@@ -1,20 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
-import axios from 'axios';
+import { NextResponse } from 'next/server';
 import { HTTP_STATUS } from '@/libs/constants/httpStatus';
-import api from '@/libs/api/axios';
-
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
-    // Extract cookies from the request to forward to backend
-    const cookieHeader = request.headers.get('cookie');
-    
-    // Call the backend logout endpoint
-    // await api.post('/auth/logout', {}, {
-    //   headers: {
-    //     ...(cookieHeader && { Cookie: cookieHeader }),
-    //   },
-    // });
-    
     // Create response and clear the cookie
     const response = NextResponse.json({ message: 'Logged out successfully' });
     
@@ -22,8 +9,12 @@ export async function POST(request: NextRequest) {
     response.cookies.delete('access_token');
     
     return response;
-  } catch (error: any) {
-    console.error('Logout API error:', error.response?.data || error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Logout API error:', error.message);
+    } else {
+      console.error('Logout API error:', String(error));
+    }
     
     // Even if the backend call fails, clear the cookie on the frontend
     const response = NextResponse.json(

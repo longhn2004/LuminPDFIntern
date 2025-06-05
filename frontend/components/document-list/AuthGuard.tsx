@@ -2,6 +2,7 @@
 
 import React from 'react';
 import { FaFileAlt } from 'react-icons/fa';
+import { useAppTranslations } from '@/hooks/useTranslations';
 
 interface AuthGuardProps {
   isAuthLoading: boolean;
@@ -16,13 +17,15 @@ const AuthGuard: React.FC<AuthGuardProps> = ({
   onSignIn,
   children
 }) => {
+  const translations = useAppTranslations();
+
   if (isAuthLoading) {
     return (
       <div className="text-center py-10">
         <div className="flex justify-center mb-4">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-yellow-500"></div>
         </div>
-        <p className="text-gray-500">Checking authentication...</p>
+        <p className="text-gray-500">{translations.dashboard("authGuardMessage")}</p>
       </div>
     );
   }
@@ -33,12 +36,12 @@ const AuthGuard: React.FC<AuthGuardProps> = ({
         <div className="flex justify-center mb-4">
           <FaFileAlt className="text-gray-400 text-5xl" />
         </div>
-        <p className="text-gray-500 mb-4">Please log in to view your documents</p>
+        <p className="text-gray-500 mb-4">{translations.dashboard("signInPrompt")}</p>
         <button 
           onClick={onSignIn}
           className="bg-yellow-400 hover:bg-yellow-500 px-6 py-2 rounded-md transition-colors duration-300"
         >
-          Sign In
+          {translations.auth("signin")}
         </button>
       </div>
     );

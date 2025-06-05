@@ -11,7 +11,7 @@ import { CacheModule } from './cache/cache.module';
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
     ScheduleModule.forRoot(),
-    MongooseModule.forRoot(process.env.MONGO_URI || 'mongodb://localhost:27017/luminpdf'),
+    MongooseModule.forRoot(process.env.MONGO_CLOUD_URI || 'mongodb://localhost:27017/luminpdf'),
     CacheModule,
     AuthModule,
     FileModule,

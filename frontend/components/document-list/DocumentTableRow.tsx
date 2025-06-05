@@ -3,6 +3,7 @@
 import React from 'react';
 import Avatar from '@/components/Avatar';
 import { FileItem } from '@/types/document';
+import { useAppTranslations } from '@/hooks/useTranslations';
 
 interface DocumentTableRowProps {
   file: FileItem;
@@ -17,6 +18,8 @@ const DocumentTableRow: React.FC<DocumentTableRowProps> = ({
   onClick,
   formatDate
 }) => {
+  const translations = useAppTranslations();
+
   return (
     <tr 
       className="hover:bg-gray-50 cursor-pointer border-b border-gray-200 transition-colors"
@@ -33,7 +36,7 @@ const DocumentTableRow: React.FC<DocumentTableRowProps> = ({
           <span className="truncate">
             {file.owner}
             {file.owner === currentUserName && (
-              <span className="text-gray-500 font-normal ml-1">(You)</span>
+              <span className="text-gray-500 font-normal ml-1">({translations.common("you")})</span>
             )}
           </span>
         </div>

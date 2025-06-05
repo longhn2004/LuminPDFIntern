@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-
+import { HTTP_STATUS } from '@/libs/constants/httpStatus';
 export async function POST(request: NextRequest) {
   try {
     const { token } = await request.json();
@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
     if (!token) {
       return NextResponse.json(
         { error: 'Token is required' },
-        { status: 400 }
+        { status: HTTP_STATUS.BAD_REQUEST }
       );
     }
 
@@ -31,12 +31,16 @@ export async function POST(request: NextRequest) {
 
     console.log('Share route: Access via link successful:', accessData);
     return NextResponse.json(accessData);
-  } catch (error: any) {
-    console.error('Share route: Error accessing file via shareable link:', error);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Share route: Error accessing file via shareable link:', error.message);
+    } else {
+      console.error('Share route: Error accessing file via shareable link:', String(error));
+    }
     
     return NextResponse.json(
       { error: 'Failed to access file via shareable link' },
-      { status: 500 }
+      { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
     );
   }
 } 

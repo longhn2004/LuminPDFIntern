@@ -3,6 +3,7 @@
 import React from 'react';
 import UploadButton from './UploadButton';
 import GoogleDriveButton from './GoogleDriveButton';
+import { useAppTranslations } from '@/hooks/useTranslations';
 
 interface DocumentListHeaderProps {
   totalFiles: number;
@@ -21,14 +22,15 @@ const DocumentListHeader: React.FC<DocumentListHeaderProps> = ({
   uploading = false,
   googleDriveUploading = false
 }) => {
+  const translations = useAppTranslations();
   const isAnyUploading = uploading || googleDriveUploading;
 
   return (
     <div className="flex justify-between items-center mb-6">
       <div className="flex items-center">
-        <h2 className="text-lg font-medium text-gray-900">My Document</h2>
+        <h2 className="text-lg font-medium text-gray-900">{translations.dashboard("myDocuments")}</h2>
         {isAuthenticated && (
-          <span className="ml-2 text-sm text-gray-500">Total {totalFiles}</span>
+          <span className="ml-2 text-sm text-gray-500">{translations.dashboard("totalFiles")} {totalFiles}</span>
         )}
       </div>
       

@@ -1,6 +1,7 @@
 import { NextResponse, NextRequest } from 'next/server';
 import api from '@/libs/api/axios';
-
+import { HTTP_STATUS } from '@/libs/constants/httpStatus';
+import { AxiosError } from 'axios';
 export async function GET(request: NextRequest) {
   try {
     // Extract access token from cookies
@@ -11,7 +12,7 @@ export async function GET(request: NextRequest) {
     if (!accessToken) {
       return NextResponse.json(
         { error: 'Authentication required' },
-        { status: 401 }
+        { status: HTTP_STATUS.UNAUTHORIZED }
       );
     }
 
@@ -24,16 +25,26 @@ export async function GET(request: NextRequest) {
     
     // Handle the backend format { totalFiles: count }
     return NextResponse.json({ total: response.data.totalFiles });
-  } catch (error: any) {
-    console.error('Error fetching total files:', error);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error fetching total files:', error.message);
+    } else {
+      console.error('Error fetching total files:', String(error));
+    }
     
     // Handle axios error response
-    const status = error.response?.status || 500;
-    const message = error.response?.data?.message || 'Failed to fetch total files count';
+    if (error instanceof AxiosError && error.response) {
+      const status = error.response.status || HTTP_STATUS.INTERNAL_SERVER_ERROR;
+      const message = error.response.data?.message || 'Failed to fetch total files count';
+      return NextResponse.json(
+        { error: message },
+        { status }
+      );
+    }
     
     return NextResponse.json(
-      { error: message },
-      { status }
+      { error: 'Internal server error' },
+      { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
     );
   }
 } 
