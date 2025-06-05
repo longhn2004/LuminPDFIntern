@@ -175,7 +175,7 @@ const useDownloadHandlers = (pdfId: string, fileName: string, userRole: string) 
       console.error("PDFViewer: Error downloading file:", error);
       toast.error(translations.errors("fileNotFound"));
     }
-  }, [fileName, translations]);
+  }, [pdfId, fileName, translations]);
 
   const downloadFileWithAnnotations = useCallback(async () => {
       if (userRole !== 'owner' && userRole !== 'editor') {
@@ -227,7 +227,7 @@ const useDownloadHandlers = (pdfId: string, fileName: string, userRole: string) 
       console.error("PDFViewer: Error downloading file with annotations:", error);
       toast.error(translations.viewer("failedToDownloadWithAnnotations"));
     }
-  }, [pdfId, userRole, downloadFile, fileName, translations]);
+  }, [userRole, downloadFile, fileName, translations]);
 
   return {
     downloadFile,

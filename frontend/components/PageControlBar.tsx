@@ -511,7 +511,7 @@ export default function PageControlBar({ className = '' }: PageControlBarProps) 
     updateInfo();
     const intervalId = setInterval(updateInfo, 500);
     return () => clearInterval(intervalId);
-  }, [zoomControl.updateZoomState, pageNavigation.updatePageState]);
+  }, [zoomControl, pageNavigation]);
   
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -523,7 +523,7 @@ export default function PageControlBar({ className = '' }: PageControlBarProps) 
     
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, [zoomControl.setIsDropdownOpen]);
+  }, [zoomControl]);
   
   // Focus inputs when custom mode is enabled
   useEffect(() => {

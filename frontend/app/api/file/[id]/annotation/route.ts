@@ -119,10 +119,14 @@ export async function GET(
     });
     
     return NextResponse.json(response.data);
-  } catch (error: any) {
-    console.error('Error fetching annotations:', error.response?.data || error.message);
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error('Error fetching annotations:', error.message);
+    } else {
+      console.error('Error fetching annotations:', String(error));
+    }
     
-    if (error.response) {
+    if (error instanceof AxiosError && error.response) {
       return NextResponse.json(
         { message: error.response.data.message || 'Failed to fetch annotations' },
         { status: error.response.status }
