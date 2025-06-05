@@ -257,4 +257,10 @@ export class FileController {
       }
     };
   }
+
+  @Get('google/test-credentials')
+  async testGoogleCredentials() {
+    console.log('🧪 Testing Google credentials endpoint called');
+    return this.fileService.testGoogleCredentials();
+  }
 }
