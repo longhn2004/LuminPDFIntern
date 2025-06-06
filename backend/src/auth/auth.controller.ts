@@ -83,9 +83,7 @@ export class AuthController {
       const { accessToken } = await this.authService.googleLogin(req.user);
 
       this.setAuthCookie(res, accessToken);
-      res.redirect(
-        `${this.configService.get('APP_URL')}/dashboard/document-list`,
-      );
+      return { message: 'Google login successful' };
     } catch (error) {
       this.handleGoogleAuthError(error, res);
     }
@@ -135,12 +133,10 @@ export class AuthController {
       error?.message?.includes('email and password') ||
       error?.response?.message?.includes('email and password')
     ) {
-      res.redirect(
-        `${this.configService.get('APP_URL')}/auth/signin?verification=conflictemail`,
-      );
+      throw error; // Let the frontend handle the error and redirect
     } else {
-      // Generic error - redirect to signin
-      res.redirect(`${this.configService.get('APP_URL')}/auth/signin`);
+      // Generic error - let frontend handle
+      throw error;
     }
   }
 }
