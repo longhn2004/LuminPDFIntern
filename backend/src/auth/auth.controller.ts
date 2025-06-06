@@ -80,12 +80,24 @@ export class AuthController {
     @Response({ passthrough: true }) res,
   ) {
     try {
+      console.log('Google callback - User:', req.user?.email);
       const { accessToken } = await this.authService.googleLogin(req.user);
 
-      this.setAuthCookie(res, accessToken);
-      return { message: 'Google login successful' };
+      console.log('Google callback - Returning token for:', req.user?.email);
+      
+      // Return the access token to frontend for cookie setting and redirect
+      return { 
+        accessToken, 
+        message: 'Google login successful',
+        user: {
+          email: req.user?.email,
+          name: req.user?.name
+        }
+      };
     } catch (error) {
-      this.handleGoogleAuthError(error, res);
+      console.error('Google callback error:', error);
+      // Throw the error to let frontend handle it
+      throw error;
     }
   }
 
@@ -119,24 +131,16 @@ export class AuthController {
   }
 
   private setAuthCookie(res: ExpressResponse, accessToken: string) {
+    const isProduction = this.configService.get('NODE_ENV') === 'production';
+    
     res.cookie('access_token', accessToken, {
       httpOnly: false,
-      secure: false,
-      sameSite: 'lax',
+      secure: isProduction, // Use secure cookies in production (HTTPS)
+      sameSite: isProduction ? 'none' : 'lax', // 'none' required for cross-site cookies in production
+      domain: isProduction ? this.configService.get('COOKIE_DOMAIN') : undefined,
       maxAge: AuthController.COOKIE_MAX_AGE,
     });
   }
 
-  private handleGoogleAuthError(error: any, res: ExpressResponse) {
-    // Check if error is because email already used with password
-    if (
-      error?.message?.includes('email and password') ||
-      error?.response?.message?.includes('email and password')
-    ) {
-      throw error; // Let the frontend handle the error and redirect
-    } else {
-      // Generic error - let frontend handle
-      throw error;
-    }
-  }
+
 }
