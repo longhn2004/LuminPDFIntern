@@ -15,13 +15,12 @@ import { v4 as uuidv4 } from 'uuid';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { ResendVerificationDto } from './dto/resend-verification.dto';
-import { Cron, CronExpression } from '@nestjs/schedule';
+
 
 @Injectable()
 export class AuthService {
   private static readonly SALT_ROUNDS = 10;
   private static readonly TOKEN_EXPIRY = '30m';
-  private static readonly VERIFICATION_TOKEN_EXPIRY_HOURS = 24; // 24 hours for email verification
 
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
@@ -52,17 +51,11 @@ export class AuthService {
 
     const hashedPassword = await bcrypt.hash(password, AuthService.SALT_ROUNDS);
     const verificationToken = uuidv4();
-    const verificationTokenExpires = new Date();
-    verificationTokenExpires.setHours(
-      verificationTokenExpires.getHours() +
-        AuthService.VERIFICATION_TOKEN_EXPIRY_HOURS,
-    );
 
     const user = new this.userModel({
       email,
       password: hashedPassword,
       verificationToken,
-      verificationTokenExpires,
       isEmailVerified: false,
       name,
     });
@@ -82,22 +75,11 @@ export class AuthService {
       .findOne({ verificationToken: token })
       .exec();
     if (!user) {
-      throw new BadRequestException('Invalid or expired verification token');
-    }
-
-    // Check if the verification token has expired
-    if (
-      user.verificationTokenExpires &&
-      new Date() > user.verificationTokenExpires
-    ) {
-      throw new BadRequestException(
-        'Verification token has expired. Please request a new verification email.',
-      );
+      throw new BadRequestException('Invalid verification token');
     }
 
     user.isEmailVerified = true;
     user.verificationToken = '';
-    user.verificationTokenExpires = undefined;
     await user.save();
 
     return this.generateTokens(user);
@@ -240,14 +222,8 @@ export class AuthService {
     }
 
     const verificationToken = uuidv4();
-    const verificationTokenExpires = new Date();
-    verificationTokenExpires.setHours(
-      verificationTokenExpires.getHours() +
-        AuthService.VERIFICATION_TOKEN_EXPIRY_HOURS,
-    );
 
     user.verificationToken = verificationToken;
-    user.verificationTokenExpires = verificationTokenExpires;
     await user.save();
 
     await this.emailService.sendVerificationEmail(email, verificationToken);
@@ -256,27 +232,4 @@ export class AuthService {
   // =============================================
   // UTILITY METHODS
   // =============================================
-
-  /**
-   * Clean up expired verification tokens from the database
-   * This method can be called periodically to remove expired tokens
-   */
-  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT)
-  async cleanupExpiredVerificationTokens(): Promise<void> {
-    const now = new Date();
-    await this.userModel
-      .updateMany(
-        {
-          verificationTokenExpires: { $lt: now },
-          isEmailVerified: false,
-        },
-        {
-          $unset: {
-            verificationToken: '',
-            verificationTokenExpires: '',
-          },
-        },
-      )
-      .exec();
-  }
 }

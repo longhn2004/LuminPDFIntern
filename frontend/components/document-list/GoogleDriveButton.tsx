@@ -57,7 +57,7 @@ const GoogleDriveButton: React.FC<GoogleDriveButtonProps> = ({
       <button 
         onClick={handleOpenModal}
         disabled={disabled}
-        className={`bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed px-4 py-2 rounded-md flex items-center transition-colors duration-300 text-white ${className}`}
+        className={`bg-blue-500 hover:bg-blue-600 disabled:bg-gray-400 disabled:cursor-not-allowed px-4 py-2 rounded-md flex items-center transition-colors duration-300 text-white ${className} cursor-pointer`}
       >
         <FaGoogleDrive className="mr-2" />
         {translations.dashboard('uploadFromGoogleDrive')}

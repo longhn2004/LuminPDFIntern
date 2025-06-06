@@ -26,6 +26,11 @@ export async function GET(request: NextRequest) {
     });
     
     // If successful, extract the access token and set cookie
+    if (response.status === HTTP_STATUS.CONFLICT && response.data?.message?.includes('email and password')) {
+      return NextResponse.redirect(
+        new URL('/auth/signin?verification=conflictemail', request.url)
+      );
+    }
     if (response.status === HTTP_STATUS.OK && response.data?.accessToken) {
       const { accessToken } = response.data;
       const nextResponse = NextResponse.redirect(new URL('/dashboard/document-list', request.url));
@@ -51,6 +56,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(new URL('/auth/signin', request.url));
     
   } catch (error: unknown) {
+    console.log('Google callback test error:', error);
     if (error instanceof Error) {
       console.error('Google callback error:', error.message);
     } else {

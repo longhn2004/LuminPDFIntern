@@ -116,7 +116,7 @@ const LogoutButton: React.FC<LogoutButtonProps> = ({
     <button 
       onClick={handleLogout}
       disabled={isLoading}
-      className={baseClasses}
+      className={baseClasses + " cursor-pointer"}
       aria-label={isLoading ? translations.dashboard("logOut") : translations.dashboard("logOut")}
       title={translations.dashboard("logOut")}
     >

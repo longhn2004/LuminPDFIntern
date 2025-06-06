@@ -40,7 +40,7 @@ const UploadButton: React.FC<UploadButtonProps> = ({
       <button 
         onClick={triggerFileInput}
         disabled={disabled}
-        className={`bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-400 disabled:cursor-not-allowed px-4 py-2 rounded-md flex items-center transition-colors duration-300 ${className}`}
+        className={`bg-yellow-500 hover:bg-yellow-600 disabled:bg-gray-400 disabled:cursor-not-allowed px-4 py-2 rounded-md flex items-center transition-colors duration-300 ${className} cursor-pointer`}
       >
         <FaUpload className="mr-2" />
         {translations.dashboard("uploadFromComputer")}

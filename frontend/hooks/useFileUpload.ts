@@ -13,6 +13,42 @@ export const useFileUpload = ({ onUploadComplete }: UseFileUploadProps = {}) => 
     fileName: ''
   });
 
+  // Function to check if PDF is password protected
+  const checkPDFPassword = async (file: File): Promise<boolean> => {
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const uint8Array = new Uint8Array(arrayBuffer);
+      
+      // Convert to string to search for PDF encryption indicators
+      const pdfString = new TextDecoder('latin1').decode(uint8Array);
+      
+      // Check for common PDF encryption indicators
+      const encryptionIndicators = [
+        '/Encrypt',
+        '/P -', // Permissions flag indicating restrictions
+        '/O <', // Owner password hash
+        '/U <', // User password hash
+        'Standard', // Standard security handler
+        'V 1', // Security handler version
+        'V 2',
+        'V 4',
+        'V 5'
+      ];
+      
+      // Look for encryption dictionary
+      const hasEncryptDict = pdfString.includes('/Encrypt');
+      const hasSecurityHandler = encryptionIndicators.some(indicator => 
+        pdfString.includes(indicator)
+      );
+      
+      return hasEncryptDict || hasSecurityHandler;
+    } catch (error) {
+      console.error('Error checking PDF password protection:', error);
+      // If we can't read the file, assume it might be password protected
+      return false;
+    }
+  };
+
   const uploadFile = async (file: File) => {
     // Validate file
     if (file.type !== 'application/pdf') {
@@ -22,6 +58,13 @@ export const useFileUpload = ({ onUploadComplete }: UseFileUploadProps = {}) => 
 
     if (file.size > 20 * 1024 * 1024) {
       toast.error('File size exceeds 20MB limit');
+      return;
+    }
+
+    // Check for password protection
+    const isPasswordProtected = await checkPDFPassword(file);
+    if (isPasswordProtected) {
+      toast.error('Password-protected PDFs are not supported');
       return;
     }
 
@@ -77,6 +120,7 @@ export const useFileUpload = ({ onUploadComplete }: UseFileUploadProps = {}) => 
   return {
     uploadState,
     uploadFile,
-    cancelUpload
+    cancelUpload,
+    checkPDFPassword
   };
 }; 
