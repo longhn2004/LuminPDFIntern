@@ -1,12 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { toast } from 'react-toastify';
 import { FileItem, SortOrder } from '@/types/document';
+import { useTranslations, useLocale } from 'next-intl';
 
 interface UseDocumentListProps {
   isAuthenticated: boolean;
 }
 
 export const useDocumentList = ({ isAuthenticated }: UseDocumentListProps) => {
+  const t = useTranslations();
+  const locale = useLocale();
   const [totalFiles, setTotalFiles] = useState<number>(0);
   const [files, setFiles] = useState<FileItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -69,7 +72,7 @@ export const useDocumentList = ({ isAuthenticated }: UseDocumentListProps) => {
       }
     } catch (error) {
       console.error('Error fetching files:', error);
-      toast.error('Failed to load documents');
+      toast.error(t('fileUpload.failedToLoadDocuments'));
     } finally {
       setLoading(false);
       isLoadingRef.current = false;
@@ -108,14 +111,15 @@ export const useDocumentList = ({ isAuthenticated }: UseDocumentListProps) => {
   // Format date for display
   const formatDate = useCallback((dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    const localeForDate = locale === 'vi' ? 'vi-VN' : 'en-US';
+    return date.toLocaleDateString(localeForDate, {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
-  }, []);
+  }, [locale]);
 
   // Effects
   useEffect(() => {

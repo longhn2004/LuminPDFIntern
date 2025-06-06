@@ -240,7 +240,7 @@
     "serverError": "Lỗi máy chủ",
     "networkError": "Lỗi mạng",
     "fileUploadError": "Lỗi tải lên tập tin",
-    "fileNotFound": "Không tìm thấy tập tin",
+    "fileNotFound": "Không thể tải tài liệu. Vui lòng tải lại trang và thử lại.",
     "accessDenied": "Truy cập bị từ chối",
     "tokenExpired": "Phiên đăng nhập đã hết hạn"
   },
@@ -250,7 +250,19 @@
     "documentShared": "Tài liệu đã được chia sẻ thành công",
     "invitationSent": "Lời mời đã được gửi thành công",
     "settingsSaved": "Cài đặt đã được lưu thành công",
-    "languageChanged": "Ngôn ngữ đã được thay đổi thành công"
+    "languageChanged": "Ngôn ngữ đã được thay đổi thành công",
+    "uploadCancelled": "Đã hủy tải lên",
+    "googleDriveUploadCancelled": "Đã hủy tải lên từ Google Drive",
+    "googleDriveUploadSuccess": "Tập tin \"{fileName}\" đã được tải lên thành công từ Google Drive!"
+  },
+  "fileUpload": {
+    "onlyPDFAllowed": "Chỉ cho phép tập tin PDF",
+    "fileSizeExceeds": "Kích thước tập tin vượt quá giới hạn 20MB",
+    "passwordProtectedNotSupported": "Không hỗ trợ PDF được bảo vệ bằng mật khẩu",
+    "failedToUploadDocument": "Không thể tải lên tài liệu",
+    "invalidGoogleDriveUrl": "URL Google Drive hoặc ID tập tin không hợp lệ",
+    "failedToUploadFromGoogleDrive": "Không thể tải lên từ Google Drive",
+    "failedToLoadDocuments": "Không thể tải danh sách tài liệu"
   },
   "annotations": {
     "style": "Kiểu",
