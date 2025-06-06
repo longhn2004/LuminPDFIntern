@@ -84,9 +84,9 @@ export class AuthController {
 
       this.setAuthCookie(res, accessToken);
       
-      // Small delay before redirect to ensure cookie is set
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      console.log("Login with Google Success");
+      // Ensure cookie is set before redirect
+      await this.ensureCookieSetBeforeRedirect(res, accessToken);
+      console.log("Login with Google Success - Cookie verified");
       res.redirect(
         `${this.configService.get('APP_URL')}/dashboard/document-list`,
       );
@@ -131,6 +131,22 @@ export class AuthController {
       sameSite: 'lax',
       maxAge: AuthController.COOKIE_MAX_AGE,
     });
+  }
+
+  private async ensureCookieSetBeforeRedirect(res: ExpressResponse, accessToken: string): Promise<void> {
+    // Wait for a short delay to ensure cookie is processed
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    // Verify the cookie was set by checking the response headers
+    const cookies = res.getHeader('Set-Cookie');
+    if (!cookies || (Array.isArray(cookies) && !cookies.some(cookie => cookie.includes('access_token')))) {
+      console.log('Cookie may not have been set properly, retrying...');
+      // Retry setting the cookie
+      this.setAuthCookie(res, accessToken);
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    
+    console.log('Cookie setting verified');
   }
 
   private async handleGoogleAuthError(error: any, res: ExpressResponse) {
