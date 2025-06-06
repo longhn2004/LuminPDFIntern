@@ -86,6 +86,7 @@ export class AuthController {
       
       // Small delay before redirect to ensure cookie is set
       await new Promise(resolve => setTimeout(resolve, 1000));
+      console.log("Login with Google Success");
       res.redirect(
         `${this.configService.get('APP_URL')}/dashboard/document-list`,
       );
@@ -135,6 +136,7 @@ export class AuthController {
   private async handleGoogleAuthError(error: any, res: ExpressResponse) {
     // Small delay before redirect
     await new Promise(resolve => setTimeout(resolve, 1000));
+    console.log("Error Login with Google");
     
     // Check if error is because email already used with password
     if (
