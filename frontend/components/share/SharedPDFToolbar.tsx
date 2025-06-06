@@ -123,7 +123,7 @@ const SharedPDFToolbar: React.FC<SharedPDFToolbarProps> = ({
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <button 
           onClick={onNavigateBack} 
-          className="text-gray-600 hover:text-gray-800 transition-colors p-1 rounded focus:outline-none focus:ring-2 focus:ring-gray-500 flex-shrink-0"
+          className="text-gray-600 hover:text-gray-800 transition-colors p-1 rounded focus:outline-none focus:ring-2 focus:ring-gray-500 flex-shrink-0 cursor-pointer"
           title={translations.viewer("backToLogin")}
           aria-label={translations.viewer("backToLogin")}
         >
@@ -189,7 +189,7 @@ const SharedPDFToolbar: React.FC<SharedPDFToolbarProps> = ({
             >
               <button
                 onClick={(e) => handleDownloadOptionClick(e, onDownload)}
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-t-md flex items-center gap-2 focus:outline-none focus:bg-gray-100"
+                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-t-md flex items-center gap-2 focus:outline-none focus:bg-gray-100 cursor-pointer"
                 role="menuitem"
               >
                 <FaDownload size={14} />
@@ -198,7 +198,7 @@ const SharedPDFToolbar: React.FC<SharedPDFToolbarProps> = ({
               
               <button
                 onClick={(e) => handleDownloadOptionClick(e, onDownloadWithAnnotations!)}
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-b-md flex items-center gap-2 focus:outline-none focus:bg-gray-100"
+                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-b-md flex items-center gap-2 focus:outline-none focus:bg-gray-100 cursor-pointer"
                 role="menuitem"
               >
                 <FaDownload size={14} />

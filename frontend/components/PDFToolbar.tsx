@@ -127,7 +127,7 @@ const PDFToolbar: React.FC<PDFToolbarProps> = ({
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <button 
           onClick={onNavigateBack} 
-          className="text-gray-600 hover:text-gray-800 transition-colors p-1 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 flex-shrink-0"
+          className="text-gray-600 hover:text-gray-800 transition-colors p-1 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 flex-shrink-0 cursor-pointer"
           title={translations.viewer("backToDocumentList")}
           aria-label={translations.viewer("backToDocumentList")}
         >
@@ -149,7 +149,7 @@ const PDFToolbar: React.FC<PDFToolbarProps> = ({
         {isOwner && (
           <button 
             onClick={onDelete} 
-            className={`${BUTTON_STYLES.base} ${BUTTON_STYLES.default} ${BUTTON_STYLES.delete}`}
+            className={`${BUTTON_STYLES.base} ${BUTTON_STYLES.default} ${BUTTON_STYLES.delete} cursor-pointer`}
             title={translations.viewer("deleteDocument")}
             aria-label={translations.viewer("deleteDocument")}
           >
@@ -198,7 +198,7 @@ const PDFToolbar: React.FC<PDFToolbarProps> = ({
             >
               <button
                 onClick={(e) => handleDownloadOptionClick(e, onDownload)}
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-t-md flex items-center gap-2 focus:outline-none focus:bg-gray-100"
+                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-t-md flex items-center gap-2 focus:outline-none focus:bg-gray-100 cursor-pointer"
                 role="menuitem"
               >
                 <FaDownload size={14} />
@@ -207,7 +207,7 @@ const PDFToolbar: React.FC<PDFToolbarProps> = ({
               
               <button
                 onClick={(e) => handleDownloadOptionClick(e, onDownloadWithAnnotations!)}
-                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-b-md flex items-center gap-2 focus:outline-none focus:bg-gray-100"
+                className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 rounded-b-md flex items-center gap-2 focus:outline-none focus:bg-gray-100 cursor-pointer"
                 role="menuitem"
               >
                 <FaDownload size={14} />
@@ -221,7 +221,7 @@ const PDFToolbar: React.FC<PDFToolbarProps> = ({
         {isOwner && (
           <button 
             onClick={onShare} 
-            className={`${BUTTON_STYLES.base} ${BUTTON_STYLES.default} ${BUTTON_STYLES.share}`}
+            className={`${BUTTON_STYLES.base} ${BUTTON_STYLES.default} ${BUTTON_STYLES.share} cursor-pointer`}
             title={translations.viewer("shareDocument")}
             aria-label={translations.viewer("shareDocument")}
           >

@@ -42,7 +42,10 @@ const DocumentTableRow: React.FC<DocumentTableRowProps> = ({
         </div>
       </td>
       <td className="py-3 px-4 text-gray-500 w-44">
-        {formatDate(file.updatedAt)}
+        <div className="flex flex-col">
+          <span>{new Date(file.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+          <span className="text-xs">{new Date(file.updatedAt).toLocaleTimeString()}</span>
+        </div>
       </td>
     </tr>
   );
