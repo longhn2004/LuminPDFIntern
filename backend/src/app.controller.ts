@@ -1,7 +1,9 @@
 import { Controller, Get } from '@nestjs/common';
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { AppService } from './app.service';
 import { CacheService } from './cache/cache.service';
 
+@ApiTags('health')
 @Controller()
 export class AppController {
   constructor(
@@ -9,11 +11,44 @@ export class AppController {
     private readonly cacheService: CacheService,
   ) {}
 
+  @ApiOperation({
+    summary: 'Health check',
+    description: 'Simple health check endpoint',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Application is healthy',
+    schema: {
+      example: 'Hello World!',
+    },
+  })
   @Get()
   getHello(): string {
     return this.appService.getHello();
   }
 
+  @ApiOperation({
+    summary: 'Detailed health check',
+    description: 'Returns detailed application health information',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Detailed health information',
+    schema: {
+      example: {
+        status: 'ok',
+        timestamp: '2023-01-01T00:00:00.000Z',
+        uptime: 123.456,
+        memory: {
+          rss: 12345678,
+          heapTotal: 8765432,
+          heapUsed: 5432109,
+          external: 876543,
+        },
+        environment: 'development',
+      },
+    },
+  })
   @Get('health')
   getHealth() {
     return {
@@ -25,6 +60,35 @@ export class AppController {
     };
   }
 
+  @ApiOperation({
+    summary: 'Test Redis cache',
+    description: 'Tests Redis cache connectivity and operations',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Cache test successful',
+    schema: {
+      example: {
+        status: 'success',
+        message: 'Redis cache is working properly',
+        test: {
+          message: 'Redis is working!',
+          timestamp: 1640995200000,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 500,
+    description: 'Cache test failed',
+    schema: {
+      example: {
+        status: 'error',
+        message: 'Redis cache test failed',
+        error: 'Connection refused',
+      },
+    },
+  })
   @Get('cache/test')
   async testCache() {
     try {
