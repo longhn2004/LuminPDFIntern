@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 import { UploadState } from '@/types/document';
+import { useTranslations } from 'next-intl';
 
 interface UseFileUploadProps {
   onUploadComplete?: () => void;
 }
 
 export const useFileUpload = ({ onUploadComplete }: UseFileUploadProps = {}) => {
+  const t = useTranslations();
   const [uploadState, setUploadState] = useState<UploadState>({
     uploading: false,
     progress: 0,
@@ -52,19 +54,19 @@ export const useFileUpload = ({ onUploadComplete }: UseFileUploadProps = {}) => 
   const uploadFile = async (file: File) => {
     // Validate file
     if (file.type !== 'application/pdf') {
-      toast.error('Only PDF files are allowed');
+      toast.error(t('fileUpload.onlyPDFAllowed'));
       return;
     }
 
     if (file.size > 20 * 1024 * 1024) {
-      toast.error('File size exceeds 20MB limit');
+      toast.error(t('fileUpload.fileSizeExceeds'));
       return;
     }
 
     // Check for password protection
     const isPasswordProtected = await checkPDFPassword(file);
     if (isPasswordProtected) {
-      toast.error('Password-protected PDFs are not supported');
+      toast.error(t('fileUpload.passwordProtectedNotSupported'));
       return;
     }
 
@@ -90,23 +92,23 @@ export const useFileUpload = ({ onUploadComplete }: UseFileUploadProps = {}) => 
 
       xhr.onload = () => {
         if (xhr.status >= 200 && xhr.status < 300) {
-          toast.success('Document uploaded successfully');
+          toast.success(t('notifications.documentUploaded'));
           onUploadComplete?.();
         } else {
-          toast.error('Failed to upload document');
+          toast.error(t('fileUpload.failedToUploadDocument'));
         }
         setUploadState({ uploading: false, progress: 0, fileName: '' });
       };
 
       xhr.onerror = () => {
-        toast.error('Failed to upload document');
+        toast.error(t('fileUpload.failedToUploadDocument'));
         setUploadState({ uploading: false, progress: 0, fileName: '' });
       };
 
       xhr.send(formData);
     } catch (error) {
       console.error('Error uploading file:', error);
-      toast.error('Failed to upload document');
+      toast.error(t('fileUpload.failedToUploadDocument'));
       setUploadState({ uploading: false, progress: 0, fileName: '' });
     }
   };
@@ -114,7 +116,7 @@ export const useFileUpload = ({ onUploadComplete }: UseFileUploadProps = {}) => 
   const cancelUpload = () => {
     // This would ideally cancel the upload request
     setUploadState({ uploading: false, progress: 0, fileName: '' });
-    toast.info('Upload cancelled');
+    toast.info(t('notifications.uploadCancelled'));
   };
 
   return {

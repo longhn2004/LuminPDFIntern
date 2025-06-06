@@ -29,9 +29,23 @@ import { ObjectId } from 'mongodb';
 import { BadRequestException } from '@nestjs/common';
 import { ChangeRoleDto } from './dto/change-role.dto';
 import { ChangeRolesDto } from './dto/change-roles.dto';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBody,
+  ApiQuery,
+  ApiParam,
+  ApiBearerAuth,
+  ApiCookieAuth,
+  ApiConsumes,
+} from '@nestjs/swagger';
 
+@ApiTags('file')
 @Controller('api/file')
 @UseGuards(AuthGuard('jwt'))
+@ApiBearerAuth('JWT-auth')
+@ApiCookieAuth('access_token')
 export class FileController {
   constructor(private readonly fileService: FileService) {}
 
@@ -43,6 +57,49 @@ export class FileController {
     }
   }
 
+  @ApiOperation({
+    summary: 'Upload a PDF file',
+    description: 'Uploads a PDF file to the system for the authenticated user',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    description: 'PDF file upload',
+    schema: {
+      type: 'object',
+      properties: {
+        file: {
+          type: 'string',
+          format: 'binary',
+          description: 'PDF file to upload (max 20MB)',
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'File uploaded successfully',
+    schema: {
+      example: {
+        _id: '507f1f77bcf86cd799439011',
+        name: 'document.pdf',
+        path: 'pdfs/123456789-uuid.pdf',
+        owner: '507f1f77bcf86cd799439012',
+        ownerEmail: 'user@example.com',
+        viewers: [],
+        editors: [],
+        createdAt: '2023-01-01T00:00:00.000Z',
+        updatedAt: '2023-01-01T00:00:00.000Z',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid file format or file size exceeds limit',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing token',
+  })
   @Post('upload')
   @UseInterceptors(FileInterceptor('file'))
   async uploadFile(
@@ -52,6 +109,36 @@ export class FileController {
     return this.fileService.uploadFile(file, req.user);
   }
 
+  @ApiOperation({
+    summary: 'Upload PDF from Google Drive',
+    description: 'Uploads a PDF file from Google Drive using the file ID',
+  })
+  @ApiBody({ type: UploadFromDriveDto })
+  @ApiResponse({
+    status: 201,
+    description: 'File uploaded successfully from Google Drive',
+    schema: {
+      example: {
+        _id: '507f1f77bcf86cd799439011',
+        name: 'drive-document.pdf',
+        path: 'pdfs/123456789-uuid.pdf',
+        owner: '507f1f77bcf86cd799439012',
+        ownerEmail: 'user@example.com',
+        viewers: [],
+        editors: [],
+        createdAt: '2023-01-01T00:00:00.000Z',
+        updatedAt: '2023-01-01T00:00:00.000Z',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 400,
+    description: 'Invalid Google Drive file ID or file not found',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing token',
+  })
   @Post('upload-from-drive')
   async uploadFromDrive(
     @Body() uploadFromDriveDto: UploadFromDriveDto,
@@ -63,11 +150,69 @@ export class FileController {
     return this.fileService.uploadFromDrive(uploadFromDriveDto.fileId, req.user);
   }
 
+  @ApiOperation({
+    summary: 'Get total files count',
+    description: 'Returns the total number of files accessible to the authenticated user',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Total files count retrieved successfully',
+    schema: {
+      example: {
+        totalFiles: 42,
+      },
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing token',
+  })
   @Get('total-files')
   async totalFiles(@Req() req: Request & { user: any }) {
     return { totalFiles: await this.fileService.totalFiles(req.user) };
   }
 
+  @ApiOperation({
+    summary: 'Get file annotations',
+    description: 'Returns annotations for a file (XFDF format)',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'File MongoDB ObjectId',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiQuery({
+    name: 'token',
+    description: 'Optional shareable link token for access',
+    required: false,
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Annotations retrieved successfully',
+    schema: {
+      example: {
+        _id: '507f1f77bcf86cd799439011',
+        file: '507f1f77bcf86cd799439011',
+        xfdf: '<?xml version="1.0" encoding="UTF-8"?><xfdf>...</xfdf>',
+        version: 1,
+        createdAt: '2023-01-01T00:00:00.000Z',
+        updatedAt: '2023-01-01T00:00:00.000Z',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - No access to this file or annotations',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'File not found',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing token',
+  })
   @Get(':id/annotation')
   async getAnnotations(
     @Param('id') fileId: string,
@@ -78,6 +223,37 @@ export class FileController {
     return this.fileService.getAnnotations(fileId, req.user, token);
   }
 
+  @ApiOperation({
+    summary: 'List user files',
+    description: 'Returns a paginated list of files accessible to the authenticated user',
+  })
+  @ApiQuery({ type: ListFilesDto })
+  @ApiResponse({
+    status: 200,
+    description: 'List of files retrieved successfully',
+    schema: {
+      example: [
+        {
+          id: '507f1f77bcf86cd799439011',
+          name: 'document.pdf',
+          owner: 'John Doe',
+          role: 'owner',
+          updatedAt: '2023-01-01T00:00:00.000Z',
+        },
+        {
+          id: '507f1f77bcf86cd799439012',
+          name: 'shared-doc.pdf',
+          owner: 'Jane Smith',
+          role: 'editor',
+          updatedAt: '2023-01-01T00:00:00.000Z',
+        },
+      ],
+    },
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing token',
+  })
   @Get('list')
   async listFiles(
     @Query() query: ListFilesDto,
@@ -86,6 +262,37 @@ export class FileController {
     return this.fileService.listFiles(query, req.user);
   }
 
+  @ApiOperation({
+    summary: 'Download file',
+    description: 'Downloads a PDF file (redirects to signed S3 URL)',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'File MongoDB ObjectId',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiQuery({
+    name: 'token',
+    description: 'Optional shareable link token for access',
+    required: false,
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 302,
+    description: 'Redirects to file download URL',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - No access to this file',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'File not found',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing token',
+  })
   @Get(':id/download')
   async downloadFile(
     @Param('id') id: string,
@@ -125,6 +332,32 @@ export class FileController {
     return this.fileService.getFileUserRole(id, req.user);
   }
 
+  @ApiOperation({
+    summary: 'Invite users to file',
+    description: 'Invites users by email to access a file with specified role',
+  })
+  @ApiBody({ type: InviteUserDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Invitations sent successfully',
+    schema: {
+      example: {
+        message: 'Invitations sent successfully',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Only file owner can invite users',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'File not found',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing token',
+  })
   @Post('invite')
   async inviteUser(
     @Body() inviteDto: InviteUserDto,
@@ -133,6 +366,32 @@ export class FileController {
     return this.fileService.inviteUser(inviteDto, req.user);
   }
 
+  @ApiOperation({
+    summary: 'Change user role for file',
+    description: 'Changes the role of a user for a specific file (owner only)',
+  })
+  @ApiBody({ type: ChangeRoleDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Role changed successfully',
+    schema: {
+      example: {
+        message: 'Role changed successfully',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Only file owner can change roles',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'File not found',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing token',
+  })
   @Post('change-role')
   async changeRole(
     @Body() changeRoleDto: ChangeRoleDto,
@@ -149,6 +408,48 @@ export class FileController {
     return this.fileService.changeRoles(changeRolesDto, req.user);
   }
 
+  @ApiOperation({
+    summary: 'Save file annotations',
+    description: 'Saves annotations for a file (XFDF format)',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'File MongoDB ObjectId',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiBody({ type: CreateAnnotationDto })
+  @ApiQuery({
+    name: 'token',
+    description: 'Optional shareable link token for access',
+    required: false,
+    example: '123e4567-e89b-12d3-a456-426614174000',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Annotations saved successfully',
+    schema: {
+      example: {
+        _id: '507f1f77bcf86cd799439011',
+        file: '507f1f77bcf86cd799439011',
+        xfdf: '<?xml version="1.0" encoding="UTF-8"?><xfdf>...</xfdf>',
+        version: 2,
+        createdAt: '2023-01-01T00:00:00.000Z',
+        updatedAt: '2023-01-01T01:00:00.000Z',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - No edit access to this file',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'File not found',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing token',
+  })
   @Post(':id/annotation/save')
   async saveAnnotation(
     @Param('id') fileId: string,
@@ -160,6 +461,36 @@ export class FileController {
     return this.fileService.saveAnnotation(fileId, annotationDto, req.user, token);
   }
 
+  @ApiOperation({
+    summary: 'Delete file',
+    description: 'Deletes a file (owner only)',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'File MongoDB ObjectId',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'File deleted successfully',
+    schema: {
+      example: {
+        message: 'File deleted successfully',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Only file owner can delete',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'File not found',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing token',
+  })
   @Delete(':id')
   async deleteFile(
     @Param('id') id: string,
@@ -169,6 +500,39 @@ export class FileController {
     return this.fileService.deleteFile(id, req.user);
   }
 
+  @ApiOperation({
+    summary: 'Get file information',
+    description: 'Returns detailed information about a file',
+  })
+  @ApiParam({
+    name: 'id',
+    description: 'File MongoDB ObjectId',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'File information retrieved successfully',
+    schema: {
+      example: {
+        id: '507f1f77bcf86cd799439011',
+        name: 'document.pdf',
+        createdAt: '2023-01-01T00:00:00.000Z',
+        updatedAt: '2023-01-01T00:00:00.000Z',
+        owner: {
+          email: 'owner@example.com',
+          name: 'John Doe',
+        },
+        viewers: ['viewer@example.com'],
+        editors: ['editor@example.com'],
+        shareableLinkEnabled: true,
+        shareableLinks: [],
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'File not found',
+  })
   @Get(':id/info')
   async getFileInfo(@Param('id') id: string) {
     this.validateObjectId(id);
@@ -179,6 +543,37 @@ export class FileController {
   // SHAREABLE LINK ENDPOINTS
   // =============================================
 
+  @ApiOperation({
+    summary: 'Create shareable link',
+    description: 'Creates a shareable link for a file (owner only)',
+  })
+  @ApiBody({ type: CreateShareableLinkDto })
+  @ApiResponse({
+    status: 201,
+    description: 'Shareable link created successfully',
+    schema: {
+      example: {
+        id: '507f1f77bcf86cd799439013',
+        token: '123e4567-e89b-12d3-a456-426614174000',
+        role: 'viewer',
+        enabled: true,
+        url: 'http://localhost:3000/share?token=123e4567-e89b-12d3-a456-426614174000',
+        createdAt: '2023-01-01T00:00:00.000Z',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Forbidden - Only file owner can create shareable links',
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'File not found',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing token',
+  })
   @Post('shareable-link/create')
   async createShareableLink(
     @Body() createShareableLinkDto: CreateShareableLinkDto,
@@ -215,6 +610,37 @@ export class FileController {
     return this.fileService.toggleShareableLinkFeature(toggleShareableLinkDto, req.user);
   }
 
+  @ApiOperation({
+    summary: 'Access file via shareable link',
+    description: 'Grants access to a file using a shareable link token',
+  })
+  @ApiBody({ type: AccessViaLinkDto })
+  @ApiResponse({
+    status: 200,
+    description: 'Access granted via shareable link',
+    schema: {
+      example: {
+        fileId: '507f1f77bcf86cd799439011',
+        fileName: 'document.pdf',
+        accessGranted: true,
+        role: 'viewer',
+        temporary: true,
+        message: 'Temporary viewer access granted via shareable link',
+      },
+    },
+  })
+  @ApiResponse({
+    status: 404,
+    description: 'Invalid or expired shareable link',
+  })
+  @ApiResponse({
+    status: 403,
+    description: 'Shareable links are disabled for this file',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Unauthorized - Invalid or missing token',
+  })
   @Post('access-via-link')
   async accessViaLink(
     @Body() accessViaLinkDto: AccessViaLinkDto,

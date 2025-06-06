@@ -240,7 +240,7 @@
     "serverError": "Server error",
     "networkError": "Network error",
     "fileUploadError": "File upload error",
-    "fileNotFound": "File not found",
+    "fileNotFound": "Unable to download the document. Please reload the page and try again.",
     "accessDenied": "Access denied",
     "tokenExpired": "Session expired"
   },
@@ -250,7 +250,19 @@
     "documentShared": "Document shared successfully",
     "invitationSent": "Invitation sent successfully",
     "settingsSaved": "Settings saved successfully",
-    "languageChanged": "Language changed successfully"
+    "languageChanged": "Language changed successfully",
+    "uploadCancelled": "Upload cancelled",
+    "googleDriveUploadCancelled": "Google Drive upload cancelled",
+    "googleDriveUploadSuccess": "File \"{fileName}\" uploaded successfully from Google Drive!"
+  },
+  "fileUpload": {
+    "onlyPDFAllowed": "Only PDF files are allowed",
+    "fileSizeExceeds": "File size exceeds 20MB limit",
+    "passwordProtectedNotSupported": "Password-protected PDFs are not supported",
+    "failedToUploadDocument": "Failed to upload document",
+    "invalidGoogleDriveUrl": "Invalid Google Drive URL or file ID",
+    "failedToUploadFromGoogleDrive": "Failed to upload from Google Drive",
+    "failedToLoadDocuments": "Failed to load documents"
   },
   "annotations": {
     "style": "Style",

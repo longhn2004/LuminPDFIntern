@@ -46,57 +46,56 @@ export default function SignInForm() {
     setEmptyPassword(false);
     setIncorrectEmailOrPassword(false);
     setVerificationMessage("");
+    let isValid = true;
 
     if (email === "") {
       setEmptyEmail(true);
-      if (password === "") {
-        setEmptyPassword(true);
-      }
-      return;
-    } else if (password === "") {
+      isValid = false;
+    } 
+    if (password === "") {
       setEmptyPassword(true);
-      return;
-    } else if (!email.includes("@") || !email.includes(".")) {
-      setInvalidEmail(true);
-      return;
-    } else if (password.length < 8) {
-      setInvalidPassword(true);
-      return;
+      isValid = false;
     }
+    if (!email.includes("@") || !email.includes(".")) {
+      setInvalidEmail(true);
+      isValid = false;
+    } 
 
-    setIsLoading(true);
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-        credentials: "include",
-      });
+    if (isValid) {
+      setIsLoading(true);
+      try {
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+          credentials: "include",
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (!response.ok) {
-        throw { response: { status: response.status, data } };
-      }
-
-      router.push("/dashboard/document-list");
-    } catch (error: unknown) {
-      const errorObj = error as { response?: { status: number; data: { message: string } } };
-      if (errorObj.response) {
-        // If you want to use HTTP_STATUS, import it above
-        if (
-          errorObj.response.status === HTTP_STATUS.UNAUTHORIZED &&
-          errorObj.response.data.message === "Email not verified"
-        ) {
-          router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
-          return;
+        if (!response.ok) {
+          throw { response: { status: response.status, data } };
         }
-      }
+
+        router.push("/dashboard/document-list");
+      } catch (error: unknown) {
+        const errorObj = error as { response?: { status: number; data: { message: string } } };
+        if (errorObj.response) {
+          // If you want to use HTTP_STATUS, import it above
+          if (
+            errorObj.response.status === HTTP_STATUS.UNAUTHORIZED &&
+            errorObj.response.data.message === "Email not verified"
+          ) {
+            router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
+            return;
+          }
+        }
       setIncorrectEmailOrPassword(true);
-    } finally {
-      setIsLoading(false);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
