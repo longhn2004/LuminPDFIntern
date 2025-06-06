@@ -31,13 +31,13 @@ export async function GET(request: NextRequest) {
       const nextResponse = NextResponse.redirect(new URL('/dashboard/document-list', request.url));
       
       // Set the authentication cookie
-      const isProduction = process.env.NODE_ENV === 'production';
+      // const isProduction = process.env.NODE_ENV === 'production';
       nextResponse.cookies.set({
         name: 'access_token',
         value: accessToken,
         httpOnly: false,
-        secure: isProduction,
-        sameSite: isProduction ? 'none' : 'lax',
+        secure: true,
+        sameSite: 'none',
         path: '/',
         maxAge: 30 * 60 * 1000, // 30 minutes
       });
