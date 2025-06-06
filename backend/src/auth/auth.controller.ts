@@ -80,16 +80,19 @@ export class AuthController {
     @Response({ passthrough: true }) res,
   ) {
     try {
+      console.log('Google callback - User:', req.user?.email);
       const { accessToken } = await this.authService.googleLogin(req.user);
 
+      console.log('Google callback - Setting cookie for:', req.user?.email);
       this.setAuthCookie(res, accessToken);
       
       // Ensure cookie is set before redirect
       await this.ensureCookieSetBeforeRedirect(res, accessToken);
       console.log("Login with Google Success - Cookie verified");
-      res.redirect(
-        `${this.configService.get('APP_URL')}/dashboard/document-list`,
-      );
+      
+      const redirectUrl = `${this.configService.get('APP_URL')}/dashboard/document-list`;
+      console.log('Google callback - Redirecting to:', redirectUrl);
+      res.redirect(redirectUrl);
     } catch (error) {
       await this.handleGoogleAuthError(error, res);
     }
@@ -125,10 +128,13 @@ export class AuthController {
   }
 
   private setAuthCookie(res: ExpressResponse, accessToken: string) {
+    const isProduction = this.configService.get('NODE_ENV') === 'production';
+    
     res.cookie('access_token', accessToken, {
       httpOnly: false,
-      secure: false,
-      sameSite: 'lax',
+      secure: isProduction, // Use secure cookies in production (HTTPS)
+      sameSite: isProduction ? 'none' : 'lax', // 'none' required for cross-site cookies in production
+      domain: isProduction ? this.configService.get('COOKIE_DOMAIN') : undefined,
       maxAge: AuthController.COOKIE_MAX_AGE,
     });
   }
