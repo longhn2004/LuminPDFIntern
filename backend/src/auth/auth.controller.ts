@@ -83,11 +83,14 @@ export class AuthController {
       const { accessToken } = await this.authService.googleLogin(req.user);
 
       this.setAuthCookie(res, accessToken);
+      
+      // Small delay before redirect to ensure cookie is set
+      await new Promise(resolve => setTimeout(resolve, 1000));
       res.redirect(
         `${this.configService.get('APP_URL')}/dashboard/document-list`,
       );
     } catch (error) {
-      this.handleGoogleAuthError(error, res);
+      await this.handleGoogleAuthError(error, res);
     }
   }
 
@@ -129,7 +132,10 @@ export class AuthController {
     });
   }
 
-  private handleGoogleAuthError(error: any, res: ExpressResponse) {
+  private async handleGoogleAuthError(error: any, res: ExpressResponse) {
+    // Small delay before redirect
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
     // Check if error is because email already used with password
     if (
       error?.message?.includes('email and password') ||
