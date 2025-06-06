@@ -83,18 +83,21 @@ export class AuthController {
       console.log('Google callback - User:', req.user?.email);
       const { accessToken } = await this.authService.googleLogin(req.user);
 
-      console.log('Google callback - Setting cookie for:', req.user?.email);
-      this.setAuthCookie(res, accessToken);
+      console.log('Google callback - Returning token for:', req.user?.email);
       
-      // Ensure cookie is set before redirect
-      await this.ensureCookieSetBeforeRedirect(res, accessToken);
-      console.log("Login with Google Success - Cookie verified");
-      
-      const redirectUrl = `${this.configService.get('APP_URL')}/dashboard/document-list`;
-      console.log('Google callback - Redirecting to:', redirectUrl);
-      res.redirect(redirectUrl);
+      // Return the access token to frontend for cookie setting and redirect
+      return { 
+        accessToken, 
+        message: 'Google login successful',
+        user: {
+          email: req.user?.email,
+          name: req.user?.name
+        }
+      };
     } catch (error) {
-      await this.handleGoogleAuthError(error, res);
+      console.error('Google callback error:', error);
+      // Throw the error to let frontend handle it
+      throw error;
     }
   }
 
@@ -139,38 +142,5 @@ export class AuthController {
     });
   }
 
-  private async ensureCookieSetBeforeRedirect(res: ExpressResponse, accessToken: string): Promise<void> {
-    // Wait for a short delay to ensure cookie is processed
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    // Verify the cookie was set by checking the response headers
-    const cookies = res.getHeader('Set-Cookie');
-    if (!cookies || (Array.isArray(cookies) && !cookies.some(cookie => cookie.includes('access_token')))) {
-      console.log('Cookie may not have been set properly, retrying...');
-      // Retry setting the cookie
-      this.setAuthCookie(res, accessToken);
-      await new Promise(resolve => setTimeout(resolve, 200));
-    }
-    
-    console.log('Cookie setting verified');
-  }
 
-  private async handleGoogleAuthError(error: any, res: ExpressResponse) {
-    // Small delay before redirect
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    console.log("Error Login with Google");
-    
-    // Check if error is because email already used with password
-    if (
-      error?.message?.includes('email and password') ||
-      error?.response?.message?.includes('email and password')
-    ) {
-      res.redirect(
-        `${this.configService.get('APP_URL')}/auth/signin?verification=conflictemail`,
-      );
-    } else {
-      // Generic error - redirect to signin
-      res.redirect(`${this.configService.get('APP_URL')}/auth/signin`);
-    }
-  }
 }
