@@ -10,7 +10,7 @@ import { AxiosError } from 'axios';
  */
 export async function PUT(
   request: NextRequest,
-  context: { params: { id: string; annotationId: string } }
+  context: { params: Promise<{ id: string; annotationId: string }> }
 ) {
   try {
     // Properly await the params object
@@ -74,7 +74,7 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  context: { params: { id: string; annotationId: string } }
+  context: { params: Promise<{ id: string; annotationId: string }> }
 ) {
   try {
     // Properly await the params object

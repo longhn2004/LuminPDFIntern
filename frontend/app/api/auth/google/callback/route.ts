@@ -19,42 +19,44 @@ export async function GET(request: NextRequest) {
   try {
     // Call the backend Google callback endpoint
     const backendUrl = process.env.NEXT_APP_BACKEND_URL || 'http://localhost:5000';
-    const response = await api.get(`${backendUrl}/api/auth/google/callback`, {
+    const response = await api.get(`${backendUrl}/auth/google/callback`, {
       params: { code },
       withCredentials: true,
-      maxRedirects: 0, // Prevent auto-following redirects
-      validateStatus: status => status >= HTTP_STATUS.OK && status < HTTP_STATUS.INTERNAL_SERVER_ERROR, // Accept all responses except server errors
+      validateStatus: status => status >= HTTP_STATUS.OK && status < HTTP_STATUS.INTERNAL_SERVER_ERROR,
     });
     
-    // If successful, set the cookies and redirect to dashboard
-    if (response.status === HTTP_STATUS.OK || response.status === HTTP_STATUS.FOUND) {
-      // Extract cookies from backend response
-      const cookies = response.headers['set-cookie'];
+    // If successful, extract the access token and set cookie
+    if (response.status === HTTP_STATUS.CONFLICT && response.data?.message?.includes('email and password')) {
+      return NextResponse.redirect(
+        new URL('/auth/signin?verification=conflictemail', request.url)
+      );
+    }
+    if (response.status === HTTP_STATUS.OK && response.data?.accessToken) {
+      const { accessToken } = response.data;
       const nextResponse = NextResponse.redirect(new URL('/dashboard/document-list', request.url));
       
-      // Forward cookies if they exist
-      if (cookies && Array.isArray(cookies)) {
-        cookies.forEach(cookie => {
-          const [cookieName, ...rest] = cookie.split('=');
-          const cookieValue = rest.join('=').split(';')[0];
-          
-          nextResponse.cookies.set({
-            name: cookieName,
-            value: cookieValue,
-            httpOnly: cookie.includes('HttpOnly'),
-            secure: cookie.includes('Secure'),
-            sameSite: cookie.includes('SameSite=Lax') ? 'lax' : 'strict',
-            path: '/',
-          });
-        });
-      }
+      // Set the authentication cookie
+      // const isProduction = process.env.NODE_ENV === 'production';
+      nextResponse.cookies.set({
+        name: 'access_token',
+        value: accessToken,
+        httpOnly: false,
+        secure: true,
+        sameSite: 'none',
+        path: '/',
+        maxAge: 30 * 60 * 1000, // 30 minutes
+      });
       
+      console.log('Google callback success - Cookie set and redirecting to dashboard');
       return nextResponse;
     }
     
-    return NextResponse.redirect(new URL('/dashboard/document-list', request.url));
+    // Fallback redirect if no access token
+    console.log('Google callback - No access token received, redirecting to signin');
+    return NextResponse.redirect(new URL('/auth/signin', request.url));
     
   } catch (error: unknown) {
+    console.log('Google callback test error:', error);
     if (error instanceof Error) {
       console.error('Google callback error:', error.message);
     } else {

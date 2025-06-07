@@ -685,7 +685,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
             <div className="flex bg-gray-100 rounded-full p-1 mb-4 w-full">
       <button 
                 onClick={() => setStyleMode('fill')}
-                className={`px-6 py-2 rounded-full w-1/2 text-sm font-medium transition-all ${
+                className={`px-6 py-2 rounded-full w-1/2 text-sm font-medium transition-all cursor-pointer ${
                   styleMode === 'fill'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
@@ -695,7 +695,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
       </button>
       <button 
                 onClick={() => setStyleMode('stroke')}
-                className={`px-6 py-2 rounded-full w-1/2 text-sm font-medium transition-all ${
+                className={`px-6 py-2 rounded-full w-1/2 text-sm font-medium transition-all cursor-pointer ${
                   styleMode === 'stroke'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
@@ -711,7 +711,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
         <button 
                   key={index}
                   onClick={() => handleColorSelection(colorOption.color, colorOption.isTransparent)}
-                  className={`w-7 h-7 rounded-full border-2 border-gray-300 flex items-center justify-center transition-all hover:scale-110 ${
+                  className={`w-7 h-7 rounded-full border-2 border-gray-300 flex items-center justify-center transition-all hover:scale-110 cursor-pointer ${
                     colorOption.isTransparent ? 'bg-white' : ''
                   }`}
                   style={{
@@ -818,8 +818,11 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
               <div className="flex gap-2 mt-3 pt-3 border-t border-gray-200">
                 <button 
                   onClick={deleteAnnotation}
-                  className="flex-1 px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600 transition-colors text-sm"
+                  className="flex items-center gap-2 px-3 py-2 text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors text-sm rounded cursor-pointer"
                 >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
                   {translations.common('delete')}
                 </button>
               </div>
@@ -839,7 +842,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
                 setShowShapeDropdown(!showShapeDropdown);
                 setShowTypeDropdown(false);
               }}
-              className="flex items-center gap-2 bg-gray-100 rounded-lg px-2 py-1 hover:bg-gray-200 transition-colors"
+              className="flex items-center gap-2 bg-gray-100 rounded-lg px-2 py-1 hover:bg-gray-200 transition-colors cursor-pointer"
             >
               <span className="text-lg">▭</span>
               <span className="text-sm font-medium text-gray-700">{translations.annotations('shape')}</span>
@@ -854,7 +857,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
                   <button
                     key={shape.value}
                     onClick={() => handleShapeSelection(shape.value)}
-                    className="w-full flex items-center gap-2 px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
+                    className="w-full flex items-center gap-2 px-2 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded cursor-pointer"
                   >
                     <span className="text-lg w-7">{shape.icon}</span>
                     <span className="w-full text-left">{shape.label}</span>
@@ -871,7 +874,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
                 setShowTypeDropdown(!showTypeDropdown);
                 setShowShapeDropdown(false);
               }}
-              className="flex items-center gap-2 bg-gray-100 rounded-lg px-2 py-1 hover:bg-gray-200 transition-colors"
+              className="flex items-center gap-2 bg-gray-100 rounded-lg px-2 py-1 hover:bg-gray-200 transition-colors cursor-pointer"
             >
               <span className="text-lg font-bold">T</span>
               <span className="text-sm font-medium text-gray-700">{translations.annotations('type')}</span>
@@ -884,7 +887,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
               <div className="absolute bottom-full mb-2 right-0 bg-white rounded-lg shadow-lg border border-gray-200 p-2 min-w-[120px]">
                 <button
                   onClick={addFreeText}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-100 rounded cursor-pointer"
                 >
                   <span className="text-lg font-bold">T</span>
                   {translations.annotations('freeText')}
@@ -975,7 +978,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
               <button
                 key={index}
                 onClick={() => updateStyles({ textColor: new Annotations.Color(colorOption.color) })}
-                className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 ${
+                className={`w-8 h-8 rounded-full border-2 transition-all hover:scale-110 cursor-pointer ${
                   colorOption.color === '#000000' ? 'border-gray-800' : 'border-gray-300'
                 }`}
                 style={{
@@ -999,7 +1002,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
             <div className="flex bg-gray-100 rounded-full p-1 mb-4 w-full">
               <button
                 onClick={() => setStyleMode('fill')}
-                className={`px-6 py-2 rounded-full w-1/2 text-sm font-medium transition-all ${
+                className={`px-6 py-2 rounded-full w-1/2 text-sm font-medium transition-all cursor-pointer ${
                   styleMode === 'fill'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
@@ -1009,7 +1012,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
               </button>
               <button
                 onClick={() => setStyleMode('stroke')}
-                className={`px-6 py-2 rounded-full w-1/2 text-sm font-medium transition-all ${
+                className={`px-6 py-2 rounded-full w-1/2 text-sm font-medium transition-all cursor-pointer ${
                   styleMode === 'stroke'
                     ? 'bg-white text-gray-900 shadow-sm'
                     : 'text-gray-600 hover:text-gray-900'
@@ -1037,7 +1040,7 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
                        updateStyles({ strokeColor: colorValue });
                      }
                    }}
-                   className={`w-7 h-7 rounded-full border-2 border-gray-300 flex items-center justify-center transition-all hover:scale-110 ${
+                   className={`w-7 h-7 rounded-full border-2 border-gray-300 flex items-center justify-center transition-all hover:scale-110 cursor-pointer ${
                      colorOption.isTransparent ? 'bg-white' : ''
                    }`}
                    style={{
@@ -1139,8 +1142,11 @@ const AnnotationPanel: React.FC<AnnotationPanelProps> = ({
             <div className="flex gap-2 mt-4 pt-4 border-t border-gray-200">
               <button 
                 onClick={deleteAnnotation}
-                className="flex-1 px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-colors text-sm font-medium"
+                className="flex items-center gap-2 px-4 py-2 text-red-500 hover:text-red-600 hover:bg-red-50 transition-colors text-sm font-medium rounded-lg"
               >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
                 {translations.common('delete')}
               </button>
             </div>

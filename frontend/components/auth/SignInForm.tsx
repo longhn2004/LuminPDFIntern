@@ -21,6 +21,7 @@ export default function SignInForm() {
   const [emptyPassword, setEmptyPassword] = useState(false);
   const [incorrectEmailOrPassword, setIncorrectEmailOrPassword] = useState(false);
   const [verificationMessage, setVerificationMessage] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const verificationStatus = searchParams.get("verification");
@@ -45,54 +46,56 @@ export default function SignInForm() {
     setEmptyPassword(false);
     setIncorrectEmailOrPassword(false);
     setVerificationMessage("");
+    let isValid = true;
 
     if (email === "") {
       setEmptyEmail(true);
-      if (password === "") {
-        setEmptyPassword(true);
-      }
-      return;
-    } else if (password === "") {
+      isValid = false;
+    } 
+    if (password === "") {
       setEmptyPassword(true);
-      return;
-    } else if (!email.includes("@") || !email.includes(".")) {
-      setInvalidEmail(true);
-      return;
-    } else if (password.length < 8) {
-      setInvalidPassword(true);
-      return;
+      isValid = false;
     }
+    if (!email.includes("@") || !email.includes(".")) {
+      setInvalidEmail(true);
+      isValid = false;
+    } 
 
-    try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ email, password }),
-        credentials: "include",
-      });
+    if (isValid) {
+      setIsLoading(true);
+      try {
+        const response = await fetch("/api/auth/login", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email, password }),
+          credentials: "include",
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (!response.ok) {
-        throw { response: { status: response.status, data } };
-      }
-
-      router.push("/dashboard/document-list");
-    } catch (error: unknown) {
-      const errorObj = error as { response?: { status: number; data: { message: string } } };
-      if (errorObj.response) {
-        // If you want to use HTTP_STATUS, import it above
-        if (
-          errorObj.response.status === HTTP_STATUS.UNAUTHORIZED &&
-          errorObj.response.data.message === "Email not verified"
-        ) {
-          router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
-          return;
+        if (!response.ok) {
+          throw { response: { status: response.status, data } };
         }
-      }
+
+        router.push("/dashboard/document-list");
+      } catch (error: unknown) {
+        const errorObj = error as { response?: { status: number; data: { message: string } } };
+        if (errorObj.response) {
+          // If you want to use HTTP_STATUS, import it above
+          if (
+            errorObj.response.status === HTTP_STATUS.UNAUTHORIZED &&
+            errorObj.response.data.message === "Email not verified"
+          ) {
+            router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
+            return;
+          }
+        }
       setIncorrectEmailOrPassword(true);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -124,10 +127,15 @@ export default function SignInForm() {
       />
       <AuthErrorMessage message={incorrectEmailOrPassword ? t('auth.incorrectEmailOrPassword') : verificationMessage} />
       <button
-        className="bg-blue-500 w-full text-white p-2 rounded-xl hover:bg-blue-600 cursor-pointer active:scale-95 transition-all duration-300 mt-2"
+        className={`bg-blue-500 w-full text-white p-2 rounded-xl hover:bg-blue-600 cursor-pointer active:scale-95 transition-all duration-300 mt-2 flex justify-center items-center ${isLoading ? "opacity-70 cursor-not-allowed" : ""}`}
         onClick={handleSignIn}
+        disabled={isLoading}
       >
-        {t('auth.signin')}
+        {isLoading ? (
+          <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+        ) : (
+          t('auth.signin')
+        )}
       </button>
       <div className="flex items-center w-full justify-center h-10 relative top-5">
         <p className="text-gray-400">

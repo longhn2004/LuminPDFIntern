@@ -1,7 +1,7 @@
 import { FaTimes, FaUser, FaSpinner } from "react-icons/fa";
 import { useState, useEffect } from "react";
 import { toast } from "react-toastify";
-import Avatar from "./Avatar";
+import Avatar from "../Avatar";
 import ShareableLinkManager from "./ShareableLinkManager";
 import { useAppTranslations } from '@/hooks/useTranslations';
 

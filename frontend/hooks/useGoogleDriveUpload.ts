@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { toast } from 'react-toastify';
+import { useTranslations } from 'next-intl';
 
 interface GoogleDriveUploadState {
   uploading: boolean;
@@ -12,6 +13,7 @@ interface UseGoogleDriveUploadProps {
 }
 
 export function useGoogleDriveUpload({ onUploadComplete }: UseGoogleDriveUploadProps = {}) {
+  const t = useTranslations();
   const [uploadState, setUploadState] = useState<GoogleDriveUploadState>({
     uploading: false,
     fileName: '',
@@ -44,7 +46,12 @@ export function useGoogleDriveUpload({ onUploadComplete }: UseGoogleDriveUploadP
   const uploadFromDrive = async (fileIdOrUrl: string, fileName?: string) => {
     try {
       // Extract file ID
-      const fileId = extractFileIdFromUrl(fileIdOrUrl);
+      let fileId: string;
+      try {
+        fileId = extractFileIdFromUrl(fileIdOrUrl);
+      } catch (error) {
+        throw new Error(t('fileUpload.invalidGoogleDriveUrl'));
+      }
       
       // Set initial upload state
       setUploadState({
@@ -86,7 +93,7 @@ export function useGoogleDriveUpload({ onUploadComplete }: UseGoogleDriveUploadP
       }));
 
       // Show success message
-      toast.success(`File "${result.name}" uploaded successfully from Google Drive!`);
+      toast.success(t('notifications.googleDriveUploadSuccess', { fileName: result.name }));
 
       // Call completion callback
       onUploadComplete?.();
@@ -113,7 +120,7 @@ export function useGoogleDriveUpload({ onUploadComplete }: UseGoogleDriveUploadP
       });
 
       // Show error message
-      toast.error(error.message || 'Failed to upload from Google Drive');
+      toast.error(error.message || t('fileUpload.failedToUploadFromGoogleDrive'));
       throw error;
     }
   };
@@ -124,7 +131,7 @@ export function useGoogleDriveUpload({ onUploadComplete }: UseGoogleDriveUploadP
       fileName: '',
       progress: 0,
     });
-    toast.info('Google Drive upload cancelled');
+    toast.info(t('notifications.googleDriveUploadCancelled'));
   };
 
   return {
