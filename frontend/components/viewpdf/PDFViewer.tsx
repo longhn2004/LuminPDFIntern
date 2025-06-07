@@ -7,8 +7,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import PermissionDialog from './PermissionDialog';
 import PDFToolbar from './PDFToolbar';
 import PDFViewerCore from './PDFViewerCore';
-import NotFoundPage from './NotFoundPage';
-import UnauthorizedPage from './UnauthorizedPage';
+import NotFoundPage from '../NotFoundPage';
+import UnauthorizedPage from '../UnauthorizedPage';
 import { useAppTranslations } from "@/hooks/useTranslations";
 
 interface PDFViewerProps {

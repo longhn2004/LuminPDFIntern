@@ -1,5 +1,5 @@
 "use client"
-import PDFViewer from '@/components/PDFViewer';
+import PDFViewer from '@/components/viewpdf/PDFViewer';
 import { useParams } from 'next/navigation';
 import DashboardHeader from '@/components/DashboardHeader';
 

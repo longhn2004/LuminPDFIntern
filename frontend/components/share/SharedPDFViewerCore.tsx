@@ -1,8 +1,8 @@
 import { useEffect, useState, useRef } from 'react';
-import PDFNavigationBar from '../PageControlBar';
+import PDFNavigationBar from '../viewpdf/PageControlBar';
 import AnnotationPanel from './SharedAnnotationPanel';
-import { zoomIn, zoomOut, setZoom } from '../ZoomControls';
-import { MIN_ZOOM, MAX_ZOOM } from '../ZoomConstants';
+import { zoomIn, zoomOut, setZoom } from '../viewpdf/ZoomControls';
+import { MIN_ZOOM, MAX_ZOOM } from '../viewpdf/ZoomConstants';
 import { useAppTranslations } from '@/hooks/useTranslations';
 
 interface SharedPDFViewerCoreProps {
