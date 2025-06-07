@@ -3,7 +3,7 @@
 import React from 'react';
 import Avatar from '@/components/Avatar';
 import { FileItem } from '@/types/document';
-import { useAppTranslations } from '@/hooks/useTranslations';
+import { useAppTranslations, useCurrentLocale } from '@/hooks/useTranslations';
 
 interface DocumentTableRowProps {
   file: FileItem;
@@ -19,7 +19,8 @@ const DocumentTableRow: React.FC<DocumentTableRowProps> = ({
   formatDate
 }) => {
   const translations = useAppTranslations();
-
+  const locale = useCurrentLocale();
+  const localeCode = locale === 'vi' ? 'vi-VN' : 'en-US';
   return (
     <tr 
       className="hover:bg-gray-50 cursor-pointer border-b border-gray-200 transition-colors"
@@ -41,10 +42,10 @@ const DocumentTableRow: React.FC<DocumentTableRowProps> = ({
           </span>
         </div>
       </td>
-      <td className="py-3 px-4 text-gray-500 w-44">
+      <td className="py-3 px-4 text-gray-500 w-40">
         <div className="flex flex-col">
-          <span>{new Date(file.updatedAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</span>
-          <span className="text-xs">{new Date(file.updatedAt).toLocaleTimeString()}</span>
+          <span>{new Date(file.updatedAt).toLocaleDateString(localeCode, { year: 'numeric', month: 'long', day: 'numeric' })}</span>
+          <span className="text-xs">{new Date(file.updatedAt).toLocaleTimeString(localeCode)}</span>
         </div>
       </td>
     </tr>
