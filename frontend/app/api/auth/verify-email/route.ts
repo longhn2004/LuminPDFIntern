@@ -18,9 +18,12 @@ export async function GET(request: NextRequest) {
     
     const response = await api.get(`/auth/verify-email?token=${token}`);
 
-
-    // Create a response that will redirect to the success page
-    const nextResponse = NextResponse.json(response.data);
+    // Create a response that includes the success data
+    const nextResponse = NextResponse.json({
+      success: true,
+      message: response.data.message || 'Email verified successfully',
+      data: response.data
+    });
 
     // Set cookies from the backend response
     if (response.headers['set-cookie']) {
@@ -49,15 +52,27 @@ export async function GET(request: NextRequest) {
       console.error('Email verification error:', String(error));
     }
     
+    // Return JSON error response instead of redirecting
     if (error instanceof AxiosError && error.response) {
       const message = error.response.data?.message || 'Email verification failed';
-      return NextResponse.redirect(
-        new URL(`/auth/verify-error?message=${encodeURIComponent(message)}`, request.url)
+      const statusCode = error.response.status || HTTP_STATUS.BAD_REQUEST;
+      
+      return NextResponse.json(
+        { 
+          success: false,
+          message,
+          statusCode 
+        }, 
+        { status: statusCode }
       );
     }
     
-    return NextResponse.redirect(
-      new URL(`/auth/verify-error?message=${encodeURIComponent('Email verification failed')}`, request.url)
+    return NextResponse.json(
+      { 
+        success: false,
+        message: 'Email verification failed' 
+      }, 
+      { status: HTTP_STATUS.INTERNAL_SERVER_ERROR }
     );
   }
 } 
