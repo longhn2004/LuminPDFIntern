@@ -35,11 +35,11 @@ A powerful NestJS-based backend API for PDF document management and collaboratio
 
 - **Framework**: NestJS
 - **Database**: MongoDB with Mongoose ODM
-- **Cache**: Upstack Redis
+- **Cache**: Upstash Redis
 - **File Storage**: AWS S3
 - **Authentication**: JWT + Passport.js + Google OAuth 2.0
 - **Email**: Nodemailer
-- **Documentation**: Swagger/OpenAPI
+- **Documentation**: Swagger
 - **Validation**: class-validator
 - **Language**: TypeScript
 

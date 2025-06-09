@@ -53,7 +53,7 @@ LuminPDF is a comprehensive solution consisting of:
 │ • React 18      │◄──►│ • MongoDB       │◄──►│ • AWS S3        │
 │ • TypeScript    │    │ • Redis Cache   │    │ • Google OAuth  │
 │ • Redux Toolkit │    │ • JWT Auth      │    │ • MongoDB Atlas │
-│ • PDFTron       │    │ • Swagger API   │    │ • Upstack cache │
+│ • PDFTron       │    │ • Swagger API   │    │ • Upstash cache │
 │ • Tailwind CSS  │    │ • WebSockets    │    │ • SMTP Email    │
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
@@ -77,7 +77,7 @@ LuminPDF is a comprehensive solution consisting of:
 - **File Storage**: AWS S3
 - **Authentication**: JWT + Passport.js
 - **Email**: Nodemailer
-- **Documentation**: Swagger/OpenAPI
+- **Documentation**: Swagger
 - **Validation**: class-validator
 
 ## 📋 Prerequisites
@@ -405,14 +405,6 @@ npm run build
 # Start production servers
 npm run start
 ```
-
-### Nginx Configuration
-
-Use the provided `nginx.conf` for reverse proxy setup:
-- Frontend served on port 80/443
-- Backend API proxied to `/api` path
-- Static files served efficiently
-- SSL termination and security headers
 
 ## 🔍 API Documentation
 
