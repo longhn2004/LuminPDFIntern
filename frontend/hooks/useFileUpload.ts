@@ -18,35 +18,52 @@ export const useFileUpload = ({ onUploadComplete }: UseFileUploadProps = {}) => 
   // Function to check if PDF is password protected
   const checkPDFPassword = async (file: File): Promise<boolean> => {
     try {
+      // Read file as ArrayBuffer
       const arrayBuffer = await file.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       
-      // Convert to string to search for PDF encryption indicators
-      const pdfString = new TextDecoder('latin1').decode(uint8Array);
+      // Convert to string for pattern matching
+      const pdfContent = new TextDecoder('latin1').decode(uint8Array);
       
-      // Check for common PDF encryption indicators
-      const encryptionIndicators = [
-        '/Encrypt',
-        '/P -', // Permissions flag indicating restrictions
-        '/O <', // Owner password hash
-        '/U <', // User password hash
-        'Standard', // Standard security handler
-        'V 1', // Security handler version
-        'V 2',
-        'V 4',
-        'V 5'
+      // Check for common encryption indicators in PDF structure
+      const encryptionPatterns = [
+        '/Encrypt',      // Most common encryption indicator
+        '/Filter/Standard', // Standard security handler
+        '/V 1',          // Security handler version
+        '/V 2',          // Security handler version  
+        '/V 4',          // Security handler version
+        '/R 2',          // Revision number for security handler
+        '/R 3',          // Revision number for security handler
+        '/R 4',          // Revision number for security handler
+        'endobj',        // Look for encryption object structure
       ];
       
-      // Look for encryption dictionary
-      const hasEncryptDict = pdfString.includes('/Encrypt');
-      const hasSecurityHandler = encryptionIndicators.some(indicator => 
-        pdfString.includes(indicator)
-      );
+      // Check if PDF header is present
+      if (!pdfContent.startsWith('%PDF-')) {
+        console.warn('Invalid PDF file format');
+        return false;
+      }
       
-      return hasEncryptDict || hasSecurityHandler;
+      // Look for encryption patterns
+      let encryptionIndicators = 0;
+      for (const pattern of encryptionPatterns) {
+        if (pdfContent.includes(pattern)) {
+          encryptionIndicators++;
+        }
+      }
+      
+      // If we find encryption patterns, especially /Encrypt, it's likely password protected
+      const isEncrypted = pdfContent.includes('/Encrypt') || encryptionIndicators >= 3;
+      
+      if (isEncrypted) {
+        console.log('PDF appears to be password protected');
+      }
+      
+      return isEncrypted;
     } catch (error) {
       console.error('Error checking PDF password protection:', error);
-      // If we can't read the file, assume it might be password protected
+      // If we can't read the file, assume it's not password protected
+      // to avoid blocking valid uploads
       return false;
     }
   };

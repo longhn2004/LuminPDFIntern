@@ -75,7 +75,12 @@ export class AuthService {
       .findOne({ verificationToken: token })
       .exec();
     if (!user) {
-      throw new BadRequestException('Invalid verification token');
+      throw new BadRequestException('Invalid or expired verification token');
+    }
+
+    // Check if user is already verified
+    if (user.isEmailVerified) {
+      throw new BadRequestException('Email is already verified');
     }
 
     user.isEmailVerified = true;

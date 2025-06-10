@@ -21,9 +21,9 @@ export default function VerifyEmail() {
     setVerifying(true);
     try {
       const response = await fetch(`/api/auth/verify-email?token=${token}`);
+      const data = await response.json();
       
-      if (!response.ok) {
-        const data = await response.json();
+      if (!response.ok || !data.success) {
         throw new Error(data.message || 'Verification failed');
       }
       
