@@ -313,8 +313,8 @@ export class FileService {
       throw new ForbiddenException('You do not have permission to access this file');
     }
 
-    // Only owners and editors can download with annotations
-    if (role !== 'owner' && role !== 'editor') {
+    // Only users with access can download with annotations (owners, editors, and viewers)
+    if (role === 'none') {
       throw new ForbiddenException('You do not have permission to download with annotations');
     }
     
@@ -652,10 +652,10 @@ export class FileService {
       throw new ForbiddenException('You do not have permission to access this file');
     }
 
-    // Only owners and editors can access annotations
-    if (role !== 'owner' && role !== 'editor') {
-      throw new ForbiddenException('You do not have permission to access annotations');
-    }
+    // // Only owners and editors can access annotations
+    // if (role !== 'owner' && role !== 'editor') {
+    //   throw new ForbiddenException('You do not have permission to access annotations');
+    // }
     
     const result = {
       _id: file._id,

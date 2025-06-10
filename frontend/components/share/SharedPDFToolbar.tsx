@@ -32,7 +32,7 @@ const formatFileName = (fileName: string): string => {
  * Determine if user can download with annotations
  */
 const canUserDownloadWithAnnotations = (userRole?: string): boolean => {
-  return userRole === 'editor';
+  return userRole === 'editor' || userRole === 'viewer';
 };
 
 /**

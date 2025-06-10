@@ -178,7 +178,7 @@ const useDownloadHandlers = (pdfId: string, fileName: string, userRole: string) 
   }, [pdfId, fileName, translations]);
 
   const downloadFileWithAnnotations = useCallback(async () => {
-      if (userRole !== 'owner' && userRole !== 'editor') {
+      if (userRole !== 'owner' && userRole !== 'editor' && userRole !== 'viewer') {
       toast.error(translations.errors("accessDenied"));
         return;
       }
