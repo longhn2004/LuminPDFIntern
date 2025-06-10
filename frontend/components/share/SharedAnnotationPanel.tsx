@@ -262,9 +262,9 @@ const SharedAnnotationPanel: React.FC<SharedAnnotationPanelProps> = ({
     }
   }, [annotationManager, documentViewer, pdfId, shareToken]);
 
-  // For viewers, only show read-only message
+  // For viewers, show read-only annotation panel (can view annotations but not edit)
   if (isViewer) {
-    return null; // Don't show anything for viewers - they just get read-only PDF access
+    return null; // Viewers can now download with annotations but still can't edit
   }
 
   // Rest of the component is same as AnnotationPanel but only shows for editors

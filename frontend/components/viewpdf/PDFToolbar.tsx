@@ -34,7 +34,7 @@ const formatFileName = (fileName: string): string => {
  * Determine if user can download with annotations
  */
 const canUserDownloadWithAnnotations = (userRole?: string): boolean => {
-  return userRole === 'owner' || userRole === 'editor';
+  return userRole === 'owner' || userRole === 'editor' || userRole === 'viewer';
 };
 
 /**
