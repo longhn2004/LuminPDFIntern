@@ -967,14 +967,6 @@ export class FileService {
   async getFileUserRole(fileId: string, user: User) {
     console.log(`👤 Getting user role for file: ${fileId} by user: ${user.email}`);
     
-    // Try to get from cache first
-    const cachedRole = await this.cacheService.getUserFileRole(fileId, (user._id as Types.ObjectId).toString());
-    if (cachedRole) {
-      console.log(`💰 Cache HIT: Returning cached user role for file: ${fileId}, user: ${user.email}`);
-      return cachedRole;
-    }
-    
-    console.log(`🔍 Cache MISS: Fetching user role from database for file: ${fileId}, user: ${user.email}`);
     const file = await this.fileModel.findById(fileId).exec();
     if (!file) {
       throw new NotFoundException('File not found');
@@ -987,10 +979,6 @@ export class FileService {
     
     const result = { role };
     
-    // Cache the user role
-    await this.cacheService.setUserFileRole(fileId, (user._id as Types.ObjectId).toString(), role);
-    console.log(`💾 Cached user role for file: ${fileId}, user: ${user.email}, role: ${role}`);
-
     return result;
   }
 
